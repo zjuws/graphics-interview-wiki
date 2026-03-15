@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图形渲染面试 Wiki — 腾讯 · 字节 · 网易</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --sidebar-bg: #fff;
+      --content-bg: #fff;
+      --border: #e2e6ea;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --text: #212529;
+      --muted: #6c757d;
+      --code-bg: #f1f3f5;
+      --tag-tencent: #07c160;
+      --tag-bytedance: #fe2c55;
+      --tag-netease: #e84d1c;
+      --tag-common: #2563eb;
+      --answer-bg: #f0f7ff;
+      --answer-border: #93c5fd;
+      --tip-bg: #fefce8;
+      --tip-border: #fde047;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.4;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .sidebar-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      background: var(--bg);
+    }
+
+    .sidebar-search input:focus { border-color: var(--primary); }
+
+    nav { flex: 1; padding: 8px 0; }
+
+    .nav-section {
+      padding: 8px 16px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 20px;
+      font-size: 13px;
+      color: var(--text);
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    nav a:hover { background: var(--bg); color: var(--primary); border-left-color: var(--primary); }
+    nav a.active { background: #eff6ff; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 960px;
+      overflow-y: auto;
+    }
+
+    .page-hero {
+      margin-bottom: 36px;
+    }
+
+    .page-hero h2 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .page-hero p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .company-badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.tencent  { background: #dcfce7; color: #166534; }
+    .badge.bytedance{ background: #fee2e2; color: #991b1b; }
+    .badge.netease  { background: #ffedd5; color: #9a3412; }
+    .badge.common   { background: #dbeafe; color: #1e40af; }
+
+    /* ── Section ── */
+    .wiki-section { margin-bottom: 48px; }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-icon { font-size: 22px; }
+
+    /* ── Question Card ── */
+    .q-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      background: var(--content-bg);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+
+    .q-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+    .q-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .q-number {
+      min-width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .q-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .q-tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 5px;
+    }
+
+    .q-tag {
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .q-tag.tencent   { background: #dcfce7; color: #166534; }
+    .q-tag.bytedance  { background: #fee2e2; color: #991b1b; }
+    .q-tag.netease   { background: #ffedd5; color: #9a3412; }
+    .q-tag.common    { background: #dbeafe; color: #1e40af; }
+    .q-tag.hard      { background: #fce7f3; color: #9d174d; }
+    .q-tag.medium    { background: #fef3c7; color: #92400e; }
+    .q-tag.easy      { background: #d1fae5; color: #065f46; }
+
+    .q-toggle {
+      font-size: 18px;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .q-card.open .q-toggle { transform: rotate(180deg); }
+
+    .q-body {
+      display: none;
+      padding: 0 20px 20px 60px;
+    }
+
+    .q-card.open .q-body { display: block; }
+
+    .answer-box {
+      background: var(--answer-bg);
+      border-left: 4px solid var(--answer-border);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 18px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #1e3a5f;
+    }
+
+    .answer-box h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .answer-box ul, .answer-box ol {
+      padding-left: 20px;
+      margin: 6px 0;
+    }
+
+    .answer-box li { margin-bottom: 4px; }
+
+    .answer-box code {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+    }
+
+    .answer-box pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin: 10px 0;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      font-family: 'Fira Code', 'Consolas', monospace;
+    }
+
+    .tip-box {
+      background: var(--tip-bg);
+      border-left: 4px solid var(--tip-border);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #713f12;
+      margin-top: 10px;
+    }
+
+    .tip-box strong { color: #92400e; }
+
+    /* ── Stats ── */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 120px;
+      background: var(--content-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    .stat-num { font-size: 28px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      #main { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <h1>🎮 图形渲染面试 Wiki</h1>
+    <p>腾讯 · 字节跳动 · 网易</p>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" id="searchInput" placeholder="搜索题目…" oninput="filterQuestions(this.value)" />
+  </div>
+  <nav>
+    <div class="nav-section">目录</div>
+    <a href="#pipeline" onclick="scrollTo('pipeline')">🔧 渲染管线</a>
+    <a href="#shader" onclick="scrollTo('shader')">✨ 着色器 & GLSL</a>
+    <a href="#lighting" onclick="scrollTo('lighting')">💡 光照模型</a>
+    <a href="#pbr" onclick="scrollTo('pbr')">🔬 PBR 物理渲染</a>
+    <a href="#shadow" onclick="scrollTo('shadow')">🌑 阴影技术</a>
+    <a href="#aa" onclick="scrollTo('aa')">🔲 抗锯齿</a>
+    <a href="#deferred" onclick="scrollTo('deferred')">🏗️ 延迟渲染</a>
+    <a href="#optimize" onclick="scrollTo('optimize')">⚡ 性能优化</a>
+    <a href="#api" onclick="scrollTo('api')">🛠️ OpenGL / Vulkan</a>
+    <a href="#math" onclick="scrollTo('math')">📐 3D 数学</a>
+    <div class="nav-section" style="margin-top:8px">公司标签</div>
+    <a href="#" onclick="filterByTag('tencent')">🟢 腾讯高频</a>
+    <a href="#" onclick="filterByTag('bytedance')">🔴 字节高频</a>
+    <a href="#" onclick="filterByTag('netease')">🟠 网易高频</a>
+  </nav>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main id="main">
+
+  <div class="page-hero">
+    <h2>图形渲染面试题 Wiki</h2>
+    <p>收录腾讯、字节跳动、网易互娱真实面试高频考点，覆盖渲染管线、着色器、光照、PBR、阴影、抗锯齿、延迟渲染、性能优化等核心方向。</p>
+    <div class="company-badges">
+      <span class="badge tencent">🟢 腾讯</span>
+      <span class="badge bytedance">🔴 字节跳动</span>
+      <span class="badge netease">🟠 网易互娱</span>
+      <span class="badge common">🔵 通用高频</span>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-num">50+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">技术模块</div></div>
+    <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
+    <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
+  </div>
+
+  <!-- ══ 1. 渲染管线 ══ -->
+  <section class="wiki-section" id="pipeline">
+    <div class="section-title"><span class="section-icon">🔧</span>渲染管线</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">1</div>
+        <div style="flex:1">
+          <div class="q-title">请描述 GPU 渲染管线的完整流程</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          GPU 渲染管线分为以下阶段：
+          <ol>
+            <li><strong>应用阶段（CPU）</strong>：场景管理、剔除（视锥/遮挡）、Draw Call 提交</li>
+            <li><strong>顶点着色器（Vertex Shader）</strong>：MVP 矩阵变换，将模型空间顶点转换到裁剪空间</li>
+            <li><strong>曲面细分（Tessellation）</strong>（可选）：细分控制 + 细分求值，增加几何细节</li>
+            <li><strong>几何着色器（Geometry Shader）</strong>（可选）：以图元为单位，可生成/删除图元</li>
+            <li><strong>图元装配 & 裁剪</strong>：将顶点组装成三角形，对视锥外部分裁剪</li>
+            <li><strong>光栅化（Rasterization）</strong>：三角形转换为片元（像素候选），插值重心坐标</li>
+            <li><strong>片元着色器（Fragment Shader）</strong>：计算每个片元颜色，采样纹理、光照计算</li>
+            <li><strong>逐片元测试</strong>：深度测试（Z-Test）、模板测试（Stencil Test）、混合（Blending）</li>
+            <li><strong>帧缓冲输出</strong>：写入 Color Buffer，最终显示到屏幕</li>
+          </ol>
+        </div>
+        <div class="tip-box">💡 <strong>面试加分点：</strong>提到 Early-Z（提前深度测试）可以减少 OverDraw，是性能优化重要手段。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">2</div>
+        <div style="flex:1">
+          <div class="q-title">MVP 矩阵分别代表什么？变换顺序是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>M（Model Matrix）</strong>：模型矩阵，将模型从本地空间变换到世界空间（包含平移/旋转/缩放）</li>
+            <li><strong>V（View Matrix）</strong>：观察矩阵，将世界空间变换到相机空间（摄像机在原点，朝向 -Z）</li>
+            <li><strong>P（Projection Matrix）</strong>：投影矩阵，将相机空间变换到裁剪空间（透视或正交投影）</li>
+          </ul>
+          变换顺序（右乘）：<code>gl_Position = P × V × M × vertex</code><br/>
+          即：本地空间 → 世界空间 → 相机空间 → 裁剪空间 → NDC（除以w）→ 屏幕空间
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">3</div>
+        <div style="flex:1">
+          <div class="q-title">什么是深度缓冲（Z-Buffer）？存在哪些精度问题？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          Z-Buffer 是一块与屏幕同大小的缓冲区，存储每个像素当前最近片元的深度值（0~1）。在片元着色后与当前 Z-Buffer 中的值比较，更近则写入颜色并更新深度值。
+          <br/><br/>
+          <strong>精度问题：</strong>
+          <ul>
+            <li><strong>Z-Fighting（深度冲突）</strong>：两个面距离很近时，浮点精度不足导致交替显示</li>
+            <li><strong>精度分布不均匀</strong>：透视投影后深度在近裁面附近精度高，远处精度急剧下降</li>
+          </ul>
+          <strong>解决方案：</strong>
+          <ul>
+            <li>使用 <code>Reversed-Z</code>（反转深度缓冲），利用浮点数在0附近精度高的特性</li>
+            <li>增大近裁面距离，缩小 Far/Near 比值</li>
+            <li>使用 32-bit 深度缓冲代替 24-bit</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">4</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Draw Call？如何减少 Draw Call 提升性能？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          Draw Call 是 CPU 向 GPU 发出的一次绘制命令，每次调用都涉及状态切换和命令提交，CPU 开销较大。
+          <br/><br/>
+          <strong>减少 Draw Call 的主要手段：</strong>
+          <ul>
+            <li><strong>合批（Batching）</strong>：静态合批（Static Batching）/ 动态合批（Dynamic Batching）将多个使用相同材质的物体合并成一次绘制</li>
+            <li><strong>GPU Instancing</strong>：相同网格/材质的物体通过实例化渲染，一次 Draw Call 绘制多个实例</li>
+            <li><strong>图集（Texture Atlas）</strong>：合并多张小纹理为一张，减少材质切换</li>
+            <li><strong>Indirect Rendering</strong>：GPU 驱动渲染，CPU 不再逐个提交</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 2. 着色器 ══ -->
+  <section class="wiki-section" id="shader">
+    <div class="section-title"><span class="section-icon">✨</span>着色器 & GLSL</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">5</div>
+        <div style="flex:1">
+          <div class="q-title">顶点着色器和片元着色器的区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag common">通用</span>
+            <span class="q-tag easy">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>顶点着色器</strong>：每个顶点执行一次，负责顶点变换（MVP）、计算法线、传递插值数据（UV、法线等）到后续阶段</li>
+            <li><strong>片元着色器</strong>：每个像素候选片元执行一次，负责最终颜色计算，包括纹理采样、光照计算、Alpha 混合等</li>
+          </ul>
+          执行频率：片元着色器 >> 顶点着色器，因此片元着色器的性能优化更关键。
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">6</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Uniform、Varying、Attribute？它们的作用是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>Attribute</strong>（仅顶点着色器）：顶点级别的数据，每个顶点不同，如位置、法线、UV。对应 OpenGL 中的 <code>layout(location=0) in vec3 aPos</code></li>
+            <li><strong>Uniform</strong>：全局统一数据，对整个 Draw Call 所有顶点/片元相同，如 MVP 矩阵、光源位置、时间</li>
+            <li><strong>Varying / out-in</strong>：从顶点着色器传递到片元着色器的数据，在光栅化阶段会进行<strong>插值</strong>（如 UV、法线）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">7</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Compute Shader？有哪些应用场景？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          Compute Shader 是不属于传统渲染管线的通用 GPU 计算着色器，可以直接访问 GPU 资源进行并行计算。
+          <br/><br/>
+          <strong>应用场景：</strong>
+          <ul>
+            <li>粒子系统模拟（物理更新）</li>
+            <li>GPU 蒙皮（Skinning）</li>
+            <li>后处理效果（Bloom、SSAO、SSR）</li>
+            <li>GPU 视锥剔除（Frustum Culling）</li>
+            <li>光线追踪加速结构构建</li>
+            <li>深度学习推理加速</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. 光照模型 ══ -->
+  <section class="wiki-section" id="lighting">
+    <div class="section-title"><span class="section-icon">💡</span>光照模型</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">8</div>
+        <div style="flex:1">
+          <div class="q-title">Phong 光照模型和 Blinn-Phong 的区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          两者都是经验光照模型，由环境光 + 漫反射 + 高光三部分组成。
+          <br/><br/>
+          <strong>Phong：</strong>高光计算使用 <code>dot(R, V)</code>，R 是反射向量，V 是视线向量<br/>
+          <strong>Blinn-Phong：</strong>高光计算使用 <code>dot(N, H)</code>，H 是半程向量 <code>H = normalize(L + V)</code>
+          <br/><br/>
+          <strong>Blinn-Phong 的优势：</strong>
+          <ul>
+            <li>计算半程向量比反射向量更快</li>
+            <li>当视线与光线夹角大于90°时 Phong 会出现高光截断，Blinn-Phong 不会</li>
+            <li>结果更接近真实高光分布，能量分布更合理</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">9</div>
+        <div style="flex:1">
+          <div class="q-title">什么是法线贴图（Normal Map）？TBN 矩阵是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          法线贴图通过纹理存储逐像素的法线方向，模拟表面细节凹凸，而无需增加几何面数。纹理中 RGB 通道对应法线的 XYZ 分量，通常存储在切线空间（Tangent Space），颜色偏蓝表示法线基本朝上。
+          <br/><br/>
+          <strong>TBN 矩阵</strong>是从切线空间到世界空间的变换矩阵：
+          <ul>
+            <li><strong>T（Tangent）</strong>：切线，沿 UV 的 U 方向</li>
+            <li><strong>B（Bitangent）</strong>：副切线，沿 UV 的 V 方向</li>
+            <li><strong>N（Normal）</strong>：几何法线</li>
+          </ul>
+          使用时用 TBN 矩阵将法线贴图中的法线从切线空间变换到世界空间，再参与光照计算。
+        </div>
+        <div class="tip-box">💡 <strong>面试陷阱：</strong>法线贴图存储的是切线空间法线，不是世界空间，这是最常考的误区。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">10</div>
+        <div style="flex:1">
+          <div class="q-title">如何绘制一个半透明物体？透明排序问题如何解决？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          半透明物体渲染需要开启 Alpha Blending：<code>srcFactor × src + dstFactor × dst</code>，常用 <code>SrcAlpha, OneMinusSrcAlpha</code>。
+          <br/><br/>
+          <strong>透明排序问题：</strong>Alpha Blending 依赖绘制顺序，需从远到近渲染（Painter's Algorithm），否则混合结果错误。
+          <br/><br/>
+          <strong>解决方案：</strong>
+          <ul>
+            <li>CPU 端按深度排序后绘制（适合粒子等简单场景）</li>
+            <li><strong>OIT（Order-Independent Transparency）</strong>：
+              <ul>
+                <li>Depth Peeling（逐层剥离）</li>
+                <li>Weighted Blended OIT（近似方案，性能好）</li>
+                <li>Per-Pixel Linked List（精确方案，需 Compute Shader）</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 4. PBR ══ -->
+  <section class="wiki-section" id="pbr">
+    <div class="section-title"><span class="section-icon">🔬</span>PBR 物理渲染</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">11</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 PBR？BRDF 的三个核心项 D、F、G 分别代表什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>PBR（Physically Based Rendering）</strong>基于物理的渲染，核心原则：能量守恒、基于微表面理论、金属/非金属工作流。
+          <br/><br/>
+          <strong>Cook-Torrance BRDF：</strong><code>f = D×F×G / (4×(N·L)×(N·V))</code>
+          <br/><br/>
+          <ul>
+            <li><strong>D（Distribution Function）法线分布函数</strong>：描述微表面中朝向半程向量 H 的比例，控制高光大小/形状。常用 GGX（Trowbridge-Reitz）</li>
+            <li><strong>F（Fresnel Equation）菲涅尔方程</strong>：描述光在不同入射角下的反射比率，掠射角时反射率趋向1（边缘发光效果）。常用 Schlick 近似</li>
+            <li><strong>G（Geometry Function）几何函数</strong>：描述微表面自遮挡和阴影（Self-Shadowing/Masking），常用 Smith GGX</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆技巧：</strong>D 控形状，F 控边缘，G 控自遮。三者缺一不可。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">12</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 IBL（Image Based Lighting）？DFG 预计算是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>IBL</strong> 使用 HDR 环境贴图作为光源，模拟真实环境中来自四面八方的光照，使物体融入场景。
+          <br/><br/>
+          分为两部分：
+          <ul>
+            <li><strong>漫反射 IBL</strong>：对环境贴图进行球谐函数（SH）或辐照度（Irradiance Map）预卷积，存储各方向漫射光</li>
+            <li><strong>镜面反射 IBL（Split-Sum 近似）</strong>：
+              <ul>
+                <li>预过滤环境贴图（Pre-filtered Environment Map）：按粗糙度生成 Mip 链</li>
+                <li>BRDF 积分贴图（DFG LUT）：预计算不同粗糙度/cosθ下的 F×G 积分，运行时查表</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">13</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Tone Mapping？为什么 PBR 需要它？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          PBR 使用 HDR 光照计算，颜色值可能远超 [0,1] 范围，而显示器只能显示 LDR（0~1）。<strong>Tone Mapping</strong> 将 HDR 值映射到 LDR 同时保留视觉层次感。
+          <br/><br/>
+          常见算法：
+          <ul>
+            <li><strong>Reinhard</strong>：<code>c = c / (1 + c)</code>，简单但高亮细节损失大</li>
+            <li><strong>ACES（Academy Color Encoding System）</strong>：电影工业标准，色彩更丰富，是目前游戏引擎主流选择（UE4/Unity）</li>
+            <li><strong>Filmic</strong>：仿胶片风格，对比度更高</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 5. 阴影 ══ -->
+  <section class="wiki-section" id="shadow">
+    <div class="section-title"><span class="section-icon">🌑</span>阴影技术</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">14</div>
+        <div style="flex:1">
+          <div class="q-title">Shadow Map 的基本原理是什么？存在哪些问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>原理：</strong>两步渲染。
+          <ol>
+            <li>第一步：从光源视角渲染场景，将深度信息存入 Shadow Map（深度纹理）</li>
+            <li>第二步：正常渲染时，将着色点变换到光源空间，比较其深度与 Shadow Map 中存储深度，更大则在阴影中</li>
+          </ol>
+          <strong>主要问题：</strong>
+          <ul>
+            <li><strong>Shadow Acne（阴影痤疮）</strong>：自遮挡导致表面出现条纹，解决：加 Bias 偏移</li>
+            <li><strong>Peter Panning</strong>：Bias 过大导致阴影漂浮，解决：适当减小 Bias，或用 Second Depth</li>
+            <li><strong>走样（Aliasing）</strong>：Shadow Map 分辨率不足导致锯齿阴影，解决：PCF、PCSS、CSM</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">15</div>
+        <div style="flex:1">
+          <div class="q-title">PCF、PCSS、CSM 分别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>PCF（Percentage Closer Filtering）</strong>：对 Shadow Map 进行多次采样并平均，产生软阴影边缘，滤波核大小固定</li>
+            <li><strong>PCSS（Percentage Closer Soft Shadows）</strong>：根据遮挡物距离动态调整 PCF 核大小，近处阴影硬、远处柔和，更接近真实软阴影</li>
+            <li><strong>CSM（Cascaded Shadow Maps）</strong>：针对大场景，将视锥体分层，每层使用独立 Shadow Map，近处精细远处粗糙，解决大场景阴影走样</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 6. 抗锯齿 ══ -->
+  <section class="wiki-section" id="aa">
+    <div class="section-title"><span class="section-icon">🔲</span>抗锯齿技术</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">16</div>
+        <div style="flex:1">
+          <div class="q-title">MSAA、TAA、FXAA 的区别？各自优缺点是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li>
+              <strong>MSAA（Multi-Sample AA）</strong>：每个像素采多个子采样点，只在几何边缘混合。
+              优点：质量高、无 Ghosting；缺点：显存和带宽开销大，不兼容延迟渲染
+            </li>
+            <li>
+              <strong>FXAA（Fast Approximate AA）</strong>：后处理，检测边缘进行模糊。
+              优点：极快，兼容所有管线；缺点：图像整体模糊，细节损失
+            </li>
+            <li>
+              <strong>TAA（Temporal AA）</strong>：利用历史帧信息，每帧 Jitter 采样，时域积累。
+              优点：高质量、可用于延迟渲染；缺点：快速运动时出现 Ghosting（鬼影），需要精确的 Velocity Buffer
+            </li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>当前主流：</strong>现代 3A 游戏基本用 TAA，并配合 Temporal Reprojection 优化 Ghosting 问题。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 7. 延迟渲染 ══ -->
+  <section class="wiki-section" id="deferred">
+    <div class="section-title"><span class="section-icon">🏗️</span>延迟渲染</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">17</div>
+        <div style="flex:1">
+          <div class="q-title">前向渲染与延迟渲染的区别？各自适用场景？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>前向渲染（Forward Rendering）：</strong>
+          每个物体渲染时直接计算所有光照，复杂度 O(物体 × 灯光)。
+          优点：简单、支持 MSAA、透明物体友好；缺点：大量灯光时性能急剧下降。
+          <br/><br/>
+          <strong>延迟渲染（Deferred Rendering）：</strong>
+          分两步：第一步 Geometry Pass 将几何信息（位置、法线、颜色等）写入 G-Buffer；第二步 Lighting Pass 遍历所有灯光，读取 G-Buffer 计算光照。复杂度 O(像素 × 灯光)。
+          优点：支持大量动态灯光；缺点：带宽消耗大（G-Buffer）、不支持 MSAA、透明物体需特殊处理。
+          <br/><br/>
+          <strong>Forward+（Tile-based）</strong>：现代折中方案，将屏幕分 Tile，对每个 Tile 剔除影响它的灯光列表，结合前向渲染，兼顾两者优点。
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">18</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 SSAO？它的原理是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SSAO（Screen Space Ambient Occlusion）屏幕空间环境光遮蔽</strong>，模拟间接光在角落、缝隙处的遮蔽变暗效果。
+          <br/><br/>
+          <strong>原理：</strong>
+          <ol>
+            <li>在每个像素法线半球内随机采样若干点</li>
+            <li>将采样点投影到屏幕空间，与深度缓冲中的深度比较</li>
+            <li>被遮挡的采样点越多，AO 值越小（越暗）</li>
+            <li>对结果进行模糊（Blur）去除噪点</li>
+          </ol>
+          优点：纯屏幕空间，不需要几何预处理；缺点：依赖深度缓冲，存在自遮挡误差，屏幕边缘精度差。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 8. 性能优化 ══ -->
+  <section class="wiki-section" id="optimize">
+    <div class="section-title"><span class="section-icon">⚡</span>性能优化</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">19</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 OverDraw？如何减少 OverDraw？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>OverDraw</strong> 指同一像素被多次绘制，浪费 GPU 的着色计算资源，在移动端尤为严重。
+          <br/><br/>
+          <strong>减少 OverDraw 的方法：</strong>
+          <ul>
+            <li><strong>Early-Z / Z-PrePass</strong>：提前深度测试，通不过的片元不执行着色</li>
+            <li><strong>从前到后排序渲染</strong>（Front-to-Back）：让先绘制的物体写入深度，后面物体早早被剔除</li>
+            <li><strong>视锥剔除（Frustum Culling）</strong>：不在摄像机范围内的物体不提交渲染</li>
+            <li><strong>遮挡剔除（Occlusion Culling）</strong>：被遮挡物体不提交渲染</li>
+            <li><strong>减少透明物体</strong>：Alpha Test 替代 Alpha Blend 可以利用 Early-Z</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">20</div>
+        <div style="flex:1">
+          <div class="q-title">LOD（Level of Detail）是什么？有哪些实现方式？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          LOD 根据物体与摄像机的距离，使用不同精度的模型/纹理，减少远处物体的渲染开销。
+          <br/><br/>
+          <strong>实现方式：</strong>
+          <ul>
+            <li><strong>静态 LOD</strong>：美术制作多套不同面数模型，运行时根据距离切换</li>
+            <li><strong>连续 LOD（CLOD）</strong>：基于半边折叠算法动态简化网格</li>
+            <li><strong>Nanite（UE5）</strong>：虚拟几何体，GPU 端自动按像素精度选取，无需手动制作 LOD</li>
+            <li><strong>纹理 LOD（MipMap）</strong>：根据采样面积自动选择合适分辨率的纹理层级</li>
+            <li><strong>Impostor（公告板）</strong>：极远处用带透明通道的平面代替 3D 模型</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">21</div>
+        <div style="flex:1">
+          <div class="q-title">移动端图形渲染有哪些特殊的性能考量？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          移动端 GPU 普遍采用 <strong>TBR/TBDR（Tile-Based Rendering）</strong>架构，与桌面端 IMR 不同。
+          <br/><br/>
+          <strong>关键注意点：</strong>
+          <ul>
+            <li><strong>带宽是瓶颈</strong>：减少 Render Target 切换（使用 SubPass），压缩纹理格式（ETC2/ASTC）</li>
+            <li><strong>避免频繁读回 CPU</strong>：<code>glReadPixels</code> 极其昂贵</li>
+            <li><strong>合理使用 Load/Store Action</strong>：不需要的 RT 用 DontCare，减少 Tile Memory 到主存的回写</li>
+            <li><strong>避免过大的 OverDraw</strong>：移动端 ALU 资源紧张，半透明效果要克制</li>
+            <li><strong>Alpha Test vs Alpha Blend</strong>：TBDR 上 Alpha Test 会打断 Early-Z，需权衡</li>
+            <li><strong>精度降级</strong>：片元着色器能用 <code>mediump</code> 就不用 <code>highp</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 9. OpenGL/Vulkan ══ -->
+  <section class="wiki-section" id="api">
+    <div class="section-title"><span class="section-icon">🛠️</span>OpenGL / Vulkan API</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">22</div>
+        <div style="flex:1">
+          <div class="q-title">OpenGL 中 VAO、VBO、EBO 各是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag common">通用</span>
+            <span class="q-tag easy">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>VBO（Vertex Buffer Object）</strong>：GPU 端存储顶点数据（位置、法线、UV 等）的缓冲区</li>
+            <li><strong>EBO/IBO（Element/Index Buffer Object）</strong>：存储顶点索引，复用顶点数据，减少冗余</li>
+            <li><strong>VAO（Vertex Array Object）</strong>：记录顶点属性的配置状态（如哪个 VBO 的哪些数据对应着色器哪个属性），避免每次绘制重复配置</li>
+          </ul>
+          使用流程：创建 VAO → 绑定 VBO + EBO → 配置顶点属性 → 解绑 → 绘制时只需绑定 VAO。
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">23</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan 相比 OpenGL 的核心优势是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>更低的 CPU 开销</strong>：减少驱动层状态验证，Command Buffer 预录制，多线程提交</li>
+            <li><strong>显式控制</strong>：内存管理、同步、渲染过程（RenderPass/SubPass）均由开发者显式管理，减少隐式开销</li>
+            <li><strong>多线程友好</strong>：Command Buffer 可在多线程并行录制</li>
+            <li><strong>Pipeline State Object</strong>：提前编译完整管线状态，避免运行时 Shader 编译卡顿</li>
+            <li><strong>更好的移动端 TBR 支持</strong>：SubPass 可利用 Tile Memory 避免主存读写</li>
+          </ul>
+          代价：代码量是 OpenGL 的数倍，开发复杂度极高。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 10. 3D 数学 ══ -->
+  <section class="wiki-section" id="math">
+    <div class="section-title"><span class="section-icon">📐</span>3D 数学</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">24</div>
+        <div style="flex:1">
+          <div class="q-title">四元数（Quaternion）相比欧拉角的优势是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>避免万向节死锁（Gimbal Lock）</strong>：欧拉角在特定角度时两个轴重合，丢失一个自由度；四元数无此问题</li>
+            <li><strong>插值平滑</strong>：四元数支持 SLERP（球面线性插值），旋转动画更自然；欧拉角插值会出现路径扭曲</li>
+            <li><strong>计算效率高</strong>：四元数乘法比矩阵乘法更快</li>
+            <li><strong>数值稳定性好</strong>：累积旋转时误差较小，易于归一化修正</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">25</div>
+        <div style="flex:1">
+          <div class="q-title">光线与三角形的相交检测算法（Möller–Trumbore）？</div>
+          <div class="q-tags">
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          Möller–Trumbore 算法利用重心坐标求解光线与三角形的交点，不需要先求平面方程。
+          <br/><br/>
+          光线：<code>P = O + t*D</code>，三角形顶点 V0、V1、V2<br/>
+          交点条件：<code>O + t*D = (1-u-v)*V0 + u*V1 + v*V2</code>
+          <br/><br/>
+          用 Cramer 法则求解 [t, u, v]，条件：<code>t>0</code>，<code>u≥0, v≥0, u+v≤1</code>
+          <br/><br/>
+          优点：仅用叉积、点积运算，无需存储法向量，是光线追踪中最常用的求交算法。
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function toggle(card) {
+    card.classList.toggle('open');
+  }
+
+  function filterQuestions(keyword) {
+    keyword = keyword.toLowerCase();
+    document.querySelectorAll('.q-card').forEach(card => {
+      const text = card.querySelector('.q-title').textContent.toLowerCase();
+      card.style.display = text.includes(keyword) ? '' : 'none';
+    });
+  }
+
+  function filterByTag(tag) {
+    document.querySelectorAll('.q-card').forEach(card => {
+      const hasTag = card.querySelector(`.q-tag.${tag}`);
+      card.style.display = hasTag ? '' : 'none';
+    });
+    document.getElementById('searchInput').value = '';
+    return false;
+  }
+
+  // 高亮当前导航
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+  const sections = document.querySelectorAll('.wiki-section');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 100) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }, { passive: true });
+
+  function scrollTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    return false;
+  }
+</script>
+</body>
+</html>
