@@ -354,6 +354,7 @@
     <a href="#pipeline" onclick="scrollTo('pipeline')">🔧 渲染管线</a>
     <a href="#shader" onclick="scrollTo('shader')">✨ 着色器 & GLSL</a>
     <a href="#lighting" onclick="scrollTo('lighting')">💡 光照模型</a>
+    <a href="#oit" onclick="scrollTo('oit')" style="padding-left:32px;font-size:12px">↳ OIT 透明渲染专项</a>
     <a href="#pbr" onclick="scrollTo('pbr')">🔬 PBR 物理渲染</a>
     <a href="#shadow" onclick="scrollTo('shadow')">🌑 阴影技术</a>
     <a href="#aa" onclick="scrollTo('aa')">🔲 抗锯齿</a>
@@ -383,7 +384,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">50+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">55+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -690,18 +691,204 @@
           <br/><br/>
           <strong>解决方案：</strong>
           <ul>
-            <li>CPU 端按深度排序后绘制（适合粒子等简单场景）</li>
-            <li><strong>OIT（Order-Independent Transparency）</strong>：
-              <ul>
-                <li>Depth Peeling（逐层剥离）</li>
-                <li>Weighted Blended OIT（近似方案，性能好）</li>
-                <li>Per-Pixel Linked List（精确方案，需 Compute Shader）</li>
-              </ul>
-            </li>
+            <li><strong>CPU 端按深度排序后绘制</strong>：每帧将透明物体按摄像机距离从远到近排序，依次绘制。适合粒子系统等数量有限、层次简单的场景；缺点是无法处理互相穿插的多边形，排序本身也有 CPU 开销。</li>
+            <li><strong>OIT（Order-Independent Transparency，顺序无关透明）</strong>：不依赖绘制顺序，在 GPU 端收集所有片元后统一合成，可正确处理任意穿插透明物体。主要算法见下方专项题。</li>
           </ul>
         </div>
+        <div class="tip-box">💡 <strong>面试建议：</strong>提到 OIT 并能说出至少一种具体实现方案，是加分项。详见下方 Q11~Q13。</div>
       </div>
     </div>
+
+    <!-- OIT 专项 Q11 -->
+    <div id="oit"></div>
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">11</div>
+        <div style="flex:1">
+          <div class="q-title">OIT 方案一：Depth Peeling（深度剥离）的原理是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 核心思想</h4>
+          Depth Peeling 通过<strong>多轮渲染</strong>逐层"剥离"透明层，每轮只取当前最近未处理的透明片元，最后从后往前合成所有层。
+          <br/><br/>
+          <h4>📐 算法步骤</h4>
+          <ol>
+            <li><strong>第 0 轮（初始化）</strong>：正常渲染所有不透明物体，写入深度缓冲 Z₀（作为背景深度参考）</li>
+            <li><strong>第 1 轮（剥第 1 层）</strong>：渲染所有透明物体，片元着色器中与 Z₀ 对比，只保留深度 <strong>大于</strong> Z₀ 中最小值的片元（即最近的透明层），结果写入颜色纹理 Layer₁ 和新深度 Z₁</li>
+            <li><strong>第 N 轮（剥第 N 层）</strong>：用上一轮生成的 Zₙ₋₁ 作为参考，重复上述过程，每轮剥出更深一层</li>
+            <li><strong>合成</strong>：所有层从最远到最近依次 Alpha Blend 合成，得到最终图像</li>
+          </ol>
+          <br/>
+          <h4>⚙️ 伪代码示意</h4>
+          <pre>// 片元着色器核心判断（第 k 轮）
+float currentDepth = gl_FragCoord.z;
+float prevLayerDepth = texture(prevDepthTex, uv).r;
+if (currentDepth <= prevLayerDepth + EPSILON)
+    discard;  // 丢弃已经剥过的层
+// 通过的片元即为本轮最近未处理层</pre>
+          <h4>✅ 优缺点</h4>
+          <ul>
+            <li>✅ <strong>精确</strong>：结果与排序绘制完全一致，无近似误差</li>
+            <li>✅ 支持任意穿插的透明物体</li>
+            <li>❌ <strong>性能差</strong>：N 层透明就需要 N+1 次完整渲染 Pass，DrawCall 倍增</li>
+            <li>❌ 透明层数未知，需预设最大层数或动态判断</li>
+          </ul>
+          <br/>
+          <strong>改进变种：Dual Depth Peeling</strong> — 每轮同时剥最前和最后一层，Pass 数减半，是 Depth Peeling 的工程优化版本。
+        </div>
+        <div class="tip-box">💡 <strong>适用场景：</strong>透明层数较少、对正确性要求极高的离线渲染或高端实时渲染（如医学可视化）。游戏中较少直接使用，性能开销过大。</div>
+      </div>
+    </div>
+
+    <!-- OIT 专项 Q12 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">12</div>
+        <div style="flex:1">
+          <div class="q-title">OIT 方案二：Weighted Blended OIT（加权混合透明）原理是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 核心思想</h4>
+          Weighted Blended OIT（WBOIT，Morgan McGuire 等 2013 年提出）是一种<strong>近似 OIT</strong> 方案：不追求逐层精确排序，而是给每个透明片元赋予一个<strong>权重</strong>（综合考虑深度和不透明度），通过加权平均颜色 + 累积不透明度来近似最终效果，只需 <strong>2个 Pass</strong>。
+          <br/><br/>
+          <h4>📐 算法步骤</h4>
+          <ol>
+            <li>
+              <strong>Accumulation Pass（累积 Pass）</strong>：渲染所有透明物体到两张 RT：
+              <ul>
+                <li><strong>accum RT（RGBA16F）</strong>：累积加权颜色，<code>accum += color × alpha × w(z, alpha)</code></li>
+                <li><strong>revealage RT（R8）</strong>：累积覆盖率，<code>reveal *= (1 - alpha)</code></li>
+              </ul>
+              权重函数 w(z, α) 综合深度和不透明度，示例：<code>w = alpha × clamp(0.03/(1e-5 + (z/200)^4), 1e-2, 3e3)</code>
+            </li>
+            <li>
+              <strong>Composite Pass（合成 Pass）</strong>：用全屏四边形合成：
+              <pre>vec4 accum = texture(accumTex, uv);
+float reveal = texture(revealTex, uv).r;
+// 加权平均颜色
+vec3 avgColor = accum.rgb / max(accum.a, 1e-5);
+// 最终 Alpha
+float alpha = 1.0 - reveal;
+outColor = vec4(avgColor, alpha);</pre>
+            </li>
+          </ol>
+          <h4>✅ 优缺点</h4>
+          <ul>
+            <li>✅ <strong>性能极好</strong>：固定 2 个 Pass，与透明层数无关</li>
+            <li>✅ 兼容延迟渲染，无需排序</li>
+            <li>✅ 已被 UE4 / Three.js / Babylon.js 等广泛采用</li>
+            <li>❌ <strong>近似方案</strong>：极端情况（深度接近、高不透明度）效果有偏差</li>
+            <li>❌ 权重函数需要根据场景调参，不存在通用完美权重</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>工程首选：</strong>WBOIT 是游戏和实时渲染中最常用的 OIT 方案，性价比最高。面试时能说出"2个Pass + 加权平均"即可拿分。</div>
+      </div>
+    </div>
+
+    <!-- OIT 专项 Q13 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">13</div>
+        <div style="flex:1">
+          <div class="q-title">OIT 方案三：Per-Pixel Linked List（逐像素链表）原理是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 核心思想</h4>
+          Per-Pixel Linked List（PPLL）是<strong>精确 OIT</strong> 方案：利用 GPU 的 <strong>Compute Shader + SSBO / UAV</strong>，为每个像素维护一条链表，收集该像素上所有透明片元，最后对链表排序后从后往前合成。
+          <br/><br/>
+          <h4>📐 算法步骤</h4>
+          <ol>
+            <li>
+              <strong>数据结构准备</strong>：
+              <ul>
+                <li><strong>Head Pointer Buffer</strong>：屏幕尺寸的 uint 纹理，每个像素存链表头节点索引，初始化为 NULL（0xFFFFFFFF）</li>
+                <li><strong>Fragment Store Buffer（SSBO）</strong>：全局片元节点池，每个节点存 { color, depth, alpha, next }</li>
+                <li><strong>原子计数器</strong>：分配新节点时原子自增，保证并发安全</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Fragment Collection Pass（片元收集 Pass）</strong>：渲染所有透明物体，片元着色器中：
+              <pre>// 原子分配新节点
+uint nodeIdx = atomicAdd(counter, 1);
+// 写入片元数据
+store[nodeIdx] = FragNode(color, depth, alpha,
+                           headBuffer[pixelCoord]);
+// 头插法更新链表头
+imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
+            </li>
+            <li>
+              <strong>Sort & Resolve Pass（排序合成 Pass）</strong>：全屏 Compute Shader，对每个像素的链表按深度从远到近排序（插入排序，片元数通常较少），然后从后往前 Alpha Blend 合成。
+            </li>
+          </ol>
+          <h4>✅ 优缺点</h4>
+          <ul>
+            <li>✅ <strong>完全精确</strong>：结果与 CPU 排序绘制一致，无任何近似</li>
+            <li>✅ 支持任意数量的透明层，无需预设层数</li>
+            <li>❌ <strong>显存开销大</strong>：Fragment Store Buffer 需预分配，典型值为 8×屏幕像素数个节点</li>
+            <li>❌ <strong>性能不稳定</strong>：透明物体多时显存/带宽压力剧增，原子操作有竞争开销</li>
+            <li>❌ 需要 D3D11 / OpenGL 4.3+ / Vulkan 才支持</li>
+          </ul>
+          <br/>
+          <h4>🔄 三种 OIT 方案横向对比</h4>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 10px;text-align:left;border:1px solid #93c5fd">方案</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #93c5fd">精确度</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #93c5fd">性能</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #93c5fd">实现难度</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #93c5fd">适用场景</th>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea"><strong>Depth Peeling</strong></td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">⭐⭐⭐ 精确</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">❌ 慢（N Pass）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">中等</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">离线/医学可视化</td>
+            </tr>
+            <tr style="background:#f8f9fa">
+              <td style="padding:6px 10px;border:1px solid #e2e6ea"><strong>Weighted Blended</strong></td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">⭐⭐ 近似</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">✅ 快（2 Pass）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">简单</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">游戏/实时渲染首选</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea"><strong>Per-Pixel Linked List</strong></td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">⭐⭐⭐ 精确</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">⚠️ 中等（显存大）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">复杂</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">高端实时/需精确效果</td>
+            </tr>
+          </table>
+        </div>
+        <div class="tip-box">💡 <strong>面试回答策略：</strong>先说"OIT有三种主流方案"，再分别用一句话概括各自核心思路，最后说"工程中常用WBOIT因为只需2个Pass且效果可接受"，逻辑清晰，必拿高分。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 4. PBR ══ -->
@@ -710,7 +897,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">11</div>
+        <div class="q-number">14</div>
         <div style="flex:1">
           <div class="q-title">什么是 PBR？BRDF 的三个核心项 D、F、G 分别代表什么？</div>
           <div class="q-tags">
@@ -741,7 +928,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">12</div>
+        <div class="q-number">15</div>
         <div style="flex:1">
           <div class="q-title">什么是 IBL（Image Based Lighting）？DFG 预计算是什么？</div>
           <div class="q-tags">
@@ -773,7 +960,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">13</div>
+        <div class="q-number">16</div>
         <div style="flex:1">
           <div class="q-title">什么是 Tone Mapping？为什么 PBR 需要它？</div>
           <div class="q-tags">
@@ -806,7 +993,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">14</div>
+        <div class="q-number">17</div>
         <div style="flex:1">
           <div class="q-title">Shadow Map 的基本原理是什么？存在哪些问题？</div>
           <div class="q-tags">
@@ -838,7 +1025,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">15</div>
+        <div class="q-number">18</div>
         <div style="flex:1">
           <div class="q-title">PCF、PCSS、CSM 分别是什么？</div>
           <div class="q-tags">
@@ -868,7 +1055,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">16</div>
+        <div class="q-number">19</div>
         <div style="flex:1">
           <div class="q-title">MSAA、TAA、FXAA 的区别？各自优缺点是什么？</div>
           <div class="q-tags">
@@ -909,7 +1096,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">17</div>
+        <div class="q-number">20</div>
         <div style="flex:1">
           <div class="q-title">前向渲染与延迟渲染的区别？各自适用场景？</div>
           <div class="q-tags">
@@ -939,7 +1126,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">18</div>
+        <div class="q-number">21</div>
         <div style="flex:1">
           <div class="q-title">什么是 SSAO？它的原理是什么？</div>
           <div class="q-tags">
@@ -974,7 +1161,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">19</div>
+        <div class="q-number">22</div>
         <div style="flex:1">
           <div class="q-title">什么是 OverDraw？如何减少 OverDraw？</div>
           <div class="q-tags">
@@ -1004,7 +1191,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">20</div>
+        <div class="q-number">23</div>
         <div style="flex:1">
           <div class="q-title">LOD（Level of Detail）是什么？有哪些实现方式？</div>
           <div class="q-tags">
@@ -1034,7 +1221,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">21</div>
+        <div class="q-number">24</div>
         <div style="flex:1">
           <div class="q-title">移动端图形渲染有哪些特殊的性能考量？</div>
           <div class="q-tags">
@@ -1070,7 +1257,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">22</div>
+        <div class="q-number">25</div>
         <div style="flex:1">
           <div class="q-title">OpenGL 中 VAO、VBO、EBO 各是什么？</div>
           <div class="q-tags">
@@ -1095,7 +1282,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">23</div>
+        <div class="q-number">26</div>
         <div style="flex:1">
           <div class="q-title">Vulkan 相比 OpenGL 的核心优势是什么？</div>
           <div class="q-tags">
@@ -1129,7 +1316,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">24</div>
+        <div class="q-number">27</div>
         <div style="flex:1">
           <div class="q-title">四元数（Quaternion）相比欧拉角的优势是什么？</div>
           <div class="q-tags">
@@ -1155,7 +1342,7 @@
 
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
-        <div class="q-number">25</div>
+        <div class="q-number">28</div>
         <div style="flex:1">
           <div class="q-title">光线与三角形的相交检测算法（Möller–Trumbore）？</div>
           <div class="q-tags">
