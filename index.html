@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>图形渲染面试 Wiki — 腾讯 · 字节 · 网易</title>
+  <title>图形渲染 & AI 大模型面试 Wiki — 腾讯 · 字节 · 网易</title>
   <style>
     :root {
       --bg: #f8f9fa;
@@ -343,7 +343,7 @@
 <!-- ══════════════ SIDEBAR ══════════════ -->
 <aside id="sidebar">
   <div class="sidebar-header">
-    <h1>🎮 图形渲染面试 Wiki</h1>
+    <h1>🎮 图形渲染 & AI 面试 Wiki</h1>
     <p>腾讯 · 字节跳动 · 网易</p>
   </div>
   <div class="sidebar-search">
@@ -362,6 +362,11 @@
     <a href="#optimize" onclick="scrollTo('optimize')">⚡ 性能优化</a>
     <a href="#api" onclick="scrollTo('api')">🛠️ OpenGL / Vulkan</a>
     <a href="#math" onclick="scrollTo('math')">📐 3D 数学</a>
+    <a href="#llm" onclick="scrollTo('llm')">🤖 AI 大模型</a>
+    <a href="#llm-arch" onclick="scrollTo('llm-arch')" style="padding-left:32px;font-size:12px">↳ Transformer 架构</a>
+    <a href="#llm-train" onclick="scrollTo('llm-train')" style="padding-left:32px;font-size:12px">↳ 训练 & 微调</a>
+    <a href="#llm-infer" onclick="scrollTo('llm-infer')" style="padding-left:32px;font-size:12px">↳ 推理优化</a>
+    <a href="#llm-rag" onclick="scrollTo('llm-rag')" style="padding-left:32px;font-size:12px">↳ RAG & Agent</a>
     <div class="nav-section" style="margin-top:8px">公司标签</div>
     <a href="#" onclick="filterByTag('tencent')">🟢 腾讯高频</a>
     <a href="#" onclick="filterByTag('bytedance')">🔴 字节高频</a>
@@ -373,8 +378,8 @@
 <main id="main">
 
   <div class="page-hero">
-    <h2>图形渲染面试题 Wiki</h2>
-    <p>收录腾讯、字节跳动、网易互娱真实面试高频考点，覆盖渲染管线、着色器、光照、PBR、阴影、抗锯齿、延迟渲染、性能优化等核心方向。</p>
+    <h2>图形渲染 & AI 大模型面试题 Wiki</h2>
+    <p>收录腾讯、字节跳动、网易互娱真实面试高频考点，覆盖渲染管线、着色器、光照、PBR、阴影、抗锯齿、延迟渲染、性能优化等图形核心方向，以及 Transformer 架构、大模型训练微调、推理优化、RAG 与 Agent 等 AI 大模型核心方向。</p>
     <div class="company-badges">
       <span class="badge tencent">🟢 腾讯</span>
       <span class="badge bytedance">🔴 字节跳动</span>
@@ -384,8 +389,8 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">55+</div><div class="stat-label">面试题目</div></div>
-    <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">技术模块</div></div>
+    <div class="stat-item"><div class="stat-num">70+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">11</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
   </div>
@@ -1367,6 +1372,466 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ===================== AI 大模型 ===================== -->
+  <section class="wiki-section" id="llm">
+    <h2>🤖 AI 大模型</h2>
+    <p style="color:var(--text-secondary);margin-bottom:24px">覆盖 Transformer 架构、大模型训练与微调、推理优化、RAG 与 Agent 等核心方向，适用于 AI 方向研发岗位面试。</p>
+
+    <!-- ── Transformer 架构 ── -->
+    <h3 id="llm-arch" style="margin:32px 0 16px;color:var(--accent)">⚡ Transformer 架构</h3>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">29</div>
+        <div style="flex:1">
+          <div class="q-title">Transformer 的整体结构是什么？Self-Attention 如何计算？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>Encoder-Decoder 结构</strong>：原始 Transformer 由 N 层 Encoder + N 层 Decoder 组成；GPT 系列仅用 Decoder，BERT 仅用 Encoder</li>
+            <li><strong>Self-Attention 计算</strong>：
+              <ul>
+                <li>输入序列 X，通过三个线性投影得到 Q、K、V</li>
+                <li><code>Attention(Q,K,V) = softmax(QK<sup>T</sup> / √d<sub>k</sub>) · V</code></li>
+                <li>除以 √d<sub>k</sub> 是为了防止点积过大导致 softmax 梯度消失</li>
+              </ul>
+            </li>
+            <li><strong>Multi-Head Attention</strong>：将 Q/K/V 分成 h 个头并行计算，再拼接投影，捕获不同子空间的特征</li>
+            <li><strong>位置编码</strong>：Transformer 无序列顺序感知，通过 sin/cos 位置编码或可学习位置编码注入位置信息</li>
+            <li><strong>FFN</strong>：每个 Attention 层后接两层全连接（中间维度通常 4× 模型维度），引入非线性</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">30</div>
+        <div style="flex:1">
+          <div class="q-title">Self-Attention 的时间和空间复杂度是多少？有哪些优化方案？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>复杂度</strong>：标准 Self-Attention 对序列长度 n 是 <code>O(n²·d)</code> 时间、<code>O(n²)</code> 空间，长序列时瓶颈明显</li>
+            <li><strong>FlashAttention</strong>：IO-Aware 实现，将 Q/K/V 分块在 SRAM 中计算，减少 HBM 读写，速度提升 2–4×，显存降至 <code>O(n)</code></li>
+            <li><strong>稀疏 Attention</strong>（Longformer、BigBird）：只计算局部窗口 + 全局 token 的注意力，复杂度降至 <code>O(n)</code></li>
+            <li><strong>线性 Attention</strong>：用核函数近似 softmax，复杂度降至 <code>O(n·d²)</code></li>
+            <li><strong>滑动窗口 / 分组 Attention</strong>（GQA、MQA）：多个查询头共享 K/V，减少 KV Cache 显存</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">31</div>
+        <div style="flex:1">
+          <div class="q-title">LayerNorm 和 BatchNorm 的区别？为什么 Transformer 用 LayerNorm？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>BatchNorm</strong>：在 batch 维度上归一化，依赖 batch size，推理时需要保存运行均值/方差，不适合变长序列</li>
+            <li><strong>LayerNorm</strong>：在单个样本的特征维度上归一化，不依赖 batch size，适合变长序列和自回归生成场景</li>
+            <li><strong>Transformer 选 LayerNorm 的原因</strong>：
+              <ul>
+                <li>NLP 序列长度不固定，batch 内 padding 多，BatchNorm 统计不准确</li>
+                <li>自回归推理时 batch size = 1，BatchNorm 失效</li>
+                <li>LayerNorm 训练推理行为一致，更稳定</li>
+              </ul>
+            </li>
+            <li><strong>Pre-LN vs Post-LN</strong>：GPT 系列使用 Pre-LN（Norm 在 Attention 之前），训练更稳定，但表达力稍弱</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">32</div>
+        <div style="flex:1">
+          <div class="q-title">RoPE（旋转位置编码）的原理是什么？相比绝对位置编码有何优势？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>核心思想</strong>：将位置信息编码为旋转矩阵，对 Q/K 向量在复数空间中旋转，使得 <code>q<sub>m</sub>·k<sub>n</sub></code> 只依赖相对位置 <code>m-n</code></li>
+            <li><strong>优势</strong>：
+              <ul>
+                <li>天然支持相对位置，无需额外设计相对位置偏置</li>
+                <li>外推性好：通过调整旋转频率（YaRN、NTK-aware scaling）可扩展到训练时未见过的长度</li>
+                <li>计算简洁，只操作 Q/K，不影响 V</li>
+              </ul>
+            </li>
+            <li><strong>LLaMA/Qwen/Mistral 均采用 RoPE</strong>，已成为主流开源大模型标配</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 训练 & 微调 ── -->
+    <h3 id="llm-train" style="margin:32px 0 16px;color:var(--accent)">🎓 训练 & 微调</h3>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">33</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 RLHF？训练流程分哪几个阶段？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          RLHF（Reinforcement Learning from Human Feedback）是使大模型与人类偏好对齐的核心训练方法，分三阶段：
+          <br/><br/>
+          <strong>① SFT（Supervised Fine-Tuning）</strong>：用人工标注的高质量问答数据有监督微调基座模型，使其具备对话能力<br/><br/>
+          <strong>② 奖励模型训练（Reward Model）</strong>：人工对模型多条回答进行排序，训练一个打分模型 RM，学习人类偏好<br/><br/>
+          <strong>③ PPO 强化学习</strong>：以 RM 的打分作为奖励信号，用 PPO 算法优化策略模型，同时加入 KL 散度惩罚防止偏离 SFT 模型太远<br/><br/>
+          <ul>
+            <li><strong>DPO（Direct Preference Optimization）</strong>：跳过 RM，直接用人类偏好数据优化策略，更简洁，已被广泛采用</li>
+            <li><strong>GRPO</strong>（DeepSeek-R1 使用）：用 Group 采样替代 Critic，减少显存开销</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">34</div>
+        <div style="flex:1">
+          <div class="q-title">LoRA 的原理是什么？为什么参数高效微调能取得好效果？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>核心假设</strong>：预训练模型权重更新的内在维度（intrinsic rank）很低，可以用低秩矩阵近似</li>
+            <li><strong>方法</strong>：冻结原始权重 W，仅训练旁路低秩矩阵 <code>ΔW = B·A</code>（r ≪ d），推理时合并：<code>W' = W + α/r · B·A</code></li>
+            <li><strong>参数量</strong>：原始 W 为 d×d，LoRA 只训练 d×r + r×d 个参数，r=8 时参数量约为原来的 1%</li>
+            <li><strong>变体</strong>：
+              <ul>
+                <li><strong>QLoRA</strong>：将基座模型量化为 4-bit NF4，再叠加 LoRA，单卡可微调 65B 模型</li>
+                <li><strong>DoRA</strong>：将权重分解为幅度 + 方向，分别更新，效果优于 LoRA</li>
+                <li><strong>LoRA+</strong>：A/B 矩阵使用不同学习率，收敛更快</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">35</div>
+        <div style="flex:1">
+          <div class="q-title">大模型训练中的混合精度（FP16/BF16）和梯度检查点是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>混合精度训练</strong>：前向/反向用 FP16（或 BF16）计算，保存 FP32 主权重副本用于参数更新，使用损失缩放（Loss Scaling）防止 FP16 下溢</li>
+            <li><strong>BF16 vs FP16</strong>：BF16 指数位与 FP32 相同（8位），动态范围大，无需 Loss Scaling，A100/H100 推荐用 BF16</li>
+            <li><strong>梯度检查点（Gradient Checkpointing）</strong>：前向传播时不保存所有中间激活值，反向传播时按需重新计算，以 ~33% 额外计算换取显存节省（激活显存从 O(n) 降至 O(√n)）</li>
+            <li><strong>ZeRO 优化器</strong>（DeepSpeed）：将优化器状态、梯度、参数分片到多卡，ZeRO-3 可训练千亿参数模型</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 推理优化 ── -->
+    <h3 id="llm-infer" style="margin:32px 0 16px;color:var(--accent)">🚀 推理优化</h3>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">36</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 KV Cache？它如何加速自回归生成？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>问题背景</strong>：自回归生成每步只生成一个 token，但 Attention 需要与所有历史 token 计算，若每步都重新计算 K/V 代价极高</li>
+            <li><strong>KV Cache</strong>：将历史 token 的 Key 和 Value 矩阵缓存到显存，每步只计算新 token 的 Q/K/V 并追加到缓存，Attention 在缓存上执行</li>
+            <li><strong>显存开销</strong>：每层每个 token 需缓存 <code>2 × n_heads × d_head × bytes</code>，长序列时显存压力大</li>
+            <li><strong>优化方向</strong>：
+              <ul>
+                <li><strong>MQA/GQA</strong>：多个 Q 头共享一组 K/V，显存减少 h 倍</li>
+                <li><strong>PagedAttention</strong>（vLLM）：将 KV Cache 分页管理，动态分配，减少碎片，提升并发吞吐</li>
+                <li><strong>量化 KV Cache</strong>：用 INT8/FP8 存储，显存减半</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">37</div>
+        <div style="flex:1">
+          <div class="q-title">大模型量化的常见方法有哪些？INT8/INT4 量化的原理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>量化目的</strong>：将 FP32/BF16 权重压缩为低比特整数，减少显存占用和带宽，加速推理</li>
+            <li><strong>PTQ（训练后量化）</strong>：
+              <ul>
+                <li><strong>GPTQ</strong>：逐层量化，最小化量化误差，精度损失小，INT4 下 7B 模型约 4GB</li>
+                <li><strong>AWQ</strong>：保护激活值较大的权重通道，量化精度优于 GPTQ</li>
+                <li><strong>SmoothQuant</strong>：将激活值的量化难度迁移到权重，实现 W8A8 量化</li>
+              </ul>
+            </li>
+            <li><strong>QAT（量化感知训练）</strong>：在训练中模拟量化误差，精度最高但成本大</li>
+            <li><strong>精度对比</strong>：FP16 &gt; INT8 &gt; INT4，INT4 约有 1–3% 精度损失，但显存减少 4×</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">38</div>
+        <div style="flex:1">
+          <div class="q-title">Prefill 和 Decode 阶段的性能瓶颈分别是什么？如何优化？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>Prefill 阶段</strong>（处理输入 prompt）：并行计算所有 token，算力密集（compute-bound），瓶颈在 GPU 算力利用率</li>
+            <li><strong>Decode 阶段</strong>（逐 token 生成）：每步只生成一个 token，矩阵向量乘法，内存带宽密集（memory-bound），瓶颈在 HBM 带宽</li>
+            <li><strong>优化方案</strong>：
+              <ul>
+                <li><strong>Continuous Batching</strong>：请求完成后立即填入新请求，提升 GPU 利用率</li>
+                <li><strong>Speculative Decoding</strong>：用小模型（Draft Model）快速生成多个候选 token，大模型并行验证，加速 2–3×</li>
+                <li><strong>Prefill-Decode 分离</strong>：将两个阶段部署到不同节点，分别针对算力/带宽优化</li>
+                <li><strong>Chunked Prefill</strong>：将长 prompt 切块，与 Decode 请求混合调度，降低首 token 延迟（TTFT）</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RAG & Agent ── -->
+    <h3 id="llm-rag" style="margin:32px 0 16px;color:var(--accent)">🔗 RAG & Agent</h3>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">39</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 的完整流程是什么？与 Fine-Tuning 相比有何优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RAG（Retrieval-Augmented Generation）流程：</strong>
+          <br/><br/>
+          <code>用户问题 → Embedding → 向量检索（Top-K 相关文档） → 拼接到 Prompt → LLM 生成答案</code>
+          <br/><br/>
+          <ul>
+            <li><strong>关键组件</strong>：Embedding 模型、向量数据库（Faiss/Milvus/Qdrant）、重排序模型（Reranker）</li>
+            <li><strong>RAG vs Fine-Tuning</strong>：
+              <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px">
+                <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">RAG</th><th style="padding:6px;border:1px solid #333">Fine-Tuning</th></tr>
+                <tr><td style="padding:6px;border:1px solid #333">知识更新</td><td style="padding:6px;border:1px solid #333">✅ 实时更新文档库</td><td style="padding:6px;border:1px solid #333">❌ 需重新训练</td></tr>
+                <tr><td style="padding:6px;border:1px solid #333">可解释性</td><td style="padding:6px;border:1px solid #333">✅ 可溯源文档</td><td style="padding:6px;border:1px solid #333">❌ 黑盒</td></tr>
+                <tr><td style="padding:6px;border:1px solid #333">幻觉控制</td><td style="padding:6px;border:1px solid #333">✅ 锚定检索内容</td><td style="padding:6px;border:1px solid #333">一般</td></tr>
+                <tr><td style="padding:6px;border:1px solid #333">风格/格式</td><td style="padding:6px;border:1px solid #333">一般</td><td style="padding:6px;border:1px solid #333">✅ 可定制输出风格</td></tr>
+                <tr><td style="padding:6px;border:1px solid #333">成本</td><td style="padding:6px;border:1px solid #333">✅ 低，无需训练</td><td style="padding:6px;border:1px solid #333">❌ GPU 训练成本高</td></tr>
+              </table>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">40</div>
+        <div style="flex:1">
+          <div class="q-title">LLM Agent 的核心组件是什么？ReAct 框架如何工作？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>Agent 核心组件</strong>：
+              <ul>
+                <li><strong>规划（Planning）</strong>：任务分解、思维链（CoT）、Tree of Thoughts</li>
+                <li><strong>记忆（Memory）</strong>：短期（上下文窗口）+ 长期（向量数据库）</li>
+                <li><strong>工具调用（Tool Use）</strong>：API、代码执行、搜索引擎、数据库</li>
+                <li><strong>行动（Action）</strong>：执行工具并观察结果，循环直到完成目标</li>
+              </ul>
+            </li>
+            <li><strong>ReAct（Reasoning + Acting）框架</strong>：交替输出 <code>Thought</code>（推理步骤）和 <code>Action</code>（工具调用），将推理过程可观测化，减少幻觉，便于调试</li>
+            <li><strong>Multi-Agent</strong>：多个 Agent 协作，各自负责专门子任务（Orchestrator + Workers 模式），适合复杂长流程任务</li>
+            <li><strong>常见框架</strong>：LangChain、LlamaIndex、AutoGen、CrewAI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">41</div>
+        <div style="flex:1">
+          <div class="q-title">大模型幻觉（Hallucination）产生的原因和缓解方法？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>原因</strong>：
+              <ul>
+                <li>训练数据噪声、过时信息</li>
+                <li>语言模型本质是概率生成，倾向于输出"听起来合理"的内容而非真实内容</li>
+                <li>RLHF 过度优化"受人喜欢"的回答，模型学会自信地编造</li>
+                <li>长尾知识覆盖不足，模型对不确定领域仍强行生成</li>
+              </ul>
+            </li>
+            <li><strong>缓解方法</strong>：
+              <ul>
+                <li><strong>RAG</strong>：引入外部知识库，将生成锚定在检索内容上</li>
+                <li><strong>Chain-of-Thought + 自我一致性</strong>：多次采样取多数一致答案</li>
+                <li><strong>不确定性估计</strong>：训练模型在不确定时表达"我不知道"</li>
+                <li><strong>事实核查</strong>：用独立验证模型或工具检验生成内容</li>
+                <li><strong>RLHF 精细化</strong>：在奖励中加入事实准确性评估维度</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">42</div>
+        <div style="flex:1">
+          <div class="q-title">MoE（混合专家模型）的原理？为什么 DeepSeek、Mixtral 采用 MoE？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <ul>
+            <li><strong>结构</strong>：将 Transformer FFN 层替换为多个"专家"子网络（Expert FFN），每个 token 由 Router 动态选择 Top-K 个专家处理（通常 K=2）</li>
+            <li><strong>核心优势</strong>：参数总量大但激活参数量小，Mixtral 8×7B 总参数 47B 但每 token 仅激活 13B，推理成本接近 13B 模型</li>
+            <li><strong>训练挑战</strong>：
+              <ul>
+                <li>负载均衡：避免部分专家过载、部分专家空闲（加辅助 balance loss）</li>
+                <li>通信开销：Expert 分布在不同 GPU，All-to-All 通信成本高</li>
+              </ul>
+            </li>
+            <li><strong>DeepSeek-MoE 创新</strong>：细粒度专家切分 + 共享专家，路由策略更精细，参数利用率更高</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </main>
