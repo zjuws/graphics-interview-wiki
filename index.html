@@ -352,6 +352,7 @@
   <nav>
     <div class="nav-section">目录</div>
     <a href="#pipeline" onclick="scrollTo('pipeline')">🔧 渲染管线</a>
+    <a href="#raytracing" onclick="scrollTo('raytracing')">🔆 光线追踪</a>
     <a href="#shader" onclick="scrollTo('shader')">✨ 着色器 & GLSL</a>
     <a href="#lighting" onclick="scrollTo('lighting')">💡 光照模型</a>
     <a href="#oit" onclick="scrollTo('oit')" style="padding-left:32px;font-size:12px">↳ OIT 透明渲染专项</a>
@@ -389,8 +390,8 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">70+</div><div class="stat-label">面试题目</div></div>
-    <div class="stat-item"><div class="stat-num">11</div><div class="stat-label">技术模块</div></div>
+    <div class="stat-item"><div class="stat-num">85+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
   </div>
@@ -519,6 +520,136 @@
             <li><strong>Indirect Rendering</strong>：GPU 驱动渲染，CPU 不再逐个提交</li>
           </ul>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 光线追踪（新增） ══ -->
+  <section class="wiki-section" id="raytracing">
+    <div class="section-title"><span class="section-icon">🔆</span>光线追踪</div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">46</div>
+        <div style="flex:1">
+          <div class="q-title">光线追踪的基本流程是什么？与光栅化的核心区别在哪里？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>光线追踪（Ray Tracing）基本流程：</strong>
+          <ol>
+            <li><strong>光线生成（Ray Generation）</strong>：从相机出发，为每个像素生成一条主光线（Primary Ray）</li>
+            <li><strong>光线求交（Intersection）</strong>：遍历场景几何体，找到光线与场景的最近交点</li>
+            <li><strong>着色（Shading）</strong>：在交点处计算材质、发出阴影光线（Shadow Ray）向光源检测遮挡</li>
+            <li><strong>递归追踪（Recursive Tracing）</strong>：如有反射/折射，生成次级光线继续追踪，直到达到递归深度或能量阈值</li>
+          </ol>
+          <br/>
+          <strong>与光栅化的核心区别：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 10px;border:1px solid #93c5fd">对比维度</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">光栅化</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">光线追踪</th>
+            </tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">流程方向</td><td style="padding:6px;border:1px solid #e2e6ea">几何 → 像素</td><td style="padding:6px;border:1px solid #e2e6ea">像素 → 几何</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">全局光照</td><td style="padding:6px;border:1px solid #e2e6ea">近似（SSAO、IBL）</td><td style="padding:6px;border:1px solid #e2e6ea">天然支持</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">反射/折射</td><td style="padding:6px;border:1px solid #e2e6ea">需要 SSR/环境贴图近似</td><td style="padding:6px;border:1px solid #e2e6ea">递归追踪，物理准确</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">实时性能</td><td style="padding:6px;border:1px solid #e2e6ea">极高（GPU 专为此优化）</td><td style="padding:6px;border:1px solid #e2e6ea">较低（需 RT Core 加速）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">硬件依赖</td><td style="padding:6px;border:1px solid #e2e6ea">所有 GPU</td><td style="padding:6px;border:1px solid #e2e6ea">需 DXR / Vulkan RT / RT Core</td></tr>
+          </table>
+          <br/>
+          现代游戏多采用<strong>混合渲染（Hybrid Rendering）</strong>：光栅化主视图，光线追踪负责阴影、反射、AO 等高质量效果。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>能说出"光栅化是从几何到像素，光追是从像素到几何，方向相反但可以融合"，显示出对两者本质差异的理解。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">47</div>
+        <div style="flex:1">
+          <div class="q-title">BVH 加速结构的原理是什么？SAH 策略如何优化构建质量？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>BVH（Bounding Volume Hierarchy，层次包围盒）</strong> 是光线追踪中最常用的加速结构，将场景几何体组织成树状结构，快速剔除大量不需要求交的图元。
+          <br/><br/>
+          <strong>构建过程：</strong>
+          <ol>
+            <li>为每个图元（三角形）计算 AABB（轴对齐包围盒）</li>
+            <li>递归地将图元集合分为两组，为每组建立子节点 AABB</li>
+            <li>重复直到叶节点图元数量低于阈值（通常 1~4 个）</li>
+          </ol>
+          <strong>划分策略：</strong>
+          <ul>
+            <li><strong>中点划分</strong>：沿最长轴从中点切分，简单快速但质量差</li>
+            <li><strong>SAH（Surface Area Heuristic，表面积启发式）</strong>：
+              <ul>
+                <li>代价函数：<code>Cost = C_traversal + p_left × N_left × C_intersect + p_right × N_right × C_intersect</code></li>
+                <li>p 为子节点 AABB 面积与父节点的比率，遍历所有候选分割点选最小代价</li>
+                <li>生成的树更平衡，遍历效率最优，是工业界标准（OptiX、DXR 均采用）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>遍历：</strong>光线与根节点 AABB 测试，命中则递归测试两个子节点，未命中剪枝，到达叶节点时进行光线-三角形求交（Möller–Trumbore 算法）。
+          <br/><br/>
+          <strong>BLAS / TLAS（DXR/Vulkan RT）：</strong>
+          <ul>
+            <li><strong>BLAS（Bottom-Level AS）</strong>：每个 Mesh 的几何 BVH，由 GPU 驱动构建</li>
+            <li><strong>TLAS（Top-Level AS）</strong>：包含所有实例的 BVH，每帧根据实例变换更新（Refit），无需重建 BLAS</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试加分：</strong>BLAS/TLAS 两级结构是实时光追工程中的必考点，能说清两级的分工（Mesh 几何 vs 场景实例）是进阶得分关键。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">48</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR 算法的原理是什么？它如何解决实时全局光照的采样效率问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ReSTIR（Reservoir-based Spatiotemporal Importance Resampling）</strong> 是 NVIDIA 2020 年提出的实时光照采样算法，通过时域和空域重用样本，显著减少每像素所需的光源采样数。
+          <br/><br/>
+          <strong>核心思路：</strong>
+          <ul>
+            <li><strong>Reservoir（蓄水池采样）</strong>：每个像素维护一个蓄水池，记录当前最优候选光源及权重之和，支持 O(1) 更新</li>
+            <li><strong>时域重用（Temporal Reuse）</strong>：当前帧的候选样本与上一帧的 Reservoir 合并，有效样本数翻倍</li>
+            <li><strong>空域重用（Spatial Reuse）</strong>：借用邻域像素（通常 5 个随机邻居）的 Reservoir，进一步扩大有效采样数</li>
+          </ul>
+          <strong>效果：</strong>每像素仅 1-2 条光线，但等效采样数可达数百条，特别适合大量动态光源场景（RTXDI 基于此原理）。
+          <br/><br/>
+          <strong>注意事项：</strong>时域重用需要 Visibility Reuse（重新验证历史样本可见性），否则快速遮挡变化时会产生 Bias；实践中使用 Unbiased Reservoir 确保收敛结果无偏。
+        </div>
+        <div class="tip-box">💡 <strong>RTXDI</strong>（NVIDIA RTX Direct Illumination）是 ReSTIR DI 的工程实现，已用于 《赛博朋克 2077》《战地》等 AAA 游戏，是学习实时光追必看案例。</div>
       </div>
     </div>
   </section>
@@ -1052,6 +1183,95 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         </div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">43</div>
+        <div style="flex:1">
+          <div class="q-title">VSM（方差阴影贴图）的原理是什么？与 PCF 相比有何优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VSM（Variance Shadow Map）</strong> 在 Shadow Map 中额外存储深度的一阶矩（均值 μ）和二阶矩（μ²），利用切比雪夫不等式上界快速估计阴影遮挡概率，无需逐像素多次采样。
+          <br/><br/>
+          <strong>核心原理：</strong>
+          <ul>
+            <li>存储 <code>(depth, depth²)</code> 到 Shadow Map，可对其进行 <strong>任意线性滤波</strong>（包括双线性、MipMap、SAT 前缀和）</li>
+            <li>通过均值和方差重建深度分布，用切比雪夫不等式估计 P(x ≥ t)（被遮挡的概率上界）</li>
+            <li>不等式：<code>P(x ≥ t) ≤ σ² / (σ² + (t - μ)²)</code>，其中 σ² = μ₂ - μ²</li>
+          </ul>
+          <br/>
+          <strong>与 PCF 对比：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 10px;border:1px solid #93c5fd">对比项</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">PCF</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">VSM</th>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">采样次数</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">多次（开销随核大小增长）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">仅 1 次纹理查询</td>
+            </tr>
+            <tr style="background:#f8f9fa">
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">可用滤波器</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">有限（仅深度比较后求均值）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">任意线性滤波（SAT、MipMap）</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">漏光（Light Bleeding）</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">无</td>
+              <td style="padding:6px 10px;border:1px solid #e2e6ea">存在，深度方差大时切比雪夫上界不紧</td>
+            </tr>
+          </table>
+          <br/>
+          <strong>漏光缓解方法：</strong>通过 min/max Clamping 或使用 EVSM（指数方差阴影贴图）可显著减少漏光。
+        </div>
+        <div class="tip-box">💡 <strong>面试加分点：</strong>VSM 最大的工程价值在于可以用 SAT（Summed Area Table / Prefix Sum）预计算，使得任意大小软阴影核只需 O(1) 查询，是大核 PCF 的高效替代。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">44</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 SDF 阴影（Ray-Marched SDF Shadows）？Lumen 如何利用 SDF？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SDF（Signed Distance Field，有向距离场）</strong> 存储空间中每个体素到最近表面的有符号距离，负值表示在物体内部。
+          <br/><br/>
+          <strong>SDF 阴影原理：</strong>
+          <ul>
+            <li>从着色点出发沿光线方向 Ray March，每步根据 SDF 值安全步进（球追踪，Sphere Tracing）</li>
+            <li>记录光线行进路径上 SDF 值与步进距离的比率最小值，估算阴影遮挡软度（Penumbra Factor）</li>
+            <li>公式：<code>shadow = min(k × sdf(p) / t)</code>，k 越大阴影越硬</li>
+          </ul>
+          <strong>UE5 Lumen 的 SDF 应用：</strong>
+          <ul>
+            <li>为每个 Mesh 构建 <strong>Mesh Distance Field</strong>，在全局 <strong>Global SDF</strong> 中合并</li>
+            <li>用于：Software Ray Tracing（Lumen 的远场 GI 方案）、距离场阴影、反射光线步进</li>
+            <li>在不支持 RT 硬件的 GPU 上作为 Hardware Ray Tracing 的回退方案</li>
+          </ul>
+          <strong>SDF 阴影 vs Shadow Map：</strong>SDF 阴影天然支持软阴影且无走样问题，但 SDF 只能近似表示几何（无法处理精细细节），且显存占用大（通常每个 Mesh 一个 3D 纹理）。
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -1091,6 +1311,47 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>当前主流：</strong>现代 3A 游戏基本用 TAA，并配合 Temporal Reprojection 优化 Ghosting 问题。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">45</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS / XeSS / FSR 超分辨率的原理是什么？与 TAA 有何关系？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          超分辨率技术以较低分辨率渲染后上采样到目标分辨率，在保证画质的同时大幅提升帧率。
+          <br/><br/>
+          <strong>DLSS 2/3（NVIDIA，Deep Learning Super Sampling）：</strong>
+          <ul>
+            <li>利用 Tensor Core 运行神经网络，融合当前帧（低分辨率）+ 历史帧（高分辨率）+ Motion Vector 进行时域超分</li>
+            <li>DLSS 3 额外引入 <strong>Frame Generation（帧生成）</strong>：用 AI 推算相邻两帧之间的插值帧，在 Render 帧率不变的情况下翻倍显示帧率</li>
+            <li>本质是 TAA 的神经网络强化版，Ghosting 更少，细节恢复更佳</li>
+          </ul>
+          <strong>XeSS（Intel，Xe Super Sampling）：</strong>
+          <ul>
+            <li>类 DLSS 的时域 AI 超分，在 Intel Arc GPU 上用专用矩阵单元加速，其他 GPU 退化为通用 GEMM（仍有超分效果）</li>
+            <li>基于 DP4a 指令，兼容范围广</li>
+          </ul>
+          <strong>FSR 1/2/3（AMD，FidelityFX Super Resolution）：</strong>
+          <ul>
+            <li>FSR 1：纯空间滤波，无神经网络，无历史帧，兼容所有硬件，质量略低</li>
+            <li>FSR 2：引入时域积累，类 DLSS 2，质量大幅提升，不依赖专用硬件</li>
+            <li>FSR 3：同样引入帧生成，跨平台（AMD/NVIDIA/Intel 均可用）</li>
+          </ul>
+          <strong>与 TAA 的关系：</strong>DLSS2/XeSS/FSR2 的时域积累策略本质上是 <em>有监督的神经网络增强版 TAA</em>，用高质量参考帧训练网络学习最优重建，解决了传统 TAA 的 Ghosting 和模糊问题。
+        </div>
+        <div class="tip-box">💡 <strong>面试加分点：</strong>能区分空域超分（FSR1）vs 时域超分（DLSS2/FSR2）vs 帧生成（DLSS3/FSR3）三个层级，是判断深度理解的关键。</div>
       </div>
     </div>
   </section>
@@ -1829,6 +2090,200 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
             <li><strong>DeepSeek-MoE 创新</strong>：细粒度专家切分 + 共享专家，路由策略更精细，参数利用率更高</li>
           </ul>
         </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">49</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 MLA（Multi-Head Latent Attention）？它如何减少 KV Cache 开销？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MLA（Multi-Head Latent Attention）</strong> 是 DeepSeek-V2 提出的注意力改进，核心思想是将 K/V 压缩到一个低维潜在向量（Latent Vector）缓存，显著减少 KV Cache 显存占用。
+          <br/><br/>
+          <strong>核心机制：</strong>
+          <ul>
+            <li><strong>低秩 KV 压缩</strong>：将 K/V 投影到维度远小于原始头维度的潜在空间 <code>c_KV = W_DKV · x</code>，仅缓存 <code>c_KV</code> 而非完整 K/V</li>
+            <li><strong>推理时解压</strong>：每步生成时从 <code>c_KV</code> 解压出完整 K/V 用于 Attention，计算量略增但 KV Cache 大幅缩小</li>
+            <li><strong>Query 侧也压缩</strong>：Q 同样先压缩到潜在空间再解压，减少激活显存</li>
+          </ul>
+          <strong>与 GQA/MQA 对比：</strong>
+          <ul>
+            <li>GQA/MQA 通过减少 KV Head 数量来压缩，本质是多个 Q 头共享同一 KV</li>
+            <li>MLA 通过低秩投影压缩，KV 维度降低但每个 token 仍对应独立压缩向量</li>
+            <li>MLA 在相同 KV Cache 预算下，通常比 GQA 获得更好的模型性能（DeepSeek-V2 实验结论）</li>
+          </ul>
+          <strong>应用：</strong>DeepSeek-V2/V3/R1 均采用 MLA，在 128K+ 上下文场景下相比标准 MHA KV Cache 减少 5~13×。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>"低秩压缩缓存潜在向量而非完整 K/V"是 MLA 与其他方案的本质区别，是 2025 年大模型架构面试的热点。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">50</div>
+        <div style="flex:1">
+          <div class="q-title">Mamba（SSM）的原理是什么？与 Transformer 相比有何优缺点？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Mamba</strong> 是基于 <strong>状态空间模型（SSM，State Space Model）</strong> 的序列建模架构，是 Transformer 的主要竞争方向。
+          <br/><br/>
+          <strong>SSM 核心公式：</strong>
+          <ul>
+            <li>连续形式：<code>h'(t) = A·h(t) + B·x(t)</code>，<code>y(t) = C·h(t)</code></li>
+            <li>离散化后：通过矩阵 Ā、B̄ 将连续系统转为循环形式，也可展开为卷积计算</li>
+          </ul>
+          <strong>Mamba 的关键创新（Selective SSM）：</strong>
+          <ul>
+            <li>标准 SSM 的 A/B/C 矩阵是<em>时间不变</em>的，无法选择性关注不同 token</li>
+            <li>Mamba 将 B、C、Δ（步长）设计为<strong>输入依赖</strong>的（selective），使模型能根据内容动态决定信息压缩比率</li>
+            <li>通过并行扫描（Parallel Scan）高效训练，推理时退化为 O(1) 状态更新</li>
+          </ul>
+          <strong>与 Transformer 对比：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 8px;border:1px solid #93c5fd">维度</th>
+              <th style="padding:6px 8px;border:1px solid #93c5fd">Transformer</th>
+              <th style="padding:6px 8px;border:1px solid #93c5fd">Mamba</th>
+            </tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">训练复杂度</td><td style="padding:6px;border:1px solid #e2e6ea">O(n²·d)</td><td style="padding:6px;border:1px solid #e2e6ea">O(n·d)（并行扫描）</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">推理（逐步）</td><td style="padding:6px;border:1px solid #e2e6ea">O(n·d)（KV Cache 线性增长）</td><td style="padding:6px;border:1px solid #e2e6ea">O(d)（固定状态大小）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">长序列建模</td><td style="padding:6px;border:1px solid #e2e6ea">受限于显存</td><td style="padding:6px;border:1px solid #e2e6ea">天然支持超长序列</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">信息召回</td><td style="padding:6px;border:1px solid #e2e6ea">精确（全局注意力）</td><td style="padding:6px;border:1px solid #e2e6ea">有损压缩，in-context 召回稍弱</td></tr>
+          </table>
+          <br/>
+          <strong>混合架构（Jamba/Zamba）：</strong>将 Mamba 层与 Transformer 层交替堆叠，兼顾两者优势，是 2024–2025 年的热门探索方向。
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">51</div>
+        <div style="flex:1">
+          <div class="q-title">DeepSeek-R1 的训练方法有何创新？GRPO 与 PPO 的区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DeepSeek-R1 的核心创新：</strong>
+          <ul>
+            <li><strong>纯 RL 冷启动</strong>：DeepSeek-R1-Zero 直接在基座模型上用强化学习（GRPO）训练，不依赖 SFT 冷启动，模型自发涌现出 Chain-of-Thought 推理行为</li>
+            <li><strong>规则奖励</strong>：使用可验证的规则奖励（数学正确性、格式合规），避免了 Reward Hacking，无需人工偏好标注的奖励模型</li>
+            <li><strong>长 CoT 蒸馏</strong>：R1 的最终版本通过把 R1 生成的长推理链数据蒸馏到小模型（1.5B/7B），大幅提升小模型推理能力</li>
+          </ul>
+          <br/>
+          <strong>GRPO vs PPO 的区别：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 8px;border:1px solid #93c5fd">维度</th>
+              <th style="padding:6px 8px;border:1px solid #93c5fd">PPO</th>
+              <th style="padding:6px 8px;border:1px solid #93c5fd">GRPO</th>
+            </tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">Baseline</td><td style="padding:6px;border:1px solid #e2e6ea">Critic 网络估计 Value</td><td style="padding:6px;border:1px solid #e2e6ea">组内多次采样均值</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">显存</td><td style="padding:6px;border:1px solid #e2e6ea">需额外 Critic 模型（通常与 Actor 同规模）</td><td style="padding:6px;border:1px solid #e2e6ea">无需 Critic，显存减少约 50%</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">Advantage 计算</td><td style="padding:6px;border:1px solid #e2e6ea">GAE（广义优势估计）</td><td style="padding:6px;border:1px solid #e2e6ea">组内奖励归一化：(r - mean) / std</td></tr>
+          </table>
+          <br/>
+          <strong>意义：</strong>GRPO 让千亿参数模型的 RL 训练在工程上变得可行，是 DeepSeek 实现低成本训练高性能模型的关键。
+        </div>
+        <div class="tip-box">💡 <strong>面试热点：</strong>2025 年 "如何训练 Reasoning 模型" 是 AI 岗位高频问题，能讲清 R1 的 RL-only 范式 + GRPO 原理是重要加分项。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">52</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Function Calling / Tool Use？大模型如何实现结构化输出？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Function Calling（工具调用）</strong> 允许 LLM 在回答时输出结构化的函数调用意图（函数名 + 参数），由外部系统执行后将结果回填到对话，实现 LLM 与真实世界的交互。
+          <br/><br/>
+          <strong>实现方式：</strong>
+          <ul>
+            <li><strong>SFT 训练</strong>：用大量工具调用样本（system prompt 包含工具描述，assistant 输出 JSON 格式调用）对模型微调</li>
+            <li><strong>格式约束（Constrained Decoding）</strong>：推理时用 JSON Schema 约束采样空间（Grammar-constrained sampling），确保 100% 输出合法 JSON，无需依赖模型学到的格式习惯</li>
+            <li><strong>Prompt Engineering</strong>：将工具列表以 XML/JSON 格式写入 system prompt，指导模型何时以及如何调用</li>
+          </ul>
+          <strong>结构化输出技术栈：</strong>
+          <ul>
+            <li><strong>Outlines / LMQL / Guidance</strong>：基于词汇约束的结构化生成库</li>
+            <li><strong>vLLM / llama.cpp</strong>：已原生支持 JSON schema 约束解码（Grammar Sampling）</li>
+            <li><strong>OpenAI Structured Outputs</strong>：通过 JSON Schema 强制约束，100% 符合格式要求</li>
+          </ul>
+          <strong>工程挑战：</strong>多轮工具调用的状态管理、工具执行超时/失败的重试策略、以及如何避免模型在不需要工具时滥调工具（Tool Hallucination）。
+        </div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">53</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Long Context 长文本处理？如何评估和优化大模型的长上下文能力？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>长上下文能力的核心挑战：</strong>
+          <ul>
+            <li><strong>位置外推（OOD 位置编码）</strong>：RoPE 在超出训练长度时旋转频率失效，需 YaRN / NTK-aware scaling / LongRoPE 等方法扩展</li>
+            <li><strong>显存瓶颈</strong>：KV Cache 随序列长度线性增长，128K token 时显存消耗极大</li>
+            <li><strong>"Lost in the Middle" 现象</strong>：模型对长文档中间部分的信息利用率低，易遗忘</li>
+          </ul>
+          <strong>优化方法：</strong>
+          <ul>
+            <li><strong>YaRN（Yet another RoPE extensioN）</strong>：通过温度缩放和 NTK 插值调整 RoPE 频率，无需从头训练，可将上下文扩展 4-8×</li>
+            <li><strong>滑动窗口注意力</strong>（Mistral）：每层仅关注最近 K 个 token，配合 Rolling KV Cache 实现 O(1) 显存</li>
+            <li><strong>Sparse Attention</strong>（Big Bird / LongFormer）：局部窗口 + 全局 token，O(n) 复杂度</li>
+            <li><strong>长文本 SFT 数据</strong>：用高质量的长文本问答对（100K+ token）专项微调，提升中间信息利用率</li>
+          </ul>
+          <strong>评估基准：</strong>RULER（针对超长检索的合成测试）、Needle in a Haystack（大海捞针）、SCROLLS（多种长文档理解任务）。
+        </div>
+        <div class="tip-box">💡 <strong>工程重点：</strong>长上下文 = 位置外推 + KV Cache 管理 + 中间信息利用，三个维度都要考虑，缺一不可。</div>
       </div>
     </div>
 
