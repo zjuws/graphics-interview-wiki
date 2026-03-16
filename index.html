@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">85+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">100+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -522,6 +522,77 @@
         </div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">54</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Mesh Shader？它如何取代传统顶点/几何着色器流水线？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Mesh Shader（网格着色器）</strong> 是 DirectX 12 Ultimate / Vulkan 1.3 引入的新型几何处理阶段，完全替代 Vertex Shader + Hull/Domain Shader + Geometry Shader 的传统流水线。
+          <br/><br/>
+          <strong>架构对比：</strong>
+          <ul>
+            <li><strong>传统管线</strong>：CPU 准备顶点数据 → VB/IB → VS → （可选 HS/DS/GS） → 光栅化，瓶颈在 CPU Draw Call 和固定功能装配阶段</li>
+            <li><strong>Mesh Shader 管线</strong>：Task Shader（可选，决定派发多少 Mesh 工作组） → Mesh Shader（直接在 GPU 上生成顶点和图元） → 光栅化</li>
+          </ul>
+          <strong>核心优势：</strong>
+          <ul>
+            <li><strong>GPU 驱动几何</strong>：Mesh Shader 在 GPU 端直接生成几何，可实现 GPU Culling、LOD、Procedural Geometry，消除 CPU 瓶颈</li>
+            <li><strong>更灵活的输出</strong>：可输出任意顶点+图元布局，不再受固定 IA 约束</li>
+            <li><strong>高效剔除</strong>：配合 Task Shader 可在 GPU 端做 Cluster 级 / Meshlet 级的 Frustum + Backface + Occlusion 剔除</li>
+          </ul>
+          <strong>Meshlet：</strong>通常每个 Meshlet 包含 64~128 个顶点和 64~128 个图元，是 Mesh Shader 的基本处理单元，类似于 Compute Shader 的线程组。Nanite（UE5）的核心几何处理正是基于此思想。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>重点说明 Task Shader + Mesh Shader 的两阶段结构，以及与传统 IA（Input Assembler）流水线的核心差异。UE5 Nanite 是最典型的工程案例。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">55</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 GPU 驱动渲染（GPU-Driven Rendering）？Indirect Draw 如何实现？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPU 驱动渲染（GPU-Driven Rendering）</strong> 指将剔除、排序、Draw Call 生成等传统 CPU 工作完全移交 GPU 执行，CPU 仅提交少量命令。
+          <br/><br/>
+          <strong>关键 API：</strong>
+          <ul>
+            <li><strong>DrawIndirect / DrawIndexedIndirect</strong>：Draw Call 的参数（顶点数、实例数、偏移等）存储在 GPU Buffer 中，GPU 可在 Compute Shader 中动态写入，CPU 仅调用一次 Indirect 命令</li>
+            <li><strong>ExecuteIndirect（DX12）/ vkCmdDrawIndirectCount（Vulkan）</strong>：支持变长数量的 Indirect Draw，可在 GPU 上确定实际绘制数量</li>
+          </ul>
+          <strong>典型流程：</strong>
+          <ol>
+            <li>CPU 将所有物体的实例数据（变换矩阵、材质 ID 等）上传到 GPU Buffer</li>
+            <li>Compute Shader 执行 GPU Culling（视锥 + Hi-Z 遮挡剔除），将通过剔除的实例写入 Indirect Draw Buffer</li>
+            <li>调用 DrawIndexedIndirect，GPU 根据 Buffer 批量绘制所有可见实例，通常一次 Draw Call 即可</li>
+          </ol>
+          <strong>优势：</strong>极大减少 CPU-GPU 通信，解放 CPU，适合大规模植被、建筑等场景。《地平线：零之曙光》《荒野大镖客2》均采用此方案。
+        </div>
+        <div class="tip-box">💡 <strong>配套技术：</strong>Hi-Z（Hierarchical Z）用于 GPU 端的遮挡剔除，与 GPU-Driven Rendering 几乎绑定使用，面试时可主动提及。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 光线追踪（新增） ══ -->
@@ -652,6 +723,44 @@
         <div class="tip-box">💡 <strong>RTXDI</strong>（NVIDIA RTX Direct Illumination）是 ReSTIR DI 的工程实现，已用于 《赛博朋克 2077》《战地》等 AAA 游戏，是学习实时光追必看案例。</div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">56</div>
+        <div style="flex:1">
+          <div class="q-title">SDF（Signed Distance Field）光线步进在软阴影和全局光照中如何应用？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SDF（有向距离场）</strong> 存储空间中每个采样点到最近表面的有符号距离（内部为负，外部为正），可用于快速的光线步进（Ray Marching）。
+          <br/><br/>
+          <strong>Sphere Tracing 流程：</strong>
+          <ol>
+            <li>从光线起点出发，每步沿光线方向前进 SDF(P) 距离（安全步长，不会穿越表面）</li>
+            <li>若 SDF(P) &lt; ε（接触阈值），则认为光线命中表面</li>
+            <li>若步进次数超出最大值或超出最大距离，则认为未命中</li>
+          </ol>
+          <strong>软阴影应用：</strong>在步进过程中记录 <code>min(SDF(P) / t)</code>（t 为当前步进距离），该最小值反映光线与遮挡体的最近接近程度，可直接用作软阴影的遮挡因子，不需要额外采样。
+          <br/><br/>
+          <strong>Lumen（UE5）中的应用：</strong>
+          <ul>
+            <li>场景被预计算为全局 SDF（Mesh Distance Field + Global SDF），分辨率逐级降低</li>
+            <li>光线追踪阶段用 Global SDF 进行远距离 Sphere Tracing，用精细 Mesh SDF 处理近距离求交，无需 BVH</li>
+            <li>结合 Radiance Cache 和屏幕空间探针，实现实时全局光照</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>工程价值：</strong>SDF Ray Marching 比 BVH 遍历实现更简单，特别适合移动端，且天然支持软阴影和 AO 计算，是 UE5 Lumen 的核心加速结构之一。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -1121,6 +1230,82 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         </div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">57</div>
+        <div style="flex:1">
+          <div class="q-title">IBL（基于图像的光照）的完整实现流程是什么？预过滤环境贴图与 LUT 如何生成？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          IBL 将 PBR 渲染方程中的光照积分拆分为<strong>漫反射</strong>和<strong>镜面反射</strong>两部分预计算，实现实时环境光照。
+          <br/><br/>
+          <strong>渲染方程拆分：</strong>
+          <code>L_o = L_diffuse + L_specular</code>
+          <br/><br/>
+          <strong>1. 漫反射 IBL —— Irradiance Map（辐照度贴图）：</strong>
+          <ul>
+            <li>对每个方向 n，对上半球所有入射方向 ωi 积分 <code>L_i(ωi) × cos(θ)</code></li>
+            <li>实现：对 HDR 环境贴图进行卷积（通常离线或启动时），生成低分辨率（32×32）的 Irradiance Cubemap</li>
+          </ul>
+          <strong>2. 镜面反射 IBL —— Split Sum 近似（Epic Games）：</strong>
+          <ul>
+            <li><strong>预过滤环境贴图（Pre-filtered Environment Map）</strong>：按粗糙度 [0,1] 生成不同 Mip 层，用重要性采样（GGX 分布）预计算不同粗糙度下的环境反射</li>
+            <li><strong>BRDF LUT（2D 查找表）</strong>：预计算 <code>∫ f_r(n,ωi,ωo) × cos(θi) dωi</code> 关于 <code>(N·V, roughness)</code> 的结果，存为 RG 通道（scale 和 bias），运行时 1 次 textureLOD + 1 次 LUT 采样完成镜面反射计算</li>
+          </ul>
+          <strong>实时使用：</strong>
+          <pre>vec3 F = FresnelSchlickRoughness(NdotV, F0, roughness);
+vec3 diffuse = irradiance * albedo * (1-F) * (1-metallic);
+vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_MIPS).rgb;
+vec2 brdf = texture(brdfLUT, vec2(NdotV, roughness)).rg;
+vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
+        </div>
+        <div class="tip-box">💡 <strong>面试加分：</strong>能说出 Split Sum 是 Epic 2013 SIGGRAPH 的近似方案，将积分分为光照项和 BRDF 项分别预计算，是当前游戏引擎 IBL 的工业标准。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">58</div>
+        <div style="flex:1">
+          <div class="q-title">什么是次表面散射（SSS）？在实时渲染中有哪些近似实现方案？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>次表面散射（Subsurface Scattering，SSS）</strong> 描述光线进入半透明材质内部（如皮肤、玉石、蜡）在内部多次散射后从不同位置射出的现象，使材质看起来柔和、通透而非不透明。
+          <br/><br/>
+          <strong>典型现象：</strong>强光照射手背时手指泛红光；皮肤在逆光下有半透明的橙红色边缘。
+          <br/><br/>
+          <strong>实时近似方案：</strong>
+          <ul>
+            <li><strong>纹理空间漫射（Texture-Space Diffusion，Jensen 2001）</strong>：在纹理空间对辐照度进行高斯模糊，模拟光在皮下的扩散，多层不同宽度的高斯叠加（d'Eon & Luebke 2007）；UE4 早期皮肤使用此方案</li>
+            <li><strong>屏幕空间次表面散射（SSSS，Jimenez 2009）</strong>：在屏幕空间对漫反射结果进行分离轴高斯模糊，性能更好，是目前游戏中最常用的方案（《神秘海域》《战神》均使用）</li>
+            <li><strong>Pre-Integrated Skin Shading（Penner 2011）</strong>：预计算曲率与光照角度的查找表，单 Pass 实现近似 SSS，性能极高，适合移动端</li>
+            <li><strong>路径追踪 BSSRDF</strong>：离线渲染中使用完整 BSSRDF 方程，考虑入射和出射点不同，物理最准确</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试考察点：</strong>区分 BRDF（入射和出射同点）与 BSSRDF（入射和出射不同点）的概念差异，是 SSS 物理正确性的核心。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 5. 阴影 ══ -->
@@ -1272,6 +1457,44 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         </div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">59</div>
+        <div style="flex:1">
+          <div class="q-title">Virtual Shadow Map（VSM / UE5）的原理是什么？它如何解决传统 CSM 的问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Virtual Shadow Map（虚拟阴影贴图，UE5）</strong> 是一种超大分辨率（16K×16K 以上）虚拟化的阴影贴图方案，借鉴虚拟纹理（VT）思想，只物理分配实际需要的页（Page）。
+          <br/><br/>
+          <strong>传统 CSM（级联阴影贴图）的问题：</strong>
+          <ul>
+            <li>固定分辨率无法满足大场景与近距离细节同时高质量的需求</li>
+            <li>级联边界处阴影跳变，需要 Blend 过渡增加复杂度</li>
+            <li>动态光源（Lumen 中大量动态光）难以高效管理多套 CSM</li>
+          </ul>
+          <strong>VSM 核心机制：</strong>
+          <ol>
+            <li><strong>虚拟化</strong>：每个光源的 Shadow Map 定义为超大虚拟纹理（如 16K×16K），逻辑上存在但只有用到的 Page（128×128 像素）才被物理分配到 GPU 显存</li>
+            <li><strong>Page Table</strong>：维护虚拟页到物理页的映射，相机可见区域的像素在光源空间的覆盖范围决定哪些 Page 需要渲染</li>
+            <li><strong>Cache（持久化缓存）</strong>：对静态几何体，已渲染的 Page 缓存起来，只在几何或光源变化时才标记为 Dirty 重新渲染，大幅降低每帧开销</li>
+            <li><strong>与 Nanite 配合</strong>：Nanite 可直接向 VSM 的 Depth Page 光栅化，无需额外 Shadow Pass</li>
+          </ol>
+          <strong>效果：</strong>统一的高精度阴影，无级联切换问题，支持大量动态光源，是 UE5 的核心阴影技术。
+        </div>
+        <div class="tip-box">💡 <strong>类比虚拟内存：</strong>VSM 与操作系统虚拟内存机制完全类似：虚拟地址空间（超大 Shadow Map）+ 物理内存（GPU 显存 Page Pool）+ 缺页处理（Dirty Page 重渲染）。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -1354,6 +1577,56 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         <div class="tip-box">💡 <strong>面试加分点：</strong>能区分空域超分（FSR1）vs 时域超分（DLSS2/FSR2）vs 帧生成（DLSS3/FSR3）三个层级，是判断深度理解的关键。</div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">60</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS、FSR 和 XeSS 的原理对比：神经网络超分与传统空域超分的核心区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          三种技术都属于<strong>时域超分辨率（Temporal Super Resolution，TSR）</strong>范畴，目标是以低分辨率渲染换取高质量输出，但技术路线不同。
+          <br/><br/>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 10px;border:1px solid #93c5fd">特性</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">DLSS 3/4</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">FSR 3</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">XeSS 2</th>
+            </tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">厂商</td><td style="padding:6px;border:1px solid #e2e6ea">NVIDIA</td><td style="padding:6px;border:1px solid #e2e6ea">AMD</td><td style="padding:6px;border:1px solid #e2e6ea">Intel</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">核心方法</td><td style="padding:6px;border:1px solid #e2e6ea">神经网络（Transformer）</td><td style="padding:6px;border:1px solid #e2e6ea">空域滤波 + 光流时域</td><td style="padding:6px;border:1px solid #e2e6ea">神经网络（XMX加速）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">硬件依赖</td><td style="padding:6px;border:1px solid #e2e6ea">NVIDIA Tensor Core</td><td style="padding:6px;border:1px solid #e2e6ea">所有 GPU</td><td style="padding:6px;border:1px solid #e2e6ea">优选 Intel Arc</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">帧生成</td><td style="padding:6px;border:1px solid #e2e6ea">DLSS Frame Gen（光流网络）</td><td style="padding:6px;border:1px solid #e2e6ea">FSR 3 Frame Gen</td><td style="padding:6px;border:1px solid #e2e6ea">暂无</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">图像质量</td><td style="padding:6px;border:1px solid #e2e6ea">最优（尤其运动细节）</td><td style="padding:6px;border:1px solid #e2e6ea">良好，跨平台一致</td><td style="padding:6px;border:1px solid #e2e6ea">接近 DLSS</td></tr>
+          </table>
+          <br/>
+          <strong>DLSS 神经网络超分原理：</strong>
+          <ul>
+            <li>输入：当前低分辨率帧 + 运动向量 + 历史高分辨率帧 + 深度/曝光信息</li>
+            <li>网络架构（DLSS 3+）：基于 Transformer，在 Tensor Core 上推理，每帧约 1ms</li>
+            <li>输出：重建的高分辨率帧，细节丰富、鬼影少</li>
+          </ul>
+          <strong>FSR 空域超分（FSR 1 / EASU+RCAS）：</strong>
+          <ul>
+            <li>EASU（边缘自适应空域上采样）：检测边缘方向，自适应插值</li>
+            <li>RCAS（健壮对比度自适应锐化）：后处理锐化，补偿插值模糊</li>
+            <li>无时域信息，无需运动向量，延迟低但质量不如 DLSS</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>2025 趋势：</strong>DLSS 4 采用 Multi-Frame Generation（单帧渲染生成 3 个插帧），进一步提升帧率；AI 超分已成为现代游戏渲染不可缺少的基础设施。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -1419,6 +1692,50 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
         </div>
       </div>
     </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">61</div>
+        <div style="flex:1">
+          <div class="q-title">Cluster-Based Deferred Rendering（Clustered Shading）的原理是什么？与传统 Tile-Based 有何区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Clustered Shading（分簇着色）</strong> 是对 Tile-Based Deferred Shading 的三维扩展，将相机视锥体划分为三维网格（Cluster），每个 Cluster 维护影响它的光源列表。
+          <br/><br/>
+          <strong>与 Tile-Based 的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+            <tr style="background:#dbeafe;color:#1e40af">
+              <th style="padding:6px 10px;border:1px solid #93c5fd">维度</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">Tile-Based（2.5D）</th>
+              <th style="padding:6px 10px;border:1px solid #93c5fd">Clustered（3D）</th>
+            </tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">空间划分</td><td style="padding:6px;border:1px solid #e2e6ea">屏幕 2D Tile（如 16×16px）</td><td style="padding:6px;border:1px solid #e2e6ea">视锥三维 Cluster（XYZ）</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">深度处理</td><td style="padding:6px;border:1px solid #e2e6ea">需最小/最大深度，对深度不连续场景效果差</td><td style="padding:6px;border:1px solid #e2e6ea">深度轴自然分段，适合透明/粒子</td></tr>
+            <tr><td style="padding:6px;border:1px solid #e2e6ea">光源剔除精度</td><td style="padding:6px;border:1px solid #e2e6ea">粒度较粗，不考虑深度分布</td><td style="padding:6px;border:1px solid #e2e6ea">三维剔除，更精确</td></tr>
+            <tr style="background:#f8f9fa"><td style="padding:6px;border:1px solid #e2e6ea">透明物体</td><td style="padding:6px;border:1px solid #e2e6ea">难以直接支持</td><td style="padding:6px;border:1px solid #e2e6ea">天然支持透明物体着色</td></tr>
+          </table>
+          <br/>
+          <strong>实现流程：</strong>
+          <ol>
+            <li><strong>Cluster 构建</strong>：在 Compute Shader 中为每个 Cluster 计算 AABB（视锥空间），Z 轴通常指数划分（近密远稀）</li>
+            <li><strong>光源分配</strong>：遍历所有点光源/聚光灯，与每个 Cluster AABB 做球-AABB 相交测试，将光源索引写入对应 Cluster 的光源列表</li>
+            <li><strong>着色阶段</strong>：Fragment Shader 根据片元深度确定所属 Cluster，只遍历该 Cluster 的光源列表进行着色</li>
+          </ol>
+          <strong>典型参数：</strong>通常划分为 16×9×24 = 3456 个 Cluster，每 Cluster 最多 128 个光源。《战地5》《神秘海域》系列均采用 Clustered Shading 支持数百至数千动态光源。
+        </div>
+        <div class="tip-box">💡 <strong>扩展：</strong>Clustered Shading 最初由 Ola Olsson 在 2012 年提出，现已是 AAA 游戏和现代引擎（UE/Unity）处理大规模动态光源的标准方案。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -2284,6 +2601,319 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
           <strong>评估基准：</strong>RULER（针对超长检索的合成测试）、Needle in a Haystack（大海捞针）、SCROLLS（多种长文档理解任务）。
         </div>
         <div class="tip-box">💡 <strong>工程重点：</strong>长上下文 = 位置外推 + KV Cache 管理 + 中间信息利用，三个维度都要考虑，缺一不可。</div>
+      </div>
+    </div>
+
+
+    <!-- ══ Transformer 架构新题 ══ -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">62</div>
+        <div style="flex:1">
+          <div class="q-title">GQA（Grouped Query Attention）和 MLA（Multi-head Latent Attention）分别如何减少 KV Cache 开销？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>KV Cache 的问题：</strong>标准 MHA（Multi-Head Attention）推理时每层需缓存所有序列长度的 K/V，显存随序列长度和批大小线性增长，是大模型推理的主要显存瓶颈。
+          <br/><br/>
+          <strong>GQA（Grouped Query Attention，Google 2023）：</strong>
+          <ul>
+            <li>将 H 个注意力头分为 G 组，每组共享一对 K/V 头（G &lt;&lt; H），Q 头仍为 H 个</li>
+            <li>显存降低：KV Cache 从 O(H) 减少到 O(G)，如 Llama 3（H=32, G=8）节省 75%</li>
+            <li>质量接近 MHA，明显优于 MQA（Multi-Query Attention，G=1 共享同一对 KV）</li>
+            <li>已被 Llama 2/3、Mistral、Falcon 等主流开源模型采用</li>
+          </ul>
+          <strong>MLA（Multi-head Latent Attention，DeepSeek-V2/V3）：</strong>
+          <ul>
+            <li>将 KV 投影到低维潜空间（Low-rank KV Compression），只缓存低维潜向量 c<sub>KV</sub> 而非完整 K/V</li>
+            <li>推理时按需从潜向量还原 K/V，KV Cache 大小降低约 5-13×（比 GQA 更激进）</li>
+            <li>同时引入解耦的旋转位置编码（Decoupled RoPE），保证位置信息准确性</li>
+            <li>DeepSeek-V2 实测：MLA 比 GQA-H8 节省约 93% KV Cache，且在 128K 长上下文下吞吐量大幅提升</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>2025 趋势：</strong>MLA 是 DeepSeek 系列的核心创新之一，已被多个新模型借鉴，面试时能说清楚 GQA 和 MLA 的区别可显著加分。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">63</div>
+        <div style="flex:1">
+          <div class="q-title">MoE（Mixture of Experts）模型的工作机制是什么？稀疏激活如何提升参数效率？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MoE（专家混合模型）</strong> 将 Transformer FFN 层替换为多个"专家"网络，每次推理只激活其中少数专家，实现参数量与计算量的解耦。
+          <br/><br/>
+          <strong>核心组件：</strong>
+          <ul>
+            <li><strong>Expert 网络</strong>：通常为标准 FFN，总共有 N 个（如 64、128 个）</li>
+            <li><strong>Router（路由器/门控）</strong>：对输入 token 的隐藏态做线性变换 + Softmax，选出 Top-K（通常 K=2）分数最高的专家；对应专家输出按 Softmax 分数加权求和</li>
+            <li><strong>稀疏激活</strong>：每个 token 只激活 K 个专家，计算量 ≈ K/N × 全参数量，但模型总参数量巨大（如 DeepSeek-V3 = 671B 总参，37B 激活参数）</li>
+          </ul>
+          <strong>训练挑战与解决方案：</strong>
+          <ul>
+            <li><strong>负载均衡</strong>：Router 可能总是路由到同几个专家导致"热专家"，用 Auxiliary Load Balance Loss 强制均匀分配</li>
+            <li><strong>通信开销</strong>：多 GPU 训练时 Expert 分布在不同 GPU，All-to-All 通信成本高；DeepSeek 引入 Expert Parallelism（EP）优化</li>
+            <li><strong>Expert Capacity</strong>：每批 token 中分配给单个 Expert 的最大 token 数，超出则丢弃（Token Drop）或溢出到辅助 Expert</li>
+          </ul>
+          <strong>代表模型：</strong>Mixtral 8×7B/8×22B、DeepSeek-V2/V3、Switch Transformer、GPT-4（传闻 MoE 架构）。
+        </div>
+        <div class="tip-box">💡 <strong>核心公式：</strong><code>output = Σ(gate_i × Expert_i(x))</code>，其中 gate 由 Router Softmax 的 Top-K 结果决定，其余专家输出乘以 0（稀疏）。</div>
+      </div>
+    </div>
+
+    <!-- ══ 训练微调新题 ══ -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">64</div>
+        <div style="flex:1">
+          <div class="q-title">DPO（Direct Preference Optimization）与 RLHF-PPO 相比有何优势？其数学推导逻辑是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RLHF-PPO 的复杂性：</strong>需要 4 个模型（Actor/Critic/Reward/Reference）同时存在，显存开销大、训练不稳定（PPO 对超参数敏感）、Reward Model 单独训练可能引入误差。
+          <br/><br/>
+          <strong>DPO（Direct Preference Optimization，Stanford 2023）的核心思想：</strong>
+          <ul>
+            <li>从 RLHF 的最优策略推导出解析解，将 Reward 隐式地参数化为策略本身，不再需要单独的 Reward Model</li>
+            <li><strong>关键等式</strong>：最优策略 π* 满足 <code>r(x,y) = β × log(π*(y|x) / π_ref(y|x)) + β × log Z(x)</code>，其中 Z(x) 为归一化常数，在偏好对差异中消去</li>
+          </ul>
+          <strong>DPO Loss：</strong>
+          <pre>L_DPO = -E[log σ(β × (log π_θ(y_w|x)/π_ref(y_w|x)
+                          - log π_θ(y_l|x)/π_ref(y_l|x)))]</pre>
+          其中 y_w 为偏好响应，y_l 为不偏好响应，σ 为 Sigmoid 函数。
+          <br/><br/>
+          <strong>DPO vs PPO 对比：</strong>
+          <ul>
+            <li><strong>模型数量</strong>：DPO 仅需 2 个（Policy + Reference），PPO 需 4 个</li>
+            <li><strong>稳定性</strong>：DPO 是监督学习，梯度稳定；PPO 在线强化学习，不稳定</li>
+            <li><strong>效果</strong>：DPO 通常已足够，但 PPO/GRPO 在复杂推理任务（如数学、代码）中更有优势（o1/DeepSeek-R1 均用 GRPO）</li>
+          </ul>
+          <strong>变体：</strong>SimPO（无 Reference Model）、ORPO（在 SFT 损失中集成偏好对齐）、KTO（不需成对偏好数据）。
+        </div>
+        <div class="tip-box">💡 <strong>2025 现状：</strong>DPO 仍是指令微调对齐的主流选择；DeepSeek-R1 用 GRPO（Group Relative Policy Optimization）实现推理能力激发，是当前最热门的 RL 对齐方案。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">65</div>
+        <div style="flex:1">
+          <div class="q-title">LoRA 微调的原理是什么？QLoRA 如何进一步降低显存需求？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>LoRA（Low-Rank Adaptation，2021）：</strong>
+          <ul>
+            <li><strong>核心假设</strong>：预训练权重的更新矩阵 ΔW 具有低秩结构，可以分解为 <code>ΔW = A × B</code>，其中 A ∈ R<sup>d×r</sup>，B ∈ R<sup>r×k</sup>，r &lt;&lt; min(d,k)</li>
+            <li><strong>前向传播</strong>：<code>h = Wx + (BA)x × (α/r)</code>，α 为缩放系数</li>
+            <li><strong>参数节省</strong>：只训练 A、B 两个小矩阵（参数量约为全参的 0.1%~1%），原始权重 W 冻结</li>
+            <li><strong>推理无额外延迟</strong>：可以将 A×B 合并回 W，推理时与全量权重等价</li>
+          </ul>
+          <strong>QLoRA（2023，UW）：</strong>在 LoRA 基础上进一步降低显存：
+          <ul>
+            <li><strong>NF4（4-bit NormalFloat）量化</strong>：将预训练权重量化为 4-bit，专为正态分布权重设计，精度损失极小</li>
+            <li><strong>Double Quantization（双重量化）</strong>：对量化参数（scale）再次量化，进一步节省显存</li>
+            <li><strong>Paged Optimizer</strong>：利用 CPU 内存作为 GPU 显存溢出缓冲，避免 OOM</li>
+            <li><strong>效果</strong>：65B 模型可在 48GB 显存（单卡 A100）上微调，而全量 BF16 需要约 780GB</li>
+          </ul>
+          <strong>常用变体：</strong>DoRA（Weight-Decomposed LoRA，分别 LoRA 幅度和方向）、LoRA+（差异学习率 A/B）、MoLoRA（多 LoRA 专家混合）。
+        </div>
+        <div class="tip-box">💡 <strong>面试公式必记：</strong><code>h = Wx + BAx × (α/r)</code>，能白板手推且解释各字母含义是加分项。r 通常取 8/16/64，越大效果越接近全量微调。</div>
+      </div>
+    </div>
+
+    <!-- ══ 推理优化新题 ══ -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">66</div>
+        <div style="flex:1">
+          <div class="q-title">FlashAttention 的核心优化思路是什么？FlashAttention-2/3 做了哪些改进？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准 Attention 的瓶颈：</strong>计算 <code>softmax(QK<sup>T</sup>/√d) × V</code> 时，S=QK<sup>T</sup> 矩阵大小为 N×N（N 为序列长度），需要写回 HBM（显存），是典型的 Memory Bound 操作，对 N=4096 就需要 64GB 级的 HBM 读写。
+          <br/><br/>
+          <strong>FlashAttention（Dao 等，2022）核心思路：</strong>
+          <ol>
+            <li><strong>分块（Tiling）</strong>：将 Q/K/V 切分为适合 SRAM 的小块（如 SRAM 容量 ~192KB），每次只在 SRAM 内计算一个子块的 Attention，避免将中间结果 S/P 写回 HBM</li>
+            <li><strong>在线 Softmax（Online Softmax）</strong>：利用 Softmax 的分块可重计算性（维护 running max 和 running sum），无需在 HBM 中存储完整 N×N 矩阵</li>
+            <li><strong>重计算（Recomputation）</strong>：反向传播时不存储前向的 Attention 矩阵，而是重新计算，用计算换显存</li>
+          </ol>
+          <strong>复杂度：</strong>HBM IO 从 O(N²) 降为 O(N)，计算复杂度仍 O(N²d) 不变；实测训练速度提升 2-4×，显存减少 5-20×。
+          <br/><br/>
+          <strong>改进版本：</strong>
+          <ul>
+            <li><strong>FlashAttention-2（2023）</strong>：优化线程分配（减少 non-matmul FLOP），更好利用 Tensor Core，进一步提升 GPU 利用率（A100 可达 70%+ FLOP 利用率）</li>
+            <li><strong>FlashAttention-3（2024）</strong>：针对 H100 Hopper 架构，异步 WGMMA + 流水线化，同时优化 FP8 支持，吞吐接近 H100 理论峰值的 75%</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话总结：</strong>FlashAttention 不是改变 Attention 的数学等价结果，而是通过 IO 感知算法（IO-Aware Algorithm）减少 HBM 读写，将 Attention 从 Memory Bound 变为 Compute Bound。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">67</div>
+        <div style="flex:1">
+          <div class="q-title">投机采样（Speculative Decoding）的原理是什么？它如何在不改变输出分布的情况下加速推理？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>LLM 推理的瓶颈：</strong>自回归解码每次只生成 1 个 token，每次前向传播都需要加载全部模型权重（Memory Bandwidth Bound），GPU 利用率极低（通常 &lt;20%）。
+          <br/><br/>
+          <strong>投机采样（Speculative Decoding，Google 2023）核心思路：</strong>
+          <ol>
+            <li><strong>Draft Model 起草</strong>：用一个小模型（Draft Model，如 68M 或 7B）自回归生成 K 个 token（draft tokens）</li>
+            <li><strong>Target Model 并行验证</strong>：将 K 个 draft tokens 一次性送入大模型（Target Model）并行前向，得到每个位置的概率分布</li>
+            <li><strong>拒绝采样（Rejection Sampling）</strong>：按接受概率 <code>min(1, p_target(t_i) / p_draft(t_i))</code> 逐个验证；全部接受则额外采样 1 个 Target Model token；遇到拒绝则截断，从拒绝位置重新用 Target Model 采样，输出分布与纯 Target Model 完全相同（无偏）</li>
+          </ol>
+          <strong>加速原理：</strong>
+          <ul>
+            <li>大模型并行验证 K 个 token 比顺序生成 K 个 token 快（相同 KV Cache 大小，更好利用 Tensor Core）</li>
+            <li>平均接受长度 α 越高（draft 越准），加速比越大；实测 2-3× 加速，输出质量等价</li>
+          </ul>
+          <strong>变体：</strong>
+          <ul>
+            <li><strong>Self-Speculative Decoding</strong>：用同一模型的早期层作为 Draft（减少 Draft Model 依赖）</li>
+            <li><strong>Medusa</strong>：在模型顶部添加多个 Draft Head，并行预测多个位置</li>
+            <li><strong>EAGLE（字节，2024）</strong>：用自回归 Draft Head + 特征拼接，Draft 准确率显著提升，加速 3× 以上</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>关键保证：</strong>"输出分布与 Target Model 等价"是投机采样的核心性质，通过拒绝采样的数学修正实现，面试时一定要强调这一点而非说"有近似"。</div>
+      </div>
+    </div>
+
+    <!-- ══ RAG & Agent 新题 ══ -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">68</div>
+        <div style="flex:1">
+          <div class="q-title">GraphRAG 与传统向量 RAG 的区别是什么？它如何解决多跳推理问题？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统向量 RAG 的局限：</strong>
+          <ul>
+            <li>每次检索独立，无法利用文档间的关联关系</li>
+            <li>多跳问题（如"A 的老板的公司在哪里？"）需要跨多个文档推理，向量相似度检索难以捕捉</li>
+            <li>全局总结性问题（如"整个数据库的主要主题是什么？"）无法通过局部检索解答</li>
+          </ul>
+          <strong>GraphRAG（Microsoft，2024）核心流程：</strong>
+          <ol>
+            <li><strong>知识图谱构建</strong>：用 LLM 从文档中抽取实体（Entity）和关系（Relation），构建 KG（知识图谱）</li>
+            <li><strong>社区检测</strong>：用图算法（如 Leiden 算法）将 KG 划分为层次化社区，对每个社区生成摘要</li>
+            <li><strong>查询处理</strong>：
+              <ul>
+                <li><strong>Local Search</strong>：针对特定实体的问题，从 KG 中检索相关实体邻域 + 对应文本</li>
+                <li><strong>Global Search</strong>：针对全局问题，汇聚社区摘要，多层次 Map-Reduce 生成答案</li>
+              </ul>
+            </li>
+          </ol>
+          <strong>多跳推理优势：</strong>KG 中实体间的关系路径天然支持多跳游走（如 A -[老板]→ B -[公司]→ C），检索时可沿关系链扩展，不受向量相似度检索的"单跳"限制。
+          <br/><br/>
+          <strong>局限：</strong>构建 KG 需要大量 LLM 调用（成本高），图的质量依赖抽取准确性，实时更新困难。
+        </div>
+        <div class="tip-box">💡 <strong>适用场景：</strong>GraphRAG 适合文档间关联强、需要全局摘要或多跳推理的场景（如企业知识库、法律文书、学术论文）；传统 RAG 适合事实性单次检索场景。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">69</div>
+        <div style="flex:1">
+          <div class="q-title">MCP（Model Context Protocol）和 A2A（Agent to Agent）协议的作用是什么？Multi-Agent 框架如何实现任务协作？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MCP（Model Context Protocol，Anthropic 2024）：</strong>
+          <ul>
+            <li>解决 LLM 与外部工具/资源连接的标准化问题，类比"AI 领域的 USB 接口"</li>
+            <li>定义 Server（提供工具：文件系统、数据库、API）和 Client（LLM 应用）的通信协议</li>
+            <li>三类原语：<strong>Tools</strong>（可调用函数）、<strong>Resources</strong>（可读取数据）、<strong>Prompts</strong>（模板）</li>
+            <li>无需为每个 LLM-工具对单独开发集成，一个 MCP Server 可被所有兼容 Client 复用</li>
+          </ul>
+          <strong>A2A（Agent to Agent Protocol，Google 2025）：</strong>
+          <ul>
+            <li>解决 Agent 之间的通信和任务委托标准，使不同框架（LangChain、AutoGen、CrewAI）的 Agent 可以互操作</li>
+            <li>定义 Agent 的能力声明（Agent Card）、任务发布（Task）、流式响应等规范</li>
+            <li>与 MCP 的关系：MCP 是 Agent-工具，A2A 是 Agent-Agent</li>
+          </ul>
+          <strong>Multi-Agent 协作模式：</strong>
+          <ul>
+            <li><strong>Orchestrator-Worker</strong>：主 Agent 规划任务，分发给子 Agent 执行（如 AutoGen 的 GroupChat）</li>
+            <li><strong>ReAct 循环</strong>：单 Agent 通过 Reasoning（思考）→ Action（工具调用）→ Observation（结果）→ 反复迭代</li>
+            <li><strong>Plan-and-Execute</strong>：规划阶段生成完整步骤列表，执行阶段按序执行并动态修正（LangGraph 常用模式）</li>
+            <li><strong>反思（Reflexion）</strong>：Agent 对自己的输出进行自我评估和修正，形成自我改进循环</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>2025 工程实践：</strong>MCP + A2A + LangGraph 是当前 Agent 系统的黄金组合；面试可提及已用 MCP 连接代码库/数据库的实际项目，展示工程能力。</div>
       </div>
     </div>
 
