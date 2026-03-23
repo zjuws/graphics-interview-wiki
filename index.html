@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">100+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">115+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -593,6 +593,45 @@
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">70</div>
+        <div style="flex:1">
+          <div class="q-title">Mesh Shader 与传统顶点/几何着色器管线有什么区别？它解决了哪些性能瓶颈？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统管线的瓶颈：</strong>
+          <ul>
+            <li>顶点着色器以单顶点为单位，IA（Input Assembler）阶段从显存获取顶点数据是串行瓶颈</li>
+            <li>几何着色器（GS）性能差，GPU 对其并行度优化有限，大量生成图元时吞吐下降严重</li>
+            <li>整个图元剔除（Primitive Culling）必须在顶点着色后进行，无效顶点已经消耗了计算资源</li>
+          </ul>
+          <strong>Mesh Shader（DX12 Ultimate / Vulkan 1.3+，NVIDIA Turing+）架构：</strong>
+          <ol>
+            <li><strong>Task Shader（Amplification Shader）</strong>：以工作组（Workgroup）为单位运行，决定生成多少个 Mesh Shader 线程组，可在此阶段做粗粒度剔除（如背面/视锥剔除），输出 payload 给 Mesh Shader</li>
+            <li><strong>Mesh Shader</strong>：每个线程组输出最多 256 个顶点和 512 个图元，可以直接输出任意拓扑结构（不受三角带/扇形限制），最终送入光栅化阶段</li>
+          </ol>
+          <strong>优势：</strong>
+          <ul>
+            <li><strong>消除 IA 瓶颈</strong>：Mesh Shader 直接从任意 Buffer 读取数据（类似 Compute Shader），绕过固定功能的 IA 阶段</li>
+            <li><strong>高效 Meshlet 剔除</strong>：配合 Meshlet（每个 Meshlet 约 64~128 个顶点、126 个三角形），可在 Task Shader 中并行剔除无效 Meshlet，大幅减少光栅化开销</li>
+            <li><strong>替代 GS</strong>：Mesh Shader 对 GPU 并行更友好，可完全替代几何着色器用于粒子、草地等大量图元生成场景</li>
+          </ul>
+          <strong>实际应用：</strong>UE5 Nanite 的 Software Rasterizer 充分利用了 Mesh Shader 的 Meshlet 架构；《战地 2042》等 AAA 游戏用于大规模植被渲染。
+        </div>
+        <div class="tip-box">💡 <strong>记忆口诀：</strong>Mesh Shader = Compute Shader 的并行能力 + 光栅化的输出能力。Task Shader 负责"要不要画"，Mesh Shader 负责"怎么画"，一起替代了 IA + VS + GS 这段管线。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 光线追踪（新增） ══ -->
@@ -758,6 +797,40 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>工程价值：</strong>SDF Ray Marching 比 BVH 遍历实现更简单，特别适合移动端，且天然支持软阴影和 AO 计算，是 UE5 Lumen 的核心加速结构之一。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">71</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR 算法的原理是什么？它如何解决实时光线追踪中光源采样效率低的问题？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>场景中存在数百万个 Emissive 三角形（面光源）时，每像素只能追少量光线，如何高效选出"贡献大"的光源样本是核心挑战。朴素均匀采样在光源密集场景中方差极大，渲染结果噪点严重。
+          <br/><br/>
+          <strong>ReSTIR（Reservoir-based SpatioTemporal Importance Resampling，NVIDIA 2020）核心思想：</strong>
+          <ol>
+            <li><strong>Reservoir 采样（WRS）</strong>：每像素维护一个 Reservoir（蓄水池），通过加权蓄水池采样从候选光源集中选出 1 个样本，记录其权重和贡献，保证采样概率与重要性成正比</li>
+            <li><strong>时域复用（Temporal Reuse）</strong>：将上一帧的 Reservoir 样本通过运动向量重投影到当前帧，与当前帧新样本合并更新 Reservoir，等效于积累了多帧的样本数（可积累数十帧 × N 个初始候选 = 数千个有效样本）</li>
+            <li><strong>空域复用（Spatial Reuse）</strong>：从邻域像素（半径内随机选 K 个）读取其 Reservoir，合并到当前像素的 Reservoir，进一步降低方差</li>
+          </ol>
+          <strong>数学保证：</strong>通过 MIS（多重重要性采样）权重修正，RIS（Resampled Importance Sampling）保证合并后采样结果仍趋于无偏估计。
+          <br/><br/>
+          <strong>效果：</strong>在 100 万个面光源场景下，每像素只需追 1 条阴影光线，质量接近每像素数千次路径追踪采样的结果；实时帧率可行（配合 DLSS 降噪）。
+          <br/><br/>
+          <strong>变体：</strong>ReSTIR GI（间接光照复用）、ReSTIR PT（完整路径追踪样本复用）、NVIDIA RTX Remix 和 Cyberpunk 2077 RT 模式均使用 ReSTIR 系列技术。
+        </div>
+        <div class="tip-box">💡 <strong>关键点：</strong>ReSTIR 的本质是"以时空邻域的历史样本换取高质量采样"，核心数据结构 Reservoir 只存储 1 个当前最优样本 + 其归一化权重，内存开销极低，这是它能用于实时渲染的工程关键。</div>
       </div>
     </div>
 
@@ -1306,6 +1379,45 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">72</div>
+        <div style="flex:1">
+          <div class="q-title">布料渲染为何不能直接用 Cook-Torrance BRDF？Ashikhmin 布料模型和多散射 GGX 各自解决了什么问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Cook-Torrance BRDF 对布料的局限：</strong>
+          <ul>
+            <li>Cook-Torrance 假设微表面是镜面高光（Specular Microfacets），产生集中的高光光斑</li>
+            <li>布料由大量纤维构成，纤维横截面是圆柱形，反射呈"逆反射"特性（光从来向反射回去）和"前向前反射"特性，而非集中高光</li>
+            <li>布料的漫反射更复杂，纤维间多次散射导致光从任意角度均可出射</li>
+          </ul>
+          <strong>Ashikhmin 布料 BRDF（用于 Filament/UE 布料着色器）：</strong>
+          <ul>
+            <li>使用 <strong>倒高斯 NDF（Inverted Gaussian）</strong>：<code>D(h) = e^(-tan²θ_h / α²) / (π α² cos⁴θ_h)</code> 的修改形式，高光在掠射角（grazing angle）最强，模拟布料绒毛的"光晕"效果</li>
+            <li>补充各向异性项，模拟平纹布、丝绸等不同编织结构</li>
+            <li>Filament 引擎中的 Charlie BRDF 对此进一步简化，降低计算成本</li>
+          </ul>
+          <strong>多散射 GGX（Multiscattering GGX，Heitz 等，2016）：</strong>
+          <ul>
+            <li>标准单散射 GGX 假设光线只与微表面交互一次，在粗糙度高时（α &gt; 0.5）会因丢失多次弹射能量而显得"发暗"，违反能量守恒</li>
+            <li>多散射 GGX 通过预计算 BSDF Lut（双散射查找表）补偿缺失的多散射能量，使得粗糙材质在高光方向能量守恒</li>
+            <li>UE4/5 的 <strong>Energy Conservation 修复</strong> 正是基于此，给 Fresnel 反射项乘以能量补偿因子 <code>Ec(f0, roughness)</code></li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话区分：</strong>Ashikhmin/Charlie 布料模型解决的是"布料纤维结构导致的特殊反射形状"问题；多散射 GGX 解决的是"高粗糙度下单散射 BRDF 能量不守恒"问题，两者解决的是不同层次的物理现象。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 5. 阴影 ══ -->
@@ -1495,6 +1607,50 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">73</div>
+        <div style="flex:1">
+          <div class="q-title">PCSS（Percentage Closer Soft Shadows）和 VSSM（Variance Soft Shadow Maps）的软阴影实现原理和性能对比？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>PCSS（2004，NVIDIA）原理：</strong>
+          <ol>
+            <li><strong>Blocker Search（遮挡物搜索）</strong>：在 Shadow Map 上以当前着色点投影坐标为中心，搜索固定半径内的深度值，计算平均遮挡物深度 <code>d_blocker</code></li>
+            <li><strong>半影宽度估算</strong>：根据光源尺寸和遮挡距离估算半影宽度：<code>w_penumbra = (d_receiver - d_blocker) / d_blocker × w_light</code></li>
+            <li><strong>可变半径 PCF</strong>：用步骤 2 估算的半影宽度进行 PCF 过滤，半影宽意味着过滤核大，产生模糊软阴影</li>
+          </ol>
+          <strong>PCSS 缺点：</strong>每次着色需要 2 次大范围采样（Blocker Search + PCF），对于大半影每次可能需要 64+ 次纹理采样，帧率损耗极大。
+          <br/><br/>
+          <strong>VSSM（Variance Soft Shadow Maps，2006）原理：</strong>
+          <ul>
+            <li>Shadow Map 中每个 texel 额外存储深度的<strong>均值 μ</strong>和<strong>方差 σ²</strong>（通过 SAT/Mipmap 预计算，O(1) 查询任意区域统计量）</li>
+            <li>用 <strong>切比雪夫不等式（Chebyshev）</strong> 近似计算遮挡概率：<code>P(x ≥ t) ≤ σ² / (σ² + (t-μ)²)</code>，O(1) 获得软阴影权重</li>
+            <li>结合 SAT（Summed Area Table）实现 O(1) 的 Blocker Search 和 PCF 近似，性能极好</li>
+          </ul>
+          <strong>VSSM 缺点：</strong>漏光（Light Bleeding）问题——当遮挡物深度方差大时，切比雪夫不等式估计过于保守，导致本应在阴影中的区域显示为亮（漏光）。
+          <br/><br/>
+          <strong>对比总结：</strong>
+          <ul>
+            <li><strong>质量</strong>：PCSS &gt; VSSM（PCSS 无漏光）</li>
+            <li><strong>性能</strong>：VSSM &gt; PCSS（VSSM O(1) vs PCSS O(N²)）</li>
+            <li><strong>工程选择</strong>：UE5 VSM 使用 PCSS 类方法配合虚拟页缓存；移动端常用 VSSM 或 EVSM（改进漏光）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>EVSM（Exponential VSM）</strong> 是 VSSM 的常用改进，用指数变换 <code>e^(c×d)</code> 代替深度值，将深度分布更接近高斯分布，显著缓解漏光问题，是目前移动端软阴影的常用方案。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -1627,6 +1783,41 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">74</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 的 TSR（Temporal Super Resolution）与 TAA 的区别是什么？它如何改进 TAA 的 Ghost 和 Blur 问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>TAA 的典型问题：</strong>
+          <ul>
+            <li><strong>Ghosting（残影/重影）</strong>：历史帧重投影出错（如遮挡/半透明/新出现物体），导致历史颜色混入当前帧产生拖尾</li>
+            <li><strong>Blur（模糊）</strong>：为抑制抖动，历史帧混合比例较高（α ≈ 0.9），移动物体边缘模糊</li>
+            <li><strong>Flickering（闪烁）</strong>：亮度对比强烈的细节区域时域不稳定</li>
+          </ul>
+          <strong>TSR（UE5 自研，2021）核心改进：</strong>
+          <ol>
+            <li><strong>基于 Velocity 的精准 Rejection</strong>：计算逐像素的重投影误差（深度差异 + 颜色差异），对高误差区域的历史帧样本直接拒绝（设权重为 0），不做混合，避免 Ghosting</li>
+            <li><strong>Subpixel Jitter 的空间重建</strong>：利用多帧亚像素偏移样本，在空间域重建超分辨率图像（类似 DLSS 神经网络超分的效果），输出分辨率可超过输入分辨率（如 1080p 输入输出 4K）</li>
+            <li><strong>Anti-Aliasing Filter</strong>：在历史帧合并前对当前帧做空间滤波，统一处理 AA 和超分，不再依赖单独的 MSAA Pass</li>
+            <li><strong>移动向量的 Dilation</strong>：对深度最近邻的 Motion Vector 做膨胀（Depth Dilation），避免前景物体边缘使用背景运动向量导致的 Ghosting</li>
+          </ol>
+          <strong>与 DLSS/FSR 对比：</strong>TSR 是纯算法（不依赖神经网络和硬件专用单元），可在所有平台（包括主机）运行；DLSS 需要 Tensor Core，质量更优但依赖 NVIDIA 硬件。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>TSR 的核心贡献是"基于逐像素误差的 History Rejection"而非简单的颜色 Clamp，这是它比传统 TAA Ghosting 少的根本原因；TSR 同时兼顾了 AA 和超分，是目前跨平台最优的时域算法之一。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -1733,6 +1924,51 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>典型参数：</strong>通常划分为 16×9×24 = 3456 个 Cluster，每 Cluster 最多 128 个光源。《战地5》《神秘海域》系列均采用 Clustered Shading 支持数百至数千动态光源。
         </div>
         <div class="tip-box">💡 <strong>扩展：</strong>Clustered Shading 最初由 Ola Olsson 在 2012 年提出，现已是 AAA 游戏和现代引擎（UE/Unity）处理大规模动态光源的标准方案。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">75</div>
+        <div style="flex:1">
+          <div class="q-title">Visibility Buffer（可见性缓冲区）渲染架构是什么？与传统 G-Buffer 延迟渲染相比有何优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 G-Buffer 延迟渲染的问题：</strong>
+          <ul>
+            <li>每个可见像素都在 Geometry Pass 中执行完整的顶点变换和材质采样，再写入多张 MRT（GBuffer），带宽开销大</li>
+            <li>对于使用了大量 Draw Call 的场景，即使最终像素被遮挡，也已消耗了顶点/材质计算资源（OverDraw 问题）</li>
+            <li>G-Buffer 固定格式限制了材质多样性（不同材质需要不同的 G-Buffer 布局）</li>
+          </ul>
+          <strong>Visibility Buffer 架构（Burns & Hunt 2013，UE5 Nanite 采用）：</strong>
+          <ol>
+            <li><strong>Visibility Pass</strong>：仅输出一张 Visibility Buffer（每像素存储 <code>Triangle ID + Instance ID</code>，通常 32/64 bit），只做几何可见性判断，不做任何着色计算</li>
+            <li><strong>Material Classify Pass</strong>：根据 Visibility Buffer 分析哪些屏幕区域覆盖了哪种材质，生成 Material Tile 分类表</li>
+            <li><strong>Deferred Material Pass</strong>：以 Compute Shader 为每种材质生成一个 Full-Screen Pass，只处理该材质覆盖的像素；此时才从 Visibility Buffer 中还原重心坐标，插值顶点属性，采样贴图，计算光照</li>
+          </ol>
+          <strong>Visibility Buffer 优势：</strong>
+          <ul>
+            <li><strong>极低 Geometry Pass 带宽</strong>：Visibility Buffer 仅 4-8 字节/像素，远小于 G-Buffer（通常 16-32 字节/像素 × 3-4 张）</li>
+            <li><strong>完美支持 Nanite 超密网格</strong>：Nanite 通过 Software Rasterizer 直接写 Visibility Buffer，可处理亿级多边形</li>
+            <li><strong>材质多样性</strong>：每种材质独立 Pass，支持任意复杂材质，不受 G-Buffer 格式约束</li>
+          </ul>
+          <strong>劣势：</strong>
+          <ul>
+            <li>需要在着色阶段手动重建顶点属性（重心坐标插值），实现复杂</li>
+            <li>透明物体和 Alpha Test 处理更复杂</li>
+            <li>对大量不同材质的场景，Material Pass 数量多，可能有 Draw Call Overhead</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>UE5 实现：</strong>UE5 Nanite 的核心渲染架构就是 Visibility Buffer，配合 Mesh Shader（或 Software Rasterizer）和 Virtual Shadow Map，实现了"电影级多边形密度 + 实时渲染帧率"的突破。</div>
       </div>
     </div>
 
@@ -2679,6 +2915,46 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">76</div>
+        <div style="flex:1">
+          <div class="q-title">RoPE（旋转位置编码）的原理是什么？相比绝对/相对位置编码有哪些优势？如何支持长上下文外推？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RoPE（Rotary Position Embedding，苏剑林，2021）核心思想：</strong>
+          <ul>
+            <li>不把位置信息加在词向量上（绝对位置编码），而是在计算 Attention 时，对 Q 和 K 的每对 2 维分量按位置索引旋转固定角度</li>
+            <li><strong>旋转变换</strong>：对位置 m 处的向量 x，将其第 2i, 2i+1 维按旋转矩阵旋转 m×θ_i 角度（θ_i = 1/10000^(2i/d)，类似 Sinusoidal）</li>
+            <li><strong>关键性质</strong>：Q_m · K_n = f(x_m, m) · f(x_n, n)，其内积只依赖于相对位置差 (m-n)，天然编码相对位置信息，无需额外的相对位置偏置矩阵</li>
+          </ul>
+          <strong>RoPE 的优势：</strong>
+          <ul>
+            <li><strong>相对位置感知</strong>：Attention 内积隐式包含相对位置，位置感知更自然</li>
+            <li><strong>外推能力</strong>：Sinusoidal 基础使得在训练长度外能稳定旋转，具备一定外推能力（优于 Learned Absolute PE）</li>
+            <li><strong>高效实现</strong>：只需对 Q/K 做逐元素复数乘法（2D 旋转），不增加额外参数，推理计算开销微乎其微</li>
+            <li><strong>广泛应用</strong>：LLaMA、Mistral、Qwen、ChatGLM、DeepSeek 等主流开源模型均使用 RoPE</li>
+          </ul>
+          <strong>长上下文外推技术（解决超训练长度退化问题）：</strong>
+          <ul>
+            <li><strong>位置插值（PI，Linear Interpolation）</strong>：将超出训练长度的位置索引线性缩放到训练范围内，可不微调直接外推，但高频分量信息有损失</li>
+            <li><strong>YaRN（Yet another RoPE extensioN）</strong>：对不同频率的旋转分量差异化缩放（低频维度不缩放，高频维度插值），并引入注意力温度修正，大幅减少外推损失；LLaMA-3.1/Qwen2.5 均采用 YaRN</li>
+            <li><strong>LongRoPE</strong>：进一步改进旋转基频，允许模型在极长上下文（100万+ token）下稳定运行</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试公式必记：</strong>位置 m 的 Q 向量第 (2i, 2i+1) 维经过旋转 <code>[cos(mθ_i), -sin(mθ_i); sin(mθ_i), cos(mθ_i)]</code>，使得 <code>Q_m · K_n</code> 等价于 f(x_m, x_n, m-n)，RoPE 的"相对位置性"正是由此而来。</div>
+      </div>
+    </div>
+
     <!-- ══ 训练微调新题 ══ -->
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
@@ -2757,6 +3033,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">77</div>
+        <div style="flex:1">
+          <div class="q-title">GRPO（Group Relative Policy Optimization）的原理是什么？DeepSeek-R1 如何用它激发模型的推理链（Chain-of-Thought）能力？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>PPO 的问题：</strong>PPO 需要训练一个 Critic Value 网络（大小与 Actor 相同）来估计基线（Baseline），显存开销是 Actor 的 2 倍，且 Critic 训练不稳定。
+          <br/><br/>
+          <strong>GRPO（DeepSeek，2024）核心思想：</strong>
+          <ul>
+            <li><strong>组内相对优势</strong>：对同一道问题（Prompt），用当前策略采样 G 个回答（如 G=8），用规则 Reward（如数学答案正确 +1/错误 -1，格式 +0.5）对每个回答打分 <code>r_i</code></li>
+            <li><strong>无需 Critic</strong>：以组内所有回答的平均分作为基线：<code>A_i = (r_i - mean(r)) / std(r)</code>，直接计算相对优势，省去 Critic Value 网络</li>
+            <li><strong>KL 散度约束</strong>：同 PPO 一样加入 KL 惩罚项，防止策略偏离参考模型太远</li>
+          </ul>
+          <strong>GRPO Loss：</strong>
+          <pre>L = -E[min(r_t × A_t, clip(r_t, 1-ε, 1+ε) × A_t)] + β × KL(π_θ || π_ref)</pre>
+          其中 r_t = π_θ(a_t|s_t) / π_old(a_t|s_t) 为重要性比。
+          <br/><br/>
+          <strong>DeepSeek-R1 的训练流程（冷启动 → RL → 蒸馏）：</strong>
+          <ol>
+            <li><strong>冷启动 SFT</strong>：用少量高质量 CoT 数据（含 &lt;think&gt; 标签）做监督微调，给模型基础推理格式</li>
+            <li><strong>GRPO RL 训练</strong>：以数学、代码等有明确答案的题目为训练集，奖励函数 = 结果正确奖励 + 格式遵循奖励（是否有 &lt;think&gt; 结构），GRPO 驱动模型自主涌现出长 CoT 推理行为（Aha Moment）</li>
+            <li><strong>拒绝采样 + SFT</strong>：用 R1 生成的高质量 CoT 数据过滤后做第二轮 SFT</li>
+            <li><strong>第二轮 GRPO</strong>：进一步对齐多场景</li>
+            <li><strong>蒸馏</strong>：用 R1 生成的推理链数据蒸馏到 1.5B-70B 小模型，即 R1-Distill 系列</li>
+          </ol>
+        </div>
+        <div class="tip-box">💡 <strong>关键洞察：</strong>GRPO 的优雅之处在于"用组内相对分数替代绝对价值估计"，消除了 Critic 网络，将 RL 训练从 4 个模型降为 2 个（Actor + Reference），是使推理模型训练工程可行的核心简化。</div>
+      </div>
+    </div>
+
     <!-- ══ 推理优化新题 ══ -->
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
@@ -2831,6 +3148,43 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>关键保证：</strong>"输出分布与 Target Model 等价"是投机采样的核心性质，通过拒绝采样的数学修正实现，面试时一定要强调这一点而非说"有近似"。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">78</div>
+        <div style="flex:1">
+          <div class="q-title">MHA/MQA/GQA/MLA 四种 KV Cache 方案的区别是什么？DeepSeek-V2 的 MLA 如何在低 KV Cache 下保持高质量？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>背景：</strong>自回归推理时，每个 token 生成都需要所有之前 token 的 K/V 向量（KV Cache），长序列下 KV Cache 大小 = 2 × num_layers × seq_len × num_heads × head_dim，是推理显存的主要瓶颈。
+          <br/><br/>
+          <strong>四种方案对比：</strong>
+          <ul>
+            <li><strong>MHA（Multi-Head Attention）</strong>：每个 Head 独立存储 K/V，KV Cache = H × d（H = 头数，d = 每头维度），质量最高但开销最大；GPT-2/BERT 使用</li>
+            <li><strong>MQA（Multi-Query Attention，Shazeer 2019）</strong>：所有 Query Head 共享同一组 K/V（只有 1 个 K Head 和 1 个 V Head），KV Cache = 1/H 倍，推理带宽极省，但质量略降；PaLM、Falcon 使用</li>
+            <li><strong>GQA（Grouped-Query Attention，Google 2023）</strong>：将 H 个 Query Head 分成 G 组，每组共享 1 对 K/V，KV Cache = G/H 倍（G 通常取 H/8 或 H/4），质量接近 MHA；LLaMA-2 70B、Mistral、Qwen2 等广泛使用</li>
+            <li><strong>MLA（Multi-head Latent Attention，DeepSeek-V2 2024）</strong>：将 K/V 压缩为低维潜变量 c（通过 Down-Projection 矩阵），推理时只缓存压缩后的 c；计算注意力时用 Up-Projection 还原 K/V。KV Cache 压缩到 MHA 的约 1/9，且质量接近甚至超过 MHA</li>
+          </ul>
+          <strong>MLA 的核心设计：</strong>
+          <ul>
+            <li>训练时：<code>K = W_UK × c_KV</code>，<code>V = W_UV × c_KV</code>，<code>c_KV = W_DKV × h</code>（Down-Projection，d → d_c，d_c &lt;&lt; d）</li>
+            <li>推理时：只缓存 <code>c_KV</code>（低维），不缓存完整 K/V；但计算 Attention 需要还原，通过将 W_UK 合并到 Q（吸收技巧），可在不还原 K/V 的情况下直接计算注意力得分（节省还原开销）</li>
+            <li>额外引入 RoPE 解耦：MLA 对 Q/K 的旋转位置编码部分单独处理（Decoupled RoPE），与潜变量路径分离</li>
+          </ul>
+          <strong>实测效果（DeepSeek-V2，236B MoE 模型）：</strong>KV Cache 降低到 MHA 的 5.75%，推理吞吐提升 5.76×，质量持平或优于 MHA。
+        </div>
+        <div class="tip-box">💡 <strong>记忆顺序：</strong>MHA（全缓存）→ MQA（共享1组）→ GQA（分组共享，折中）→ MLA（压缩潜变量，最激进），这条进化链是推理优化显存的核心路线，面试时能完整说出是高分项。</div>
       </div>
     </div>
 
@@ -2914,6 +3268,52 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>2025 工程实践：</strong>MCP + A2A + LangGraph 是当前 Agent 系统的黄金组合；面试可提及已用 MCP 连接代码库/数据库的实际项目，展示工程能力。</div>
+      </div>
+    </div>
+
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">79</div>
+        <div style="flex:1">
+          <div class="q-title">HyDE（假设文档嵌入）和混合检索（Hybrid Search）如何提升 RAG 的检索质量？Reranker 的作用是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>基础 RAG 的检索质量问题：</strong>
+          <ul>
+            <li><strong>语义鸿沟</strong>：用户 Query 短而模糊（如"如何减少推理延迟"），与文档段落语义空间差异大，向量相似度低</li>
+            <li><strong>关键词遗漏</strong>：纯向量检索无法精确匹配专有名词、代码符号等 Sparse 特征</li>
+            <li><strong>Recall vs Precision 矛盾</strong>：检索 Top-K 大则召回高但噪声多；K 小则精确但可能遗漏关键文档</li>
+          </ul>
+          <strong>HyDE（Hypothetical Document Embeddings，2022）：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：先用 LLM 根据 Query 生成一段"假设性答案文档"（Hypothetical Document），再用这段假设文档的向量去检索真实文档库</li>
+            <li><strong>优势</strong>：假设文档与真实知识文档的语义空间更接近（都是文档风格），检索准确率显著提升，尤其对专业领域问题效果突出</li>
+            <li><strong>代价</strong>：多一次 LLM 调用（延迟增加），假设文档质量依赖 LLM 能力</li>
+          </ul>
+          <strong>混合检索（Hybrid Search）：</strong>
+          <ul>
+            <li><strong>稠密检索（Dense Retrieval）</strong>：向量相似度搜索（如 FAISS、Milvus），适合语义理解</li>
+            <li><strong>稀疏检索（Sparse Retrieval）</strong>：BM25/TF-IDF 关键词匹配，适合精确专有名词匹配</li>
+            <li><strong>融合方式</strong>：RRF（Reciprocal Rank Fusion）对两路检索结果按排名倒数求和重新排序：<code>score = Σ 1/(k + rank_i)</code>，k 通常取 60</li>
+          </ul>
+          <strong>Reranker（精排）：</strong>
+          <ul>
+            <li>检索阶段（Recall）速度优先，召回 Top-50~100 个候选文档</li>
+            <li>Reranker（如 BGE-Reranker、Cohere Rerank）对 Query-Document 对做<strong>交叉注意力精打分</strong>（Cross-Encoder），精排到 Top-5~10</li>
+            <li>Cross-Encoder 比 Bi-Encoder（向量检索）精度高但速度慢（不能预计算文档向量），是精排-召回两阶段的完美配合</li>
+          </ul>
+          <strong>完整高质量 RAG Pipeline：</strong>Query → HyDE 假设文档 → 混合检索（Dense + Sparse，RRF 融合）→ Reranker 精排 → Top-K 文档 → LLM 生成答案。
+        </div>
+        <div class="tip-box">💡 <strong>面试加分点：</strong>能描述"Recall 阶段用 Bi-Encoder（速度快），Rerank 阶段用 Cross-Encoder（精度高）"的两阶段架构，并解释为什么不能直接用 Cross-Encoder 做全库检索（复杂度 O(N)，N 为文档数，无法预计算向量）。</div>
       </div>
     </div>
 
