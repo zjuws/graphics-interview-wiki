@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">115+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">125+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -632,6 +632,73 @@
       </div>
     </div>
 
+    <!-- Q80 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">80</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Nanite 虚拟几何体的核心架构是什么？它如何做到亿级三角形的实时渲染？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Nanite 核心架构：</strong>
+          <ul>
+            <li><strong>Meshlet（簇）化</strong>：将网格离线拆分为约 128 个三角形一组的 Cluster，并构建层次化有向无环图（Cluster DAG），每个簇记录其父子关系和简化误差</li>
+            <li><strong>GPU Driven LOD 选择</strong>：运行时在 GPU Compute Shader 内完成视锥体裁剪、HZB 遮挡剔除和 LOD 选择，CPU 几乎不参与——选择 DAG 上满足"屏幕误差 &lt; 1 像素"的一个"剪切面"来绘制</li>
+            <li><strong>Software Rasterizer</strong>：对亚像素级别的小三角形（边长 &lt; 约 2 像素），用 Compute Shader 自实现软件光栅化，比硬件光栅器效率更高（硬件处理小三角形开销大）；大三角形仍走硬件光栅化</li>
+            <li><strong>Visibility Buffer（可见性缓冲）</strong>：光栅化输出每像素的 VisBuffer（Instance ID + Cluster ID + 三角形 ID），延迟到 Material Pass 才根据 VisBuffer 索引材质并着色，避免 GBuffer 带宽爆炸</li>
+            <li><strong>流式加载</strong>：Meshlet 数据高度压缩并支持细粒度按需流入显存，不依赖 CPU 端 LOD 切换</li>
+          </ul>
+          <strong>性能关键点：</strong>
+          <ul>
+            <li>整条管线完全 GPU Driven，CPU 只提交一次 Indirect Dispatch/Draw，消除了百万级 Draw Call 的 CPU 瓶颈</li>
+            <li>每个 Cluster 独立剔除，剔除粒度从"物体"细化到"128 三角形组"，剔除率大幅提升</li>
+            <li>局限：不支持骨骼动画蒙皮（Skinned Mesh）、不支持 World Position Offset 复杂变形；透明物体不走 Nanite</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试建议：</strong>Nanite = Cluster DAG + GPU Driven 剔除 + Software Rasterizer + Visibility Buffer，这四点说清楚即可拿满分。特别强调"软件光栅化处理小三角形"是 Nanite 区别于传统方案的工程亮点。</div>
+      </div>
+    </div>
+
+    <!-- Q81 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">81</div>
+        <div style="flex:1">
+          <div class="q-title">GPU Driven Rendering（GPU 驱动渲染）的核心思想是什么？Indirect Draw Call 如何减少 CPU-GPU 通信开销？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统渲染瓶颈：</strong>CPU 遍历场景所有物体 → 视锥剔除 → 逐物体提交 Draw Call → GPU 绘制。当场景物体超过数万个时，CPU 端剔除和 Draw Call 提交成为瓶颈（CPU 带宽约 100 万次/秒）。
+          <br/><br/>
+          <strong>GPU Driven 核心思想：</strong>将剔除、LOD 选择、Draw Argument 生成全部移到 GPU Compute Shader 内完成，CPU 只提交一次 <code>DrawIndexedIndirect</code>，实际绘制参数从 GPU Buffer 中读取。
+          <ul>
+            <li><strong>ExecuteIndirect / MultiDrawIndirect</strong>：DX12/Vulkan 的 Indirect Draw API，允许 GPU Buffer 直接指定绘制参数（顶点起始/数量/实例数），CPU 不参与每帧的绘制决策</li>
+            <li><strong>GPU Culling Pipeline</strong>：① Compute Pass 读取所有物体 AABB → 视锥剔除 → 遮挡剔除（HZB）→ 将通过剔除的物体写入 Compact Buffer；② Indirect Draw 从 Compact Buffer 中按需绘制</li>
+            <li><strong>Two-Phase Occlusion Culling</strong>：第一帧用上一帧 HZB 剔除（可能漏画）→ 渲染可见集合 → 更新 HZB → 第二 Pass 检查被错误剔除的物体并补渲染（Reprojection Test）</li>
+          </ul>
+          <strong>收益量化：</strong>Draw Call 从 O(场景物体数) 降低到 O(材质批次数)，百万物体场景 GPU 利用率可从 40% 提升到 90% 以上。
+        </div>
+        <div class="tip-box">💡 <strong>工程细节：</strong>GPU Driven 需要场景所有物体的数据（变换矩阵、AABB、LOD 信息）提前上传到 GPU Buffer，并按材质/管线状态分组（以减少 PSO 切换），这是引擎级别的架构改造，而非简单的 API 调用优化。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 光线追踪（新增） ══ -->
@@ -831,6 +898,51 @@
           <strong>变体：</strong>ReSTIR GI（间接光照复用）、ReSTIR PT（完整路径追踪样本复用）、NVIDIA RTX Remix 和 Cyberpunk 2077 RT 模式均使用 ReSTIR 系列技术。
         </div>
         <div class="tip-box">💡 <strong>关键点：</strong>ReSTIR 的本质是"以时空邻域的历史样本换取高质量采样"，核心数据结构 Reservoir 只存储 1 个当前最优样本 + 其归一化权重，内存开销极低，这是它能用于实时渲染的工程关键。</div>
+      </div>
+    </div>
+
+    <!-- Q82 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">82</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Lumen 全局光照的实现原理是什么？Surface Cache 和 Radiance Cache 分别起什么作用？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Lumen 整体架构（软件光追 + 硬件光追双模式）：</strong>
+          <ul>
+            <li><strong>默认模式：软件 SDF 追踪</strong>——对场景物体离线生成网格有向距离场（Mesh SDF）和场景全局 SDF，光线在 SDF 中以"球形步进（Sphere Tracing）"快速前进，O(log N) 复杂度找到命中点，无需硬件 RT 支持</li>
+            <li><strong>高质量模式：硬件光线追踪</strong>——在支持 DXR/Vulkan RT 的 GPU 上，使用硬件 BVH 进行精确光线求交，质量更高，适合 RTX 4090 等旗舰显卡</li>
+          </ul>
+          <strong>Surface Cache（表面缓存）：</strong>
+          <ul>
+            <li>Lumen 为场景中的每个网格在离线阶段从多个方向捕捉材质属性（Albedo、法线、自发光），存储为 Cards（一套 UV 展开的纹理图集）</li>
+            <li>每帧动态更新 Cards 上的直接光照、间接光照（来自上一帧的 Radiance Cache），形成可查询的辐射度贴图</li>
+            <li>光线命中场景表面后，直接从 Surface Cache 中索引读取该点的辐射度，<strong>无需再次追踪光线</strong>，这是实时帧率的核心</li>
+          </ul>
+          <strong>Radiance Cache：</strong>
+          <ul>
+            <li>在世界空间中以体素网格（Voxel Grid）形式缓存场景辐射度（可理解为低频全局光照的"探针网格"）</li>
+            <li>Surface Cache 读取间接光照时，先查询 Radiance Cache，减少多次反弹追踪的开销</li>
+            <li>通过时间积累（Temporal Accumulation）平滑更新，避免每帧重建带来的噪声</li>
+          </ul>
+          <strong>Lumen 局限性：</strong>
+          <ul>
+            <li>软件光追模式下，细小几何体、镂空网格的 SDF 精度不足，可能产生漏光或 AO 缺失</li>
+            <li>完全动态的全局光照延迟（Light Bounce 延迟约 1-2 帧），快速光照变化场景可能出现滞后感</li>
+            <li>不支持 Nanite 网格的精确反射（需降级为 Screen Space Reflection 或 Reflection Capture）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试加分：</strong>Lumen 本质是"预计算（Surface Cache 的 Cards 生成）+ 实时追踪（SDF/HW RT）+ 时间积累（Radiance Cache）"三阶段组合，理解这个分层设计就抓住了 Lumen 的架构精髓。</div>
       </div>
     </div>
 
@@ -1418,6 +1530,43 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q83 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">83</div>
+        <div style="flex:1">
+          <div class="q-title">各向异性材质（Anisotropic BRDF）如何实现？Filament 的多层材质（Clearcoat）模型解决了什么问题？</div>
+          <div class="q-tags">
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>各向异性 BRDF（Anisotropic GGX）：</strong>
+          <ul>
+            <li>标准 GGX 的法线分布函数（NDF）在各方向上具有相同的粗糙度，高光呈圆形。真实刷拉丝金属、头发等材质在切线/副切线方向粗糙度不同，高光呈椭圆拉伸</li>
+            <li><strong>各向异性 GGX NDF</strong>：引入两个独立粗糙度参数 α_t（切线方向）和 α_b（副切线方向），NDF 公式变为：<br/>
+              <code>D(h) = 1 / (π·α_t·α_b·[(h·t/α_t)²+(h·b/α_b)²+(h·n)²]²)</code></li>
+            <li><strong>实现要求</strong>：需要切线向量 T 和副切线向量 B（来自顶点属性或法线贴图中的旋转角 θ），UE5 通过 Tangent Output 节点支持</li>
+            <li><strong>典型应用</strong>：拉丝金属（碳纤维）、唱片盘面、皮肤高光方向拉伸</li>
+          </ul>
+          <strong>多层材质（Clearcoat / 清漆层）：</strong>
+          <ul>
+            <li>汽车车漆、木地板等材质具有双层结构：底层（有色基底，可粗糙）+ 顶层（透明光滑清漆层）</li>
+            <li>Google Filament 的 Clearcoat 模型：计算两层各自的 BRDF 后线性混合，顶层系数 0~1 可调</li>
+            <li><strong>能量守恒处理</strong>：清漆层的反射会从基础层减去，确保两层加和不超过入射能量：<code>result = clearcoat_brdf + (1 - clearcoat_reflectance) * base_brdf</code></li>
+            <li>UE5 中对应 Clear Coat 材质模式，需额外提供 Clear Coat Roughness 和 Clear Coat 强度输入</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆技巧：</strong>各向异性 = 把圆形 GGX 高光拉成椭圆，需要切线方向信息；多层材质 = 两个 BRDF 叠加但要保证能量守恒（顶层反射部分不再传入底层）。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 5. 阴影 ══ -->
@@ -1648,6 +1797,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>EVSM（Exponential VSM）</strong> 是 VSSM 的常用改进，用指数变换 <code>e^(c×d)</code> 代替深度值，将深度分布更接近高斯分布，显著缓解漏光问题，是目前移动端软阴影的常用方案。</div>
+      </div>
+    </div>
+
+    <!-- Q84 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">84</div>
+        <div style="flex:1">
+          <div class="q-title">Cascaded Shadow Map（CSM）的分级策略如何优化？Ray Traced Shadow 与 CSM 相比各有什么优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>CSM 基本原理：</strong>
+          <ul>
+            <li>将视锥体沿深度方向划分为 N 个子视锥体（通常 3~4 个），每个子视锥体对应一张独立 Shadow Map（分辨率相同，覆盖范围不同）</li>
+            <li>近处 Cascade 覆盖小区域（分辨率高），远处 Cascade 覆盖大区域（分辨率低），整体效果比单张 Shadow Map 均匀得多</li>
+          </ul>
+          <strong>CSM 优化关键点：</strong>
+          <ul>
+            <li><strong>分割策略</strong>：对数分割 <code>z_i = z_n × (z_f/z_n)^(i/N)</code> 比均匀分割更符合人眼感知（近处细节更重要）；实际常用对数+均匀的混合分割并加 λ 参数调节</li>
+            <li><strong>Frustum Fitting</strong>：将光源正交投影矩阵 Tight-Fit 到子视锥体的 AABB，减少浪费像素；需对 AABB 进行稳定化（Rounding to Texel Size）防止摄像机移动时出现阴影边缘抖动</li>
+            <li><strong>Cascade 混合（Blend Band）</strong>：Cascade 边界区域同时采样相邻两级 Shadow Map 并插值，消除边界跳变</li>
+            <li><strong>Shadow Cache / Static Shadow</strong>：对不移动的静态物体只渲染一次 Shadow Map 并缓存，动态物体 Dirty 时才局部更新</li>
+          </ul>
+          <strong>Ray Traced Shadow vs CSM：</strong>
+          <ul>
+            <li><strong>CSM 优势</strong>：GPU 开销稳定可预期，不依赖硬件 RT，移动端可用</li>
+            <li><strong>CSM 劣势</strong>：分辨率有限，远处阴影锯齿明显；无法天然处理大面积光源产生的半影（需额外 PCSS/VSSM）</li>
+            <li><strong>RT Shadow 优势</strong>：物理正确的半影，与光源面积精确匹配；支持透明物体和头发自阴影</li>
+            <li><strong>RT Shadow 劣势</strong>：需要 DXR 硬件，噪声大（1spp），必须配合 SVGF/NRD 降噪，延迟约 1~2ms/帧（4K 场景）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>工程建议：</strong>主机/PC 高端游戏常用"CSM 做中远距离阴影 + RT Shadow 做近距离软阴影"的混合方案，兼顾性能和质量。</div>
       </div>
     </div>
 
@@ -1969,6 +2159,49 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>UE5 实现：</strong>UE5 Nanite 的核心渲染架构就是 Visibility Buffer，配合 Mesh Shader（或 Software Rasterizer）和 Virtual Shadow Map，实现了"电影级多边形密度 + 实时渲染帧率"的突破。</div>
+      </div>
+    </div>
+
+    <!-- Q85 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">85</div>
+        <div style="flex:1">
+          <div class="q-title">Forward+、Deferred+ 和 Tile-Based Deferred Rendering 三种架构有什么区别？各自适合什么场景？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Tile-Based Deferred Rendering（TBDR）：</strong>
+          <ul>
+            <li>在传统 Deferred Rendering 基础上，用 Compute Shader 将屏幕划分为 16×16 像素的 Tile，每个 Tile 独立计算其覆盖的光源列表（Light Culling），Fragment Shader 只遍历本 Tile 的光源，而非全部光源</li>
+            <li>光源剔除：在 Tile 内对光源包围球与 Tile 视锥体做相交测试，通常用深度 Min-Max（从深度缓冲读取）进一步缩小范围</li>
+            <li><strong>性能收益</strong>：对有 1000 个灯光的场景，传统 Deferred 每像素需检查 1000 个灯，TBDR 平均每 Tile 只有几十个灯</li>
+          </ul>
+          <strong>Forward+（Tiled Forward）：</strong>
+          <ul>
+            <li>保留 Forward Rendering 的渲染流程（支持透明/MSAA/自定义材质），但加入 Light Culling Pass（与 TBDR 相同的 Tile 分组）</li>
+            <li>在 Forward Pass 中，每个片元只查询本 Tile 的光源列表而非全局灯光</li>
+            <li><strong>适合场景</strong>：需要 MSAA 或复杂材质混合的场景（如 VR/游戏移动端）；UE5 支持 Forward Shading 模式即基于此</li>
+          </ul>
+          <strong>Deferred+（Deferred Rendering + Clustered Shading）：</strong>
+          <ul>
+            <li>在深度方向上进一步将 Tile 按深度切分为多个 Cluster（三维格子），光源分配到具体 Cluster，解决 TBDR 在深度方向穿插灯光密集时剔除精度不足的问题</li>
+            <li><strong>适合场景</strong>：大开放世界、室内场景（灯光密集且深度方向变化大）；《赛博朋克 2077》夜城使用 Clustered Deferred</li>
+          </ul>
+          <div style="margin-top:10px">
+            <strong>三者对比：</strong><br/>
+            Tile Deferred = 屏幕 XY 分块；Forward+ = Tile 分块 + Forward 渲染；Clustered（Deferred+）= XYZ 三维分块，精度最高但内存开销最大。
+          </div>
+        </div>
+        <div class="tip-box">💡 <strong>选型建议：</strong>移动端首选 Tile Deferred（ARM Mali 硬件天然 TBDR）；PC/主机复杂场景选 Clustered Deferred；需要 MSAA 或大量透明物体选 Forward+。</div>
       </div>
     </div>
 
@@ -3314,6 +3547,181 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>完整高质量 RAG Pipeline：</strong>Query → HyDE 假设文档 → 混合检索（Dense + Sparse，RRF 融合）→ Reranker 精排 → Top-K 文档 → LLM 生成答案。
         </div>
         <div class="tip-box">💡 <strong>面试加分点：</strong>能描述"Recall 阶段用 Bi-Encoder（速度快），Rerank 阶段用 Cross-Encoder（精度高）"的两阶段架构，并解释为什么不能直接用 Cross-Encoder 做全库检索（复杂度 O(N)，N 为文档数，无法预计算向量）。</div>
+      </div>
+    </div>
+
+    <!-- Q86 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">86</div>
+        <div style="flex:1">
+          <div class="q-title">视觉语言模型（VLM/多模态大模型）是如何将图像与文本对齐的？LLaVA 和 InternVL 的架构有何不同？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VLM 核心问题：图像-文本模态对齐</strong>
+          <ul>
+            <li>图像（连续像素）和文本（离散 Token）处于不同的语义空间，需要一个桥接组件将视觉特征映射到 LLM 可理解的 Token 空间</li>
+          </ul>
+          <strong>LLaVA 架构（2023 NIPS）：</strong>
+          <ul>
+            <li>视觉编码器：CLIP ViT-L/14 提取图像 Patch 特征（196 个 Token）</li>
+            <li>对齐模块：<strong>单层线性投影（MLP）</strong>将视觉特征投影到 LLM 的 Token 维度，简单高效</li>
+            <li>LLM 主干：Vicuna-13B / LLaMA，将图像 Token + 文本 Token 拼接后输入</li>
+            <li>LLaVA-1.5 改进：MLP 升级为两层，分辨率支持扩展到 336×336，Visual Instruction Tuning 数据质量提升</li>
+          </ul>
+          <strong>InternVL 架构（上海 AI Lab，2024）：</strong>
+          <ul>
+            <li>视觉编码器：自训练的 InternViT-6B（6B 参数 ViT，最大视觉编码器之一），视觉理解能力显著强于 CLIP</li>
+            <li>对齐模块：Pixel Shuffle（像素重排）降采样 + MLP Projector，将高分辨率图像 Token 压缩以降低 LLM 输入长度</li>
+            <li>Dynamic Resolution：将高分辨率图像切分为多个 448×448 的 Tile，每个 Tile 独立编码后拼接，支持超高分辨率输入（OCR、文档理解）</li>
+            <li>InternVL2 在多项 VQA/OCR 基准超越 GPT-4V</li>
+          </ul>
+          <strong>多模态训练三阶段：</strong>
+          <ul>
+            <li>① 图文对齐预训练（只训练 Projector，冻结 ViT 和 LLM）</li>
+            <li>② 视觉指令微调（解冻 LLM，训练 Projector + LLM）</li>
+            <li>③ 偏好对齐（RLHF / DPO，减少幻觉）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键点：</strong>强调"视觉 Token 数量 = 图像 Patch 数 = 推理时 KV Cache 开销的主要来源"，高分辨率图像会产生 1000+ 视觉 Token，这是 VLM 推理优化（Token 压缩）的核心动力。</div>
+      </div>
+    </div>
+
+    <!-- Q87 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">87</div>
+        <div style="flex:1">
+          <div class="q-title">扩散模型（Diffusion Model）的数学原理是什么？DDPM、DDIM 和 Flow Matching 各有什么特点？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DDPM（Denoising Diffusion Probabilistic Models，2020 Ho et al.）：</strong>
+          <ul>
+            <li><strong>前向过程</strong>（加噪）：逐步向真实数据 x₀ 添加高斯噪声，经 T 步后得到纯噪声 xT，满足马尔可夫链：<code>q(x_t | x_{t-1}) = N(x_t; √(1-β_t)·x_{t-1}, β_t·I)</code></li>
+            <li><strong>逆向过程</strong>（去噪）：神经网络（U-Net）学习预测每步的噪声 ε，从 xT 开始逐步去噪还原 x₀</li>
+            <li><strong>训练目标</strong>：MSE(ε_θ(x_t, t) - ε)，即预测加入的噪声</li>
+            <li><strong>缺点</strong>：逆向推理需要 1000 步，采样极慢</li>
+          </ul>
+          <strong>DDIM（Denoising Diffusion Implicit Models，2021 Song et al.）：</strong>
+          <ul>
+            <li>将 DDPM 的马尔可夫链改为<strong>非马尔可夫过程</strong>，可跳步采样（如只走 50 步），大幅加速推理</li>
+            <li>DDIM 采样具有确定性（给定同一噪声，输出确定），支持图像插值</li>
+            <li>代价：同等步数下质量略低于 DDPM，但 50 步 DDIM ≈ 1000 步 DDPM 的大部分质量</li>
+          </ul>
+          <strong>Flow Matching（Lipman et al. 2022；用于 Stable Diffusion 3、FLUX）：</strong>
+          <ul>
+            <li>不走加噪/去噪的曲折路径，而是<strong>学习数据分布到噪声分布之间的直接流场（Vector Field）</strong>，路径更直，推理步数可进一步减少到 8~20 步</li>
+            <li>Rectified Flow：将随机数据-噪声配对的路径"拉直"，减少积分误差，是 SD3/FLUX 的核心技术</li>
+            <li>训练目标：预测给定时刻 t 的速度向量 v = x₁ - x₀（从噪声到数据的方向）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>演进脉络：</strong>DDPM（慢但准）→ DDIM（加速采样）→ Flow Matching（路径更直，更快更稳）→ Consistency Model（1步采样，蒸馏方向）。当前 AIGC 图像生成模型（SD3、FLUX.1、Sora）基本都基于 Flow Matching 框架。</div>
+      </div>
+    </div>
+
+    <!-- Q88 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">88</div>
+        <div style="flex:1">
+          <div class="q-title">模型量化（GPTQ、AWQ、SmoothQuant）的原理是什么？INT4/INT8 量化对推理性能和精度的影响如何权衡？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>量化核心目标：</strong>将 FP16/BF16 权重压缩为 INT8 或 INT4，减少显存占用（4× 或 8×）和内存带宽，提升推理 token/s。
+          <br/><br/>
+          <strong>GPTQ（PTQ，2022 Frantar et al.）：</strong>
+          <ul>
+            <li>基于 OBQ（Optimal Brain Quantization）框架，逐层、逐行量化权重矩阵</li>
+            <li>利用 Hessian 矩阵信息（通过校准数据集计算）补偿量化误差：量化一个权重时，同步调整同行其他权重抵消误差</li>
+            <li><strong>特点</strong>：纯权重量化（Weight-Only），激活值仍为 FP16；无需重训练，量化速度快（单卡数小时）；INT4 W4A16 格式是当前 LLM 部署主流之一</li>
+          </ul>
+          <strong>AWQ（Activation-aware Weight Quantization，2023 MIT）：</strong>
+          <ul>
+            <li>观察到权重中约 1% 的"显著权重"（对应激活值大的通道）对量化误差贡献最大</li>
+            <li>对显著权重所在通道进行<strong>缩放（Per-channel Scale）</strong>后再量化，等效于在激活空间做保护，减少精度损失</li>
+            <li><strong>特点</strong>：比 GPTQ 在低比特（W4）下精度更高；推理时无需特殊 Kernel，兼容性好；已集成进 vLLM 和 TGI</li>
+          </ul>
+          <strong>SmoothQuant（W8A8，2022 MIT + NVIDIA）：</strong>
+          <ul>
+            <li>激活值量化（A8）比权重量化更难，因为激活值有"异常值（Outlier）"：极少数通道值远大于其他通道，导致量化误差爆炸</li>
+            <li>将激活值的缩放难度通过数学等价转移给权重（Per-channel 缩放因子 s，激活除 s，权重乘 s），使激活和权重都"平滑"，同时量化精度高</li>
+            <li>支持 W8A8 推理，可利用 TensorCore INT8 计算单元，吞吐量比 W4A16 更高（算力受限场景优势明显）</li>
+          </ul>
+          <strong>精度影响：</strong>INT8 ≈ FP16 精度损失极小（&lt;1% PPL）；INT4 W4A16 PPL 约上升 2~5%，但 Llama-3 70B INT4 仍可超越 Llama-3 8B FP16，是性价比最优解。
+        </div>
+        <div class="tip-box">💡 <strong>选型建议：</strong>显存极限（单卡部署 70B）首选 AWQ W4；高吞吐批量推理（算力密集）选 SmoothQuant W8A8；快速实验选 GPTQ（工具链最成熟）。</div>
+      </div>
+    </div>
+
+    <!-- Q89 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">89</div>
+        <div style="flex:1">
+          <div class="q-title">Prefill-Decode 分离推理架构是什么？PD 分离如何解决 LLM 推理的吞吐量瓶颈？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>LLM 推理的两阶段特征：</strong>
+          <ul>
+            <li><strong>Prefill 阶段</strong>：处理用户输入 Prompt（并行计算所有 Token 的 KV Cache），是<strong>计算密集型（Compute-bound）</strong>：大矩阵乘法，GPU 利用率高，单次耗时随 Prompt 长度线性增长</li>
+            <li><strong>Decode 阶段</strong>：每次只生成 1 个新 Token（Autoregressive），是<strong>内存带宽密集型（Memory-bound）</strong>：每步需要加载全部 KV Cache，GPU 计算单元大量空闲</li>
+          </ul>
+          <strong>混合部署的问题：</strong>
+          <ul>
+            <li>在同一 GPU 上同时运行 Prefill 和 Decode 时，两者互相干扰：Prefill 占用大量计算资源导致 Decode 延迟增加（Time-to-First-Token 变长）；Decode 频繁插入导致 Prefill 吞吐下降</li>
+          </ul>
+          <strong>PD 分离（Disaggregation）架构：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：将 Prefill 和 Decode 部署在不同的 GPU 实例上，各自独立扩展</li>
+            <li>Prefill 机器：高计算密度，可用 H100/A100 满载 Prefill 请求，批量处理，计算 GPU 利用率 &gt; 90%</li>
+            <li>Decode 机器：更多内存带宽，专注生成 Token，可用 H100 NVLink 或 AMD MI300X（大 HBM）提升 KV Cache 吞吐</li>
+            <li>KV Cache 在 Prefill 完成后通过高速互联（NVLink/InfiniBand）传输到 Decode 节点</li>
+          </ul>
+          <strong>典型实现：</strong>
+          <ul>
+            <li>字节跳动 Mooncake（2024）：基于 PD 分离的 KV Cache 调度系统，TTFT 降低 50%+</li>
+            <li>NVIDIA TensorRT-LLM disaggregated serving（2024）</li>
+            <li>SGLang / vLLM v0.6+：支持 chunked prefill 和 disaggregated prefill</li>
+          </ul>
+          <strong>代价：</strong>需要额外的 KV Cache 传输开销和更复杂的调度逻辑，适合长 Prompt + 长输出的业务场景（如 Code Generation、Document Analysis）。
+        </div>
+        <div class="tip-box">💡 <strong>2025 趋势：</strong>PD 分离已成为大规模 LLM 推理集群的标准架构。面试可提及"Prefill is compute-bound, Decode is memory-bandwidth-bound"这一核心洞察，再引出 PD 分离的动机。</div>
       </div>
     </div>
 
