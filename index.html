@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">125+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">140+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1319,6 +1319,45 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
       </div>
     </div>
 
+    <!-- Q92 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">92</div>
+        <div style="flex:1">
+          <div class="q-title">虚拟纹理（Virtual Texture / Sparse Texture）是如何工作的？Page Table、Physical Tile 和 Indirection Texture 分别起什么作用？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心问题：</strong>游戏中超大地形、皮肤等材质可能是 16K×16K 甚至更大的纹理，无法完整上传到显存，需要按需加载当前可见的部分。
+          <br/><br/>
+          <strong>Virtual Texture（VT）基本架构：</strong>
+          <ul>
+            <li><strong>虚拟纹理空间（Virtual Texture Space）</strong>：将逻辑上极大的纹理划分为固定大小的 Page（通常 128×128 或 256×256 像素），不实际占用显存</li>
+            <li><strong>Physical Tile Cache</strong>：显存中维护一个固定大小的 Tile Pool（如 4096×4096 像素，存储 N 个 Tile），只存放当前帧需要的 Page 数据；当某 Page 被请求且不在 Cache 中时，触发从磁盘/内存的异步流式加载</li>
+            <li><strong>Page Table（页表）</strong>：记录每个虚拟 Page 到 Physical Tile 的映射关系，类比 CPU 的虚拟内存页表</li>
+            <li><strong>Indirection Texture（间接纹理）</strong>：Page Table 的 GPU 表示，低分辨率纹理（每个 Texel 对应一个 Virtual Page），存储对应 Physical Tile 的位置（UV 偏移 + MIP 级别）</li>
+          </ul>
+          <strong>运行时渲染流程：</strong>
+          <ul>
+            <li>① <strong>Feedback Pass</strong>：使用低分辨率 Render Target 渲染一帧，Shader 输出每个像素需要的 Virtual Page ID（虚拟地址 + MIP），由 CPU 读回分析哪些 Page 需要加载</li>
+            <li>② <strong>Page 流式加载</strong>：对缺失的 Page 异步从硬盘读取并解压，上传到 Physical Tile Cache 的空闲槽位，更新 Page Table</li>
+            <li>③ <strong>正式渲染</strong>：Fragment Shader 先查询 Indirection Texture 获取物理位置，再在 Tile Cache 中采样真实纹素</li>
+            <li><strong>备用（Fallback）</strong>：Page 未加载时，回退到更粗粒度的 MIP 级别（已常驻显存的低分辨率版本），避免显示黑块</li>
+          </ul>
+          <strong>硬件支持：</strong>DX11.2+ / Vulkan 的 Sparse Binding（稀疏绑定）允许纹理的内存以 Tile 为单位分别映射，操作系统级别支持虚拟纹理，减少 CPU 拷贝开销。UE5 的 Virtual Shadow Map 和 Nanite 都广泛依赖虚拟纹理思想。
+        </div>
+        <div class="tip-box">💡 <strong>类比记忆：</strong>Virtual Texture = 虚拟内存机制用到纹理上。CPU 内存：物理 RAM 是有限的，用 Page Table 把大地址空间映射到小内存；VT：Physical Tile Cache 是有限的，用 Indirection Texture 把大纹理空间映射到小显存。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 4. PBR ══ -->
@@ -2008,6 +2047,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q93 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">93</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS 4 Multi-Frame Generation 和 FSR 4 机器学习超分的原理是什么？神经网络超分与传统 TAA/TSR 超分的本质区别在哪里？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DLSS 4（2025，RTX 5000 系）核心技术：</strong>
+          <ul>
+            <li><strong>Super Resolution（超分辨率）</strong>：第 4 代模型从 CNN（DLSS 2）升级为 <strong>Transformer 架构</strong>，使用 Multi-Frame Input（不止当前帧，还利用历史多帧），感受野更大，更好地处理运动模糊/薄发丝/网格细节</li>
+            <li><strong>Multi-Frame Generation（MFG）</strong>：DLSS 3 的 Frame Generation 生成 1 个插帧（2×FPS）；DLSS 4 MFG 可生成 3 个插帧（4×FPS），基于光流预测 + Optical Flow 扭曲 + Inpainting 补全遮挡区域，关键帧间的新像素由 AI 推断</li>
+            <li><strong>Reflex 2 + MFG</strong>：配合 NVIDIA Reflex 减少 GPU 帧延迟，使 4× 插帧下体感延迟接近原始帧率</li>
+            <li><strong>硬件需求</strong>：Super Resolution 需要 Tensor Core（RTX 20+）；Frame Generation 需要 Optical Flow Accelerator（RTX 40+/50+）</li>
+          </ul>
+          <strong>FSR 4（AMD，2025）：</strong>
+          <ul>
+            <li>首次引入机器学习（ML）超分内核，在 RDNA 4（RX 9000 系）的 AI 加速单元上运行</li>
+            <li>相比 FSR 3（纯算法双线性+Lanczos 重建），ML 模型在边缘细节和薄细节上有显著改进</li>
+            <li>XeSS 2（Intel）同样采用 ML 超分，在 Xe Matrix Extensions（XMX）上加速</li>
+          </ul>
+          <strong>神经网络超分 vs 传统 TAA/TSR 的本质区别：</strong>
+          <ul>
+            <li><strong>传统时域（TAA/TSR）</strong>：规则算法，通过时域多帧亚像素样本的空间重建获得超分辨率，依赖 Jitter + Motion Vector + History Buffer，无法"补全"屏幕外信息，受 Ghosting/Rejection 制约</li>
+            <li><strong>神经网络超分（DLSS/FSR 4/XeSS ML）</strong>：训练阶段从高分辨率图像学习到超分辨率恢复的先验知识，推理时能根据"已知上下文推断未知细节"，对运动物体、薄线条、高频细节的重建质量高于传统算法</li>
+            <li><strong>核心权衡</strong>：神经网络超分需要专用 AI 硬件（Tensor Core / XMX），延迟相对较高（约 0.5-1ms Tensor Core 时间），但输出质量更接近原始分辨率渲染甚至超越</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>2025 趋势：</strong>超分分辨率已经"卷"到质量可接受的底限，竞争重心转向插帧（Frame Generation/MFG）——即用 AI 在渲染帧之间生成新帧，大幅提升帧率感知，但代价是延迟增加，需 Reflex 配合。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -2419,6 +2499,101 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         </div>
       </div>
     </div>
+
+    <!-- Q90 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">90</div>
+        <div style="flex:1">
+          <div class="q-title">如何使用 Nsight Graphics / RenderDoc 定位 GPU 渲染瓶颈？Compute-Bound 和 Memory-Bound 如何区分？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPU 性能分析工具分工：</strong>
+          <ul>
+            <li><strong>RenderDoc</strong>：帧级调试工具，擅长捕获单帧绘制调用（Draw Call）、查看资源（RT/Texture/Buffer）和 Shader 代码，定位"渲染了什么、渲染是否正确"的问题</li>
+            <li><strong>NVIDIA Nsight Graphics</strong>：帧性能分析，提供 Frame Profile、Shader Profile、GPU Trace 等视图，能看到各 Draw Call 的 GPU 耗时、Bottleneck 类型（SM Active、L2 Cache Hit、DRAM Bandwidth）</li>
+            <li><strong>NVIDIA Nsight Systems</strong>：系统级时间线视图，适合分析 CPU-GPU 交互（CPU 是否提交不足、GPU 泡沫、CUDA Stream 利用率）</li>
+            <li><strong>AMD Radeon GPU Profiler（RGP）</strong>：AMD 显卡对应的帧分析工具，支持 Barrier 分析、Wave Occupancy、指令统计</li>
+          </ul>
+          <strong>Compute-Bound vs Memory-Bound 判断：</strong>
+          <ul>
+            <li><strong>Compute-Bound（算力受限）</strong>：SM 利用率（SM Active）接近 100%，但 DRAM 带宽利用率较低；主要瓶颈在浮点/整型指令执行；优化方向：减少 ALU 操作、使用 Tensor Core、Mixed Precision</li>
+            <li><strong>Memory-Bound（带宽受限）</strong>：SM 利用率不高（Warp 在等待内存），L2 Cache Hit Rate 低，DRAM 带宽利用率高；优化方向：提升缓存命中（改访问模式为 Coalesced）、纹理压缩、减少 KV Cache 带宽（LLM 推理）</li>
+            <li><strong>Latency-Bound（延迟受限）</strong>：Occupancy 低（活跃 Warp 数少），Warp 切换无法隐藏延迟；优化方向：提升 Occupancy（减少 Register / Shared Memory 占用）</li>
+          </ul>
+          <strong>典型 RenderDoc 分析流程：</strong>
+          <ul>
+            <li>① 捕获帧 → Event Browser 找到最耗时的 Pass（通过 Timeline 或 Duration 排序）</li>
+            <li>② 进入目标 Draw Call → Texture Viewer 验证 GBuffer 正确性</li>
+            <li>③ Mesh Viewer 检查顶点数、是否有退化三角形</li>
+            <li>④ Pipeline State 查看 Shader 绑定、RT 格式、Blend State</li>
+            <li>⑤ 切换 Nsight 做 Shader Profiling：查看 Stall Reason（L1TEX 缺失/数学指令拥塞）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试建议：</strong>回答 GPU 性能分析问题时，先区分"帧级调试（RenderDoc）"和"性能计数器分析（Nsight）"两个层次，再说明 Compute-Bound / Memory-Bound 的判断指标，最后给出优化方向，逻辑完整分高。</div>
+      </div>
+    </div>
+
+    <!-- Q91 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">91</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan 的同步原语（Pipeline Barrier、Semaphore、Fence）各自用于什么场景？Image Layout Transition 是如何工作的？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Vulkan 显式同步的核心原因：</strong>
+          <ul>
+            <li>Vulkan 不隐式追踪资源状态，所有执行顺序和内存可见性都必须由开发者声明，这使 GPU 驱动更轻量，但开发负担增加</li>
+          </ul>
+          <strong>三种同步原语对比：</strong>
+          <ul>
+            <li><strong>Pipeline Barrier（管线屏障）</strong>：在同一 Command Buffer 内的两个操作之间建立顺序依赖，包含两部分：
+              <ul>
+                <li><em>执行依赖（Execution Dependency）</em>：指定 srcStageMask → dstStageMask，确保 src 阶段完成后 dst 阶段才开始</li>
+                <li><em>内存依赖（Memory Dependency）</em>：srcAccessMask（flush 缓存）→ dstAccessMask（invalidate 缓存），确保写入对后续读取可见</li>
+                <li>典型用法：Compute Shader 写完 Buffer 后 Barrier 确保 Fragment Shader 能读到最新数据</li>
+              </ul>
+            </li>
+            <li><strong>Semaphore（信号量）</strong>：用于 Queue 间同步（GPU-GPU），如 Graphics Queue 渲染完成后通知 Present Queue 呈现；或 Transfer Queue 上传完成后通知 Graphics Queue 使用。不能在 CPU 端等待</li>
+            <li><strong>Fence（围栏）</strong>：用于 CPU-GPU 同步，CPU 通过 vkWaitForFences 等待 GPU 完成一帧，再重用 Command Buffer 或 Staging Buffer；每帧渲染完成的同步点</li>
+          </ul>
+          <strong>Image Layout Transition（图像布局转换）：</strong>
+          <ul>
+            <li>Vulkan 中 Image 根据用途有不同的 Layout（VK_IMAGE_LAYOUT_UNDEFINED / COLOR_ATTACHMENT_OPTIMAL / SHADER_READ_ONLY_OPTIMAL / TRANSFER_SRC_OPTIMAL 等），不同 Layout 对 GPU 硬件的访问模式优化不同</li>
+            <li>Layout 转换必须通过 Pipeline Barrier 的 ImageMemoryBarrier 完成，指定 oldLayout → newLayout、srcAccess → dstAccess、srcStage → dstStage</li>
+            <li><strong>常见转换场景</strong>：
+              <ul>
+                <li>纹理上传：UNDEFINED → TRANSFER_DST_OPTIMAL（接收数据）→ SHADER_READ_ONLY_OPTIMAL（供 Shader 采样）</li>
+                <li>渲染到纹理：UNDEFINED → COLOR_ATTACHMENT_OPTIMAL（写 RT）→ SHADER_READ_ONLY_OPTIMAL（后续 Pass 读取）</li>
+              </ul>
+            </li>
+            <li><strong>VK_IMAGE_LAYOUT_UNDEFINED</strong>：初始状态，内容未定义，转换时 GPU 可以丢弃旧内容（节省带宽，不做 load）</li>
+          </ul>
+          <strong>Vulkan Synchronization 2（VK_KHR_synchronization2）扩展：</strong>将旧 API 中难以理解的 Stage/Access 标志简化为更语义化的 VkAccessFlags2，并新增 Pipeline Stage2 细粒度控制，是现代 Vulkan 代码的推荐做法。
+        </div>
+        <div class="tip-box">💡 <strong>记忆口诀：</strong>Barrier 管 Command Buffer 内部顺序（GPU 内）；Semaphore 管 Queue 之间信号（GPU 间）；Fence 管 CPU 等待 GPU（跨处理器）。Image Layout 记住"先 Barrier 转换，再使用，用完再转出"的三步范式。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ===================== AI 大模型 ===================== -->
@@ -3722,6 +3897,259 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>代价：</strong>需要额外的 KV Cache 传输开销和更复杂的调度逻辑，适合长 Prompt + 长输出的业务场景（如 Code Generation、Document Analysis）。
         </div>
         <div class="tip-box">💡 <strong>2025 趋势：</strong>PD 分离已成为大规模 LLM 推理集群的标准架构。面试可提及"Prefill is compute-bound, Decode is memory-bandwidth-bound"这一核心洞察，再引出 PD 分离的动机。</div>
+      </div>
+    </div>
+
+    <!-- Q94 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">94</div>
+        <div style="flex:1">
+          <div class="q-title">RoPE 位置编码为何在长上下文外推时失效？YaRN 和 LongRoPE 各用什么方法扩展上下文窗口？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RoPE（旋转位置编码）基础：</strong>
+          <ul>
+            <li>RoPE 对 Q/K 向量的每对维度以位置相关的旋转矩阵编码，实现相对位置感知：<code>q_m · k_n = f(m-n)</code></li>
+            <li>不同维度对应不同频率（低维度高频，高维度低频），类比傅里叶分解</li>
+          </ul>
+          <strong>长上下文外推失效原因：</strong>
+          <ul>
+            <li>训练时最大序列长度为 L（如 4096），高频维度对应的旋转角度在 L 以内有"周期覆盖"，而超过 L 后，高频维度旋转角度进入训练从未见过的区域，注意力分数分布异常（即"OOD 位置"），模型输出质量急剧下降</li>
+            <li>位置 m &gt; L 时，<code>θ_i × m</code> 超出训练分布，模型无法正确计算远距离相对位置关系</li>
+          </ul>
+          <strong>线性插值（Position Interpolation，PI）：</strong>将位置 m 等比缩放为 m × (L_train / L_target)，把超出训练范围的位置压回到 [0, L_train] 内，再微调（Fine-tune）几百步即可；代价是近距离位置分辨率降低。
+          <br/><br/>
+          <strong>YaRN（2023，Mistral 等采用）：</strong>
+          <ul>
+            <li>观察到不同频率维度的 OOD 程度不同：低频维度外推时表现良好（旋转角变化慢），高频维度外推时失效严重</li>
+            <li>分组处理：<strong>低频维度 → 不缩放</strong>；<strong>高频维度 → 线性插值缩放</strong>；<strong>中频维度 → 混合策略（NTK-aware）</strong></li>
+            <li>加入 Temperature 缩放（attention 温度系数），修正插值后注意力熵的变化，微调步骤远少于纯 PI</li>
+          </ul>
+          <strong>LongRoPE（2024，Microsoft）：</strong>
+          <ul>
+            <li>对每个 RoPE 维度搜索最优的非均匀缩放因子（通过进化算法搜索），而非手工设计分组规则</li>
+            <li>两阶段策略：先在 256K 上训练，再用调整后的 RoPE 缩放扩展到 2M Token</li>
+            <li>在 Phi-3 Mini（3.8B）上实现 128K 上下文，性能接近 4K 原始窗口</li>
+          </ul>
+          <strong>主流模型实践：</strong>Llama 3 用 8:1 的 Scaling Factor + YaRN 扩展到 128K；DeepSeek-V3 使用 YaRN 扩展到 128K；Gemini 1.5 用环形注意力（Ring Attention）实现 1M Token。
+        </div>
+        <div class="tip-box">💡 <strong>记忆框架：</strong>RoPE 外推失效 → 根本原因是高频维度 OOD → PI（简单线性压缩）→ NTK-aware（频率分组差异化处理）→ YaRN（加温度修正）→ LongRoPE（维度级最优搜索）。越后越精细但越复杂。</div>
+      </div>
+    </div>
+
+    <!-- Q95 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">95</div>
+        <div style="flex:1">
+          <div class="q-title">视频生成模型（Sora/DiT）的架构原理是什么？相比图像扩散模型，视频生成在时空建模上做了哪些关键扩展？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DiT（Diffusion Transformer，Peebles & Xie 2023）：</strong>
+          <ul>
+            <li>将扩散模型的去噪 U-Net 骨干替换为 <strong>Transformer（ViT 风格）</strong>，在 Latent Space 中操作（先用 VAE 将图像压缩到 Latent）</li>
+            <li>每个 DiT Block：LayerNorm → Self-Attention → Cross-Attention（注入条件如文本嵌入）→ Feed-Forward，时间步 t 通过 AdaLN-Zero（自适应层归一化）注入</li>
+            <li>Scaling Law 表现优秀：模型越大（DiT-XL）生成质量越高，且无 U-Net 的跳连接复杂度</li>
+          </ul>
+          <strong>Sora（2024，OpenAI）的关键扩展：</strong>
+          <ul>
+            <li><strong>时空 Patch（Spacetime Patch）</strong>：将视频的时间帧和空间 Patch 统一为 3D Patch Token（t × h × w），Transformer 同时在时间和空间维度上做 Self-Attention，天然处理任意分辨率和时长</li>
+            <li><strong>3D VAE 压缩</strong>：用 3D 卷积 VAE 在时空维度同时压缩视频（时间维度约 4× 压缩，空间维度 8×），大幅减少 Latent Token 数量，使 Transformer 处理长视频可行</li>
+            <li><strong>文本条件注入</strong>：T5 / CLIP 文本编码器输出 Cross-Attention Key/Value，Transformer 每层通过 Cross-Attention 注入语义条件</li>
+          </ul>
+          <strong>视频生成的核心挑战：</strong>
+          <ul>
+            <li><strong>时序一致性</strong>：相邻帧之间物理运动需要连贯，纯 2D 扩散（逐帧独立生成）会抖动；需要时间维度的 Attention 或 3D 卷积显式建模帧间关系</li>
+            <li><strong>计算量爆炸</strong>：32 帧 1080p 视频 = 数千个 Spatial Patch × 32 帧，Self-Attention 复杂度 O(N²)，需要稀疏 Attention（Factorized Spatial-Temporal Attention：先做 Spatial，再做 Temporal）</li>
+            <li><strong>长视频生成</strong>：超过 10 秒视频的语义连贯性（物体持续存在、背景一致），目前主流方法是滑动窗口 + 条件帧作为 Anchor</li>
+          </ul>
+          <strong>国内主要视频生成模型：</strong>字节 MagicVideo-V2 / Wan Video（万象）；智谱 CogVideo；快手 Kling；阶跃星辰 Step-Video——均以 DiT + 3D VAE 为基础架构。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>视频生成 = 图像扩散 + "时间维度建模"，重点说清楚：① DiT 替代 U-Net 的优势；② 3D Patch Tokenization 如何统一处理视频；③ 时空注意力如何权衡计算量与时序一致性。</div>
+      </div>
+    </div>
+
+    <!-- Q96 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">96</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 知识蒸馏与结构化剪枝的原理是什么？DeepSeek-R1 对小模型蒸馏的方式和传统 KD 有何不同？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>知识蒸馏（Knowledge Distillation，KD）基础：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：用大 Teacher 模型的"软标签"（Soft Label / Logit）监督小 Student 模型训练，比用 One-hot 硬标签包含更丰富的类间相似性信息</li>
+            <li><strong>损失函数</strong>：<code>L = α × CE(student, hard_label) + (1-α) × KL(softmax(student_logits/T), softmax(teacher_logits/T))</code>，温度系数 T 用于软化分布（T 越大，分布越平滑，传递更多"暗知识"）</li>
+            <li><strong>中间层蒸馏（Feature Distillation）</strong>：除 Logit 外，还可对 Teacher 的隐藏层激活、Attention Map 进行 MSE 匹配，效果更好但需要维度对齐</li>
+          </ul>
+          <strong>结构化剪枝（Structured Pruning）：</strong>
+          <ul>
+            <li><strong>非结构化剪枝</strong>：将权重矩阵中绝对值小的参数置零（稀疏），但稀疏矩阵在 GPU 上实际加速有限（需 Sparse Tensor Core 支持）</li>
+            <li><strong>结构化剪枝</strong>：整体移除 Attention Head、FFN Intermediate 维度、甚至整个 Transformer Layer，输出仍是密集矩阵，标准 GPU 可直接加速</li>
+            <li><strong>LLM-Pruner（2023）</strong>：基于梯度重要性评估，对 Coupled Structure（依赖关系组）批量剪枝，保持模型功能完整性</li>
+            <li><strong>NVIDIA 的做法</strong>（Llama-3.1 8B → 4B）：先深度剪枝（宽度减半）→ 再用教师模型持续蒸馏（数十亿 Token 训练），剪掉 50% 参数但保留 ~95% 的性能</li>
+          </ul>
+          <strong>DeepSeek-R1 的蒸馏方式（2025）：</strong>
+          <ul>
+            <li><strong>与传统 KD 的关键区别</strong>：DeepSeek-R1 不蒸馏 Logit，而是<strong>直接用 R1 模型生成的 Chain-of-Thought（CoT）推理数据</strong>作为 SFT 训练数据，让小模型（Qwen-7B / LLaMA-8B）学习 R1 的推理过程</li>
+            <li>本质上是"<strong>数据蒸馏</strong>"而非传统参数级蒸馏：Teacher 的推理轨迹（长 CoT）比 Teacher 的 Logit 包含了更高层次的"思维过程"信息</li>
+            <li>结果：DeepSeek-R1-Distill-Qwen-7B 在数学/代码基准上媲美甚至超越直接训练的 GPT-4o mini</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>区分三种压缩方式：</strong>量化（改数值精度，参数数不变）；剪枝（删参数，参数数减少）；蒸馏（小模型模仿大模型输出/行为，训练新模型）。DeepSeek-R1 的"数据蒸馏"是 2025 年最热的新范式，面试必答。</div>
+      </div>
+    </div>
+
+    <!-- Q97 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">97</div>
+        <div style="flex:1">
+          <div class="q-title">LLM Agent 的 ReAct 框架是如何工作的？Tool Calling（Function Calling）的实现机制是什么？如何解决多步推理中的幻觉问题？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ReAct（Reason + Act，2022 Yao et al.）：</strong>
+          <ul>
+            <li>让 LLM 交替执行"推理（Thought）"和"行动（Action）"步骤，形成 Thought → Action → Observation → Thought... 的循环</li>
+            <li>与纯 Chain-of-Thought（只推理不行动）相比，ReAct 可以通过真实工具查询获取最新信息（如搜索引擎、代码执行、数据库查询），大幅降低知识截止日期和幻觉问题</li>
+          </ul>
+          <strong>Tool Calling（Function Calling）实现：</strong>
+          <ul>
+            <li><strong>模型端</strong>：在 SFT 阶段训练模型识别何时调用工具，并以特定格式（JSON Schema）输出工具名称和参数；Llama 3 / GPT-4o / Qwen2.5 均原生支持</li>
+            <li><strong>系统端</strong>：将可用工具的 Schema（函数名、参数说明、类型）以 System Prompt 或 Special Token 形式注入；模型输出工具调用 JSON → 应用层拦截 → 执行工具 → 将结果作为 Observation 追加到上下文 → 模型继续推理</li>
+            <li><strong>Parallel Tool Calling</strong>：模型一次调用多个工具（如同时查询天气 + 搜索新闻），减少多轮对话的延迟</li>
+          </ul>
+          <strong>多步推理中的幻觉问题与缓解：</strong>
+          <ul>
+            <li><strong>问题来源</strong>：多步推理中前序错误会传播和放大（Error Compounding），且长上下文中模型容易"遗忘"早期约束</li>
+            <li><strong>自检（Self-Consistency）</strong>：采样多条推理路径取多数投票，减少单次采样的随机错误</li>
+            <li><strong>反思（Reflexion，2023）</strong>：在 Agent 失败后，用 LLM 对失败原因进行语言级总结，存储到 Memory 中，下次决策时参考，实现"从错误中学习"</li>
+            <li><strong>工具验证</strong>：对关键事实性输出调用验证工具（代码执行、搜索验证），强制 Grounding</li>
+            <li><strong>Tree-of-Thought / MCTS</strong>：将推理树展开，搜索最优路径，减少单线程贪心推理的局部最优陷阱</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试加分：</strong>可提及 MCP（Model Context Protocol，Anthropic 提出）作为标准化工具接口协议，以及 A2A（Agent-to-Agent）协议如何让多 Agent 协作，展示对最新生态的了解。</div>
+      </div>
+    </div>
+
+    <!-- Q98 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">98</div>
+        <div style="flex:1">
+          <div class="q-title">GRPO（Group Relative Policy Optimization）相比 PPO 有什么优势？DeepSeek-R1 如何用强化学习激发大模型的推理能力？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>PPO（Proximal Policy Optimization）在 LLM 对齐中的问题：</strong>
+          <ul>
+            <li>标准 RLHF 使用 PPO：需要 Actor（被训练的 LLM）、Critic（估值网络，与 Actor 同等规模）、Reference Model、Reward Model 四个模型同时在显存中，资源消耗巨大</li>
+            <li>Critic 网络训练不稳定，估值偏差会导致策略更新错误</li>
+          </ul>
+          <strong>GRPO（DeepSeek-Math 2024 提出）：</strong>
+          <ul>
+            <li><strong>去掉 Critic 网络</strong>：对同一 Prompt 采样 G 个输出（一组），用这 G 个输出的 Reward 均值作为 Baseline（代替 Critic 的状态值估计），计算相对优势（Relative Advantage）</li>
+            <li><code>A_i = (r_i - mean(r_1..r_G)) / std(r_1..r_G)</code>——同组内，好的输出获得正优势，差的获得负优势</li>
+            <li><strong>优势</strong>：省去 Critic 模型，显存需求减半；Baseline 估计更稳定（不依赖神经网络拟合）；实现简单</li>
+          </ul>
+          <strong>DeepSeek-R1 的 RL 训练策略：</strong>
+          <ul>
+            <li><strong>Cold Start（冷启动）</strong>：先用少量长 CoT SFT 数据微调，防止 RL 初期输出格式混乱</li>
+            <li><strong>GRPO + Verifiable Reward</strong>：对数学/代码等可验证问题，直接用答案正确性作为 Reward（不需要 Reward Model），使 Reward 信号精确且无偏</li>
+            <li><strong>Thinking Token</strong>：模型在 <code>&lt;think&gt;</code> 标签内自由展开推理过程，RL 鼓励更长更正确的推理链，<strong>涌现</strong>出自我修正、反思、回溯等行为</li>
+            <li><strong>Rejection Sampling + SFT 迭代</strong>：周期性从 RL 模型中采样高质量推理轨迹，加入 SFT 训练集，形成 RL ↔ SFT 交替迭代</li>
+          </ul>
+          <strong>核心洞察：</strong>纯 RL（不依赖人工标注的 CoT）可以激发大模型的推理涌现能力，Reasoning 能力不是写进参数里的知识，而是可以通过搜索-验证-反馈的强化循环习得的。
+        </div>
+        <div class="tip-box">💡 <strong>关键区分：</strong>GRPO vs PPO = 去掉 Critic（用组内均值替代）；DeepSeek-R1 vs RLHF = 用可验证 Reward（答案对错）替代 Reward Model（主观偏好打分），前者无偏、可扩展。</div>
+      </div>
+    </div>
+
+    <!-- Q99 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">99</div>
+        <div style="flex:1">
+          <div class="q-title">MoE（Mixture of Experts）模型的路由机制如何工作？专家负载不均衡（Expert Collapse）如何解决？DeepSeek-V3 的 MoE 设计有何创新？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MoE 路由机制：</strong>
+          <ul>
+            <li>标准 Sparse MoE 在 FFN 层，每个 Token 由 Router 网络（线性层 + Softmax）选择 Top-K（通常 K=2）个专家，只激活被选中的专家参数进行计算</li>
+            <li>总参数量 = N 个专家 × 专家大小，但每个 Token 的 FLOPs ≈ K/N × Dense 模型的 FLOPs（激活参数量远小于总参数量）</li>
+            <li><strong>Token Choice（标准做法）</strong>：Token 选择 Top-K 专家</li>
+            <li><strong>Expert Choice（2022）</strong>：专家选择 Top-K Token（每个专家处理固定数量 Token），天然负载均衡，但 Token 不能保证被处理</li>
+          </ul>
+          <strong>专家坍塌（Expert Collapse）问题：</strong>
+          <ul>
+            <li><strong>现象</strong>：Router 倾向于反复选择少数几个"头部专家"，其余专家几乎不被选中，退化为接近 Dense 模型的效果</li>
+            <li><strong>Auxiliary Loss（辅助负载均衡损失）</strong>：在训练损失中加入专家负载均衡正则项，惩罚负载分布不均：<code>L_aux = α × sum(f_i × p_i)</code>，其中 f_i 为专家 i 的 Token 分配比例，p_i 为平均路由概率</li>
+            <li><strong>Expert Dropout</strong>：训练时随机丢弃部分专家，迫使 Router 分散依赖</li>
+          </ul>
+          <strong>DeepSeek-V3 / V2 MoE 的创新设计：</strong>
+          <ul>
+            <li><strong>Fine-grained Expert（细粒度专家）</strong>：将专家维度缩小但数量增多（如 256 个小专家替代 8 个大专家），Top-K 选 8 个，使路由更细粒度灵活</li>
+            <li><strong>Shared Expert（共享专家）</strong>：设置 2 个始终激活的共享专家（处理通用知识），K 个路由专家（处理专业知识），两者输出相加；共享专家减轻了路由专家的负担，降低 Expert Collapse 风险</li>
+            <li><strong>无辅助损失的负载均衡（DeepSeek-V3）</strong>：引入动态 Bias Token 机制（每个专家维护一个可学习的 Bias），通过梯度外的监控自动调整 Bias 平衡负载，避免辅助损失影响主任务性能</li>
+            <li><strong>Multi-Token Prediction（MTP）</strong>：每步预测多个 Token（类似 Medusa），额外的 MTP Head 提升训练样本效率，推理时可用于 Speculative Decoding 加速</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试亮点：</strong>能说清"共享专家 + 细粒度路由"是 DeepSeek 区别于标准 MoE（GShard/Switch Transformer）的两大工程创新，再提无辅助损失的 Bias 负载均衡机制，展示对最新开源工作的深度理解。</div>
       </div>
     </div>
 
