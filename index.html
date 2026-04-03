@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">140+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">155+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -943,6 +943,95 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试加分：</strong>Lumen 本质是"预计算（Surface Cache 的 Cards 生成）+ 实时追踪（SDF/HW RT）+ 时间积累（Radiance Cache）"三阶段组合，理解这个分层设计就抓住了 Lumen 的架构精髓。</div>
+      </div>
+    </div>
+
+    <!-- Q100 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">100</div>
+        <div style="flex:1">
+          <div class="q-title">什么是 Bindless Rendering？与传统 Descriptor Set 绑定相比有何优势？Vulkan 的 Descriptor Indexing 扩展如何实现 Bindless？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 Descriptor 绑定的痛点：</strong>
+          <ul>
+            <li>在传统 Vulkan/DX12 工作流中，每个 Draw Call 往往需要重新绑定 Descriptor Set（切换 Texture、Buffer 等），产生大量 <strong>Descriptor Update / Set 切换</strong> 开销</li>
+            <li>Descriptor Set Layout 的 Slot 数量有上限，复杂场景（数千张纹理）难以用有限的绑定点覆盖</li>
+            <li>CPU 驱动侧需要不断 vkCmdBindDescriptorSets，阻碍多线程提交和 GPU Driven 渲染</li>
+          </ul>
+          <strong>Bindless Rendering 核心思想：</strong>
+          <ul>
+            <li>将场景中所有纹理/Buffer 一次性注册到一个超大 Descriptor Array（如 65536 个 Texture Slot），Shader 通过动态索引（Index）而非静态绑定来访问资源</li>
+            <li>每帧只需绑定这一个超大 Descriptor Set，Draw Call 通过 <strong>Push Constant 或 Storage Buffer</strong> 传入每个 Draw 使用的资源 Index，完全避免 Descriptor Set 切换</li>
+          </ul>
+          <strong>Vulkan Descriptor Indexing 实现（VK_EXT_descriptor_indexing，Vulkan 1.2 核心）：</strong>
+          <ul>
+            <li><strong>RuntimeDescriptorArray</strong>：允许 GLSL/HLSL 中声明无上界数组 <code>layout(set=0, binding=0) uniform sampler2D textures[];</code>，数组大小在运行时确定</li>
+            <li><strong>PartiallyBound</strong>：Descriptor Array 中可以有未初始化的 Slot（Shader 保证不访问这些 Slot 即可），方便按需填充</li>
+            <li><strong>UpdateAfterBind</strong>：允许在 Command Buffer 录制后继续更新 Descriptor，支持流式加载新纹理而无需重录 CB</li>
+            <li><strong>NonUniformResourceIndex</strong>：动态索引纹理时，硬件可能需要非统一地址访问，需用 <code>nonuniformEXT()</code> 装饰防止索引被错误 promote 为统一值</li>
+          </ul>
+          <strong>与 GPU Driven 渲染的配合：</strong>
+          <ul>
+            <li>GPU 通过 Indirect Draw 执行 Draw Call，每个 Draw 的参数（包括 Material Index / Texture Index）都存储在 GPU 端 Buffer，CPU 零介入</li>
+            <li>Bindless + Indirect Draw + GPU Culling 是现代引擎（UE5 Nanite、Unity SRP GPU Resident Drawer）高性能渲染管线的三大支柱</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>区分 Bindless 的两个层次：① 概念层——减少 Descriptor Set 切换；② 实现层——Descriptor Indexing 扩展的 4 个关键特性（RuntimeArray / PartiallyBound / UpdateAfterBind / NonUniformIndex）。能说清这两层就足以脱颖而出。</div>
+      </div>
+    </div>
+
+    <!-- Q101 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">101</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan RenderPass 与 Subpass 的设计意图是什么？为何对移动端 TBDR GPU 特别重要？Subpass 如何避免带宽浪费？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>TBDR（Tile-Based Deferred Rendering）GPU 架构回顾：</strong>
+          <ul>
+            <li>移动端 GPU（Mali/Adreno/Apple M 系列）采用 TBDR：将屏幕分为 N×N 像素的小 Tile，所有 Draw Call 的几何先在 Vertex 阶段处理完毕并存入 Parameter Buffer，再按 Tile 逐块执行光栅化和片段着色</li>
+            <li>每个 Tile 有一块 <strong>On-Chip Tile Memory</strong>（片上缓存），容量小但速度极快（相当于 SRAM），Tile 内的 Color/Depth/Stencil 数据全程在片上处理，只在 Tile 完成后才 Resolve 写入 System Memory（DRAM）</li>
+            <li>如果算法需要跨 Tile 读取上一个 Pass 的结果（如延迟着色的 GBuffer），数据必须从 DRAM 重新读取 → 巨大带宽浪费，极耗移动端电量</li>
+          </ul>
+          <strong>Vulkan RenderPass / Subpass 如何解决：</strong>
+          <ul>
+            <li><strong>RenderPass</strong>：声明整个渲染过程所需的 Attachment（Color/Depth 等），以及 loadOp/storeOp（是否从 DRAM 加载或写回 DRAM）</li>
+            <li><strong>Subpass</strong>：RenderPass 内部可划分多个 Subpass，每个 Subpass 声明输入（inputAttachment）和输出（colorAttachment），驱动可据此判断 GBuffer 数据是否需要出 Tile 或可以<strong>全程留在 On-Chip Memory 内</strong></li>
+            <li>延迟渲染典型用法：
+              <ul>
+                <li>Subpass 0（GBuffer Pass）：输出 Albedo/Normal/Depth 到片上，storeOp = DONT_CARE（不写回 DRAM）</li>
+                <li>Subpass 1（Lighting Pass）：inputAttachment 读取 Subpass 0 的 GBuffer（<strong>从 Tile Memory 读，不过 DRAM</strong>），输出最终颜色</li>
+              </ul>
+            </li>
+            <li><strong>storeOp = DONT_CARE</strong>：告知驱动该 Attachment 处理完 Tile 后可直接丢弃，节省 Tile→DRAM 写回带宽</li>
+            <li><strong>loadOp = DONT_CARE</strong>：Tile 开始时不从 DRAM 加载，直接以未定义内容初始化（适合全屏 Clear 的场景）</li>
+          </ul>
+          <strong>Subpass Dependency：</strong>定义 Subpass 之间的执行和内存依赖（类似 Pipeline Barrier），确保 Subpass 0 写完 GBuffer 后 Subpass 1 才读取，且该依赖在 On-Chip 内完成而无需 Full Memory Barrier。
+          <br/><br/>
+          <strong>桌面端（IMR GPU）的取舍：</strong>桌面 GPU（NVIDIA/AMD）无 Tile Memory，Subpass 的带宽优化基本无效，驱动通常将多 Subpass 退化为普通 Pass；但语义上仍正确，代码可跨平台。
+        </div>
+        <div class="tip-box">💡 <strong>记忆口诀：</strong>TBDR = 分块 + 片上缓存；Subpass = 让 GBuffer 留在片上不出 DRAM；storeOp/loadOp DONT_CARE = 告诉驱动省掉无用带宽。这三句话串起整个移动端渲染优化的核心思路。</div>
       </div>
     </div>
 
@@ -1877,6 +1966,53 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>工程建议：</strong>主机/PC 高端游戏常用"CSM 做中远距离阴影 + RT Shadow 做近距离软阴影"的混合方案，兼顾性能和质量。</div>
+      </div>
+    </div>
+
+    <!-- Q102 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">102</div>
+        <div style="flex:1">
+          <div class="q-title">SSAO、HBAO、GTAO 三代环境光遮蔽算法有何演进？SSGI（屏幕空间全局光照）与 AO 的本质区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>环境光遮蔽（AO）的物理含义：</strong>场景中某点被周围几何体遮挡时，到达该点的环境光（半球积分）会减少，体现为接缝/褶皱/角落处的暗化效果。
+          <br/><br/>
+          <strong>SSAO（Screen Space Ambient Occlusion，Crytek 2007）：</strong>
+          <ul>
+            <li>在屏幕空间，对每个像素在其法线朝向半球内随机采样 N 个点（利用 Depth Buffer 重建世界坐标），统计多少采样点深度比当前点更浅（即被遮挡）</li>
+            <li>缺陷：采样是球形而非半球，需要和法线方向配合才能避免自遮挡；采样点数少时噪声大；遮蔽范围固定，不能表达 <strong>大范围低频遮蔽</strong></li>
+          </ul>
+          <strong>HBAO（Horizon-Based AO，NVIDIA 2008）：</strong>
+          <ul>
+            <li>在多个方向上搜索 <strong>地平线角（Horizon Angle）</strong>，即从当前像素沿某方向在深度图上能"看到"的最大仰角；AO = 1 - sinθ_horizon，物理上更接近真实遮蔽积分</li>
+            <li>支持法线信息，自遮蔽减少；质量比 SSAO 高，但开销也更大</li>
+          </ul>
+          <strong>GTAO（Ground Truth-based AO，Jorge Jimenez 2016，UE5/Unity 默认）：</strong>
+          <ul>
+            <li>在 HBAO 基础上引入 <strong>精确的 AO 积分公式</strong>（基于 Bent Normal 方向的余弦加权积分），并用多重重要性采样估算，结果最接近光线追踪 AO 的"Ground Truth"</li>
+            <li>引入 <strong>Bent Normal</strong>（遮蔽方向的等效法线偏转），可用于之后 IBL 采样，使间接光照方向更准确</li>
+            <li>典型实现：每帧用 4-8 个方向搜索，配合 TAA 时域积累降噪，整体开销约 0.5ms（1080p）</li>
+          </ul>
+          <strong>SSGI（Screen Space Global Illumination）与 AO 的本质区别：</strong>
+          <ul>
+            <li><strong>AO</strong>：只计算遮挡因子（0~1），乘以 Ambient Light，不传递有颜色的间接光（颜色渗色 Color Bleeding）</li>
+            <li><strong>SSGI</strong>：在屏幕空间采样被遮挡方向的像素 <strong>颜色值</strong>，将其作为一次反射间接光贡献，能产生 Color Bleeding（如红墙旁白地板变红）</li>
+            <li>实现思路：类似 SSR，沿法线半球方向做 Ray March，命中的屏幕像素 Radiance 加权积分，再配合 TAA 降噪</li>
+            <li>代价：只能处理屏幕内可见的遮挡/反射，屏幕外几何体不贡献间接光，且噪声大、需要大量时域积累；UE5 Lumen 在软件光追不可用时回退到 SSGI</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>演进主线：</strong>SSAO（球形采样）→ HBAO（地平线角）→ GTAO（Ground Truth 积分 + Bent Normal）→ SSGI（携带颜色的一次间接反弹）→ Lumen（完整多次弹射全局光照）。每级质量提升伴随计算量递增。</div>
       </div>
     </div>
 
@@ -4150,6 +4286,330 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试亮点：</strong>能说清"共享专家 + 细粒度路由"是 DeepSeek 区别于标准 MoE（GShard/Switch Transformer）的两大工程创新，再提无辅助损失的 Bias 负载均衡机制，展示对最新开源工作的深度理解。</div>
+      </div>
+    </div>
+
+    <!-- Q103 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">103</div>
+        <div style="flex:1">
+          <div class="q-title">PagedAttention 是如何解决 KV Cache 内存碎片问题的？vLLM 的 Continuous Batching 与传统静态批处理有何本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>KV Cache 的内存挑战：</strong>
+          <ul>
+            <li>自回归解码时，每个 Token 的 Key/Value 需要缓存以避免重复计算，KV Cache 大小与 <code>batch_size × seq_len × num_heads × head_dim × 2</code> 成正比</li>
+            <li>传统实现为每个请求预先分配 <strong>最大序列长度</strong> 的连续内存块，即使实际序列很短也占用全量空间 → <strong>内部碎片</strong>严重，GPU 利用率低</li>
+            <li>不同请求的 KV Cache 大小不同，若连续分配会出现 <strong>外部碎片</strong>，已释放的内存无法被新请求复用</li>
+          </ul>
+          <strong>PagedAttention（vLLM 2023，Kwon et al.）：</strong>
+          <ul>
+            <li>借鉴操作系统 <strong>虚拟内存分页</strong> 机制：将 KV Cache 分割为固定大小的 <strong>Block（Page）</strong>（通常 16 个 Token 的 KV 为一 Block），每个请求的 KV Cache 由若干不连续的 Block 组成</li>
+            <li>维护 <strong>Block Table</strong>（类似页表）：记录每个请求的逻辑 Block 号到物理 Block 号的映射，Attention 计算时通过 Block Table 找到实际物理地址</li>
+            <li>优势：① 内存利用率接近 100%（仅最后一个 Block 有少量内部碎片）；② 支持 <strong>Prefix Sharing</strong>（多个请求共享相同前缀的 Block，写时复制 CoW）；③ 支持 <strong>Beam Search 的 Block 分叉</strong></li>
+          </ul>
+          <strong>Continuous Batching（迭代级调度）vs 静态批处理：</strong>
+          <ul>
+            <li><strong>静态批处理</strong>：一批请求等所有请求都生成完毕才算一批完成，最短的请求生成完后仍需等待最长请求 → GPU 存在大量空泡（Bubble），短请求浪费等待时间</li>
+            <li><strong>Continuous Batching</strong>：每生成一个 Token 后（迭代级），调度器检查哪些请求已完成（遇到 &lt;EOS&gt;），立即从等待队列中插入新请求填补空位，始终维持 GPU 高满负荷状态</li>
+            <li>效果：吞吐量提升 2-4× （相比 Orca 论文中的静态批处理基线），响应延迟更低，尤其对长短混合请求效果显著</li>
+          </ul>
+          <strong>vLLM 推理服务的整体架构：</strong>LLM Engine → Scheduler（连续批处理调度）→ Worker（PagedAttention GPU 计算）→ Block Manager（KV Cache 分页管理）。2024 年新增 Chunked Prefill（Prefill 分块执行，减少首 Token 延迟对 Decode 请求的干扰）。
+        </div>
+        <div class="tip-box">💡 <strong>类比记忆：</strong>PagedAttention = KV Cache 的"虚拟内存"；Continuous Batching = LLM 推理的"流水线调度"。两者组合让 GPU 吞吐率不再受限于最长序列的"木桶效应"。</div>
+      </div>
+    </div>
+
+    <!-- Q104 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">104</div>
+        <div style="flex:1">
+          <div class="q-title">EAGLE 投机解码的原理是什么？与标准 Draft-Then-Verify 投机解码相比，EAGLE 的关键改进是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准投机解码（Speculative Decoding，Leviathan 2022）回顾：</strong>
+          <ul>
+            <li>用小 Draft Model 快速生成 K 个候选 Token，再用大 Target Model 并行验证；验证通过的 Token 无需逐一生成，等效于一次 Forward 得到多个 Token</li>
+            <li>加速比 = 平均接受 Token 数 / 单次 Target Forward 耗时；加速瓶颈在于 Draft Model 的接受率</li>
+            <li>问题：Draft Model 是独立小模型，与 Target Model 分布存在偏差，接受率（Acceptance Rate）受限（通常 70-85%）</li>
+          </ul>
+          <strong>EAGLE（2024，SafeAI Lab）的关键洞察：</strong>
+          <ul>
+            <li>不使用独立小模型作为 Draft，而是利用 Target Model 自身 <strong>倒数第二层的特征向量（Feature）</strong>来预测下一个 Token 的特征，从而构建 Draft</li>
+            <li>Draft 网络极轻量（仅一个 Transformer Block + LM Head），以 Target Model 的 Feature 为输入，自回归地预测未来多步特征 → 再解码为 Token</li>
+            <li>由于 Draft 直接在 Target Model 的特征空间操作，接受率显著提升（>90%），加速比 2.5-3.5× （相比 Vanilla 解码）</li>
+          </ul>
+          <strong>EAGLE-2（2024）的进一步改进：</strong>
+          <ul>
+            <li>引入 <strong>动态草稿树（Dynamic Draft Tree）</strong>：不再使用固定深度 K 的线性候选序列，而是根据 Draft Token 的置信度（Confidence）动态扩展树结构；置信度高的路径深度展开，置信度低的路径剪枝</li>
+            <li>Context-Aware Dynamic Draft：在输入上下文变化时自适应调整树的分支结构，进一步提升接受率（比 EAGLE-1 再提升约 20%）</li>
+          </ul>
+          <strong>Medusa vs EAGLE：</strong>
+          <ul>
+            <li><strong>Medusa</strong>：在 LM Head 旁并联多个"草稿头"（Medusa Heads），每个头预测不同位置的 Token；无自回归依赖，速度更快但接受率略低</li>
+            <li><strong>EAGLE</strong>：自回归草稿 + Feature-level 对齐，接受率更高，但有一个 Block 的串行草稿延迟</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>EAGLE 的核心是"在 Target Model 自己的特征空间里做草稿预测"，而非用外部小模型，这是接受率高的根本原因。能说清 Feature-Level Draft + Tree Attention 验证两步，就掌握了 EAGLE 的本质。</div>
+      </div>
+    </div>
+
+    <!-- Q105 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">105</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 进阶：HyDE、Self-RAG 和 Corrective RAG（CRAG）各解决了什么问题？Agentic RAG 与传统 Naive RAG 的核心区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Naive RAG 的痛点：</strong>用户 Query 直接做向量检索，但 Query 往往简短或措辞与文档不匹配，导致召回质量差（语义鸿沟），生成内容可能与检索结果脱节或检索到无关文档。
+          <br/><br/>
+          <strong>HyDE（Hypothetical Document Embeddings，2022）：</strong>
+          <ul>
+            <li>先让 LLM 根据 Query <strong>生成一篇假设性答案文档</strong>（Hypothetical Document），再用该文档的 Embedding 去检索知识库，而非用原始 Query Embedding</li>
+            <li>原理：假设文档与真实文档在 Embedding 空间更接近（两者都是"答案形态"），比 Query（"问题形态"）检索更准确</li>
+            <li>缺点：生成假设文档有额外 LLM 调用延迟；若 LLM 幻觉严重，假设文档偏差导致检索偏移</li>
+          </ul>
+          <strong>Self-RAG（2023，Asai et al.）：</strong>
+          <ul>
+            <li>训练 LLM 主动决策：① 是否需要检索（而非每次都检索）；② 检索到的文档是否相关（Relevance 判断）；③ 生成内容是否有文档支撑（Support 判断）；④ 最终输出是否有用（Utility 判断）</li>
+            <li>引入特殊 Reflection Token（[Retrieve] / [IsREL] / [IsSUP] / [IsUSE]），以 Token 形式嵌入生成流程，实现端到端的自我批判</li>
+            <li>优势：按需检索节省延迟；能拒绝不相关文档，输出更可靠</li>
+          </ul>
+          <strong>Corrective RAG（CRAG，2024）：</strong>
+          <ul>
+            <li>引入 <strong>检索质量评估器</strong>：对检索到的文档打分（CORRECT / AMBIGUOUS / INCORRECT）</li>
+            <li>若文档质量不足，自动触发 <strong>Web Search 补充检索</strong>（外部知识扩充），再对检索内容做 Knowledge Refinement（提取关键段落，过滤噪声）</li>
+            <li>与 Self-RAG 互补：Self-RAG 在生成侧批判，CRAG 在检索侧纠错</li>
+          </ul>
+          <strong>Agentic RAG 与 Naive RAG 的核心区别：</strong>
+          <ul>
+            <li><strong>Naive RAG</strong>：Query → 单次检索 → 单次生成，线性固定流程</li>
+            <li><strong>Agentic RAG</strong>：LLM 作为 Agent 自主规划检索策略，可以多步检索（根据中间结果决定下一步查什么）、调用多个知识源（向量库 + Web + 代码执行）、对检索结果进行推理合成，形成循环迭代直到满足停止条件</li>
+            <li>典型模式：Plan → Retrieve → Reason → Re-Retrieve → Generate，代表工具：LangGraph、LlamaIndex Workflow</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>RAG 演进 = 解决"检索质量"问题（HyDE/CRAG）+ 解决"何时检索"问题（Self-RAG）+ 解决"复杂多步推理"问题（Agentic RAG）。三个维度各有代表方案，清晰对应考点。</div>
+      </div>
+    </div>
+
+    <!-- Q106 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">106</div>
+        <div style="flex:1">
+          <div class="q-title">VLM 的强化学习对齐（RLVR）是如何工作的？R1-V / VLM-R1 等工作如何将 DeepSeek-R1 的 RL 方法迁移到视觉推理？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VLM（视觉语言模型）的对齐挑战：</strong>
+          <ul>
+            <li>传统 VLM（LLaVA / InternVL）使用 SFT + RLHF（人工偏好数据）进行对齐，但视觉推理（数数、空间关系、几何证明）等任务中人工标注 CoT 成本极高，且质量不稳定</li>
+            <li>多模态幻觉（Hallucination）问题：模型回答与图像内容不符，仅靠 SFT 难以根治</li>
+          </ul>
+          <strong>RLVR（Reinforcement Learning from Verifiable Rewards）：</strong>
+          <ul>
+            <li>核心：对视觉问答（VQA）、图表理解、数学几何等 <strong>可验证任务</strong>，直接用答案正确性作为 Reward（如数学题用符号验证器、计数任务用精确匹配）</li>
+            <li>无需 Reward Model，Reward 信号精确且无偏，避免了 RLHF 中 Reward Hacking 问题</li>
+          </ul>
+          <strong>R1-V / VLM-R1（2025）的具体做法：</strong>
+          <ul>
+            <li>以 Qwen2.5-VL 或 InternVL 为 Base VLM，替换文本 LM 的 Token 预测为视觉输入条件下的预测</li>
+            <li>使用 <strong>GRPO 算法</strong>（同 DeepSeek-R1）：对同一图像+问题采样 G 个回答，用可验证 Reward 计算组内相对优势，反向传播更新 VLM 参数</li>
+            <li>引入 <strong>格式 Reward</strong>：鼓励模型在 &lt;think&gt; 标签内展开视觉推理过程（如"图中有3个苹果，2个香蕉，共5个"），惩罚直接回答的短输出</li>
+            <li>涌现现象：小规模 RL 训练后，VLM 自发学会 <strong>重新审视图像细节</strong>（类似人的二次确认行为）、进行多步空间推理</li>
+          </ul>
+          <strong>主要开源进展：</strong>
+          <ul>
+            <li><strong>R1-V（厦门大学，2025.02）</strong>：首批将 DeepSeek-R1 RL 训练法迁移到 VLM 的工作，在计数/比较任务上显著超过同等规模 SFT 模型</li>
+            <li><strong>VLM-R1（Om AI Lab，2025.02）</strong>：提供标准化 GRPO + VLM 训练框架，支持多类视觉推理任务的可验证 Reward</li>
+            <li><strong>Qwen2.5-VL-72B Instruct</strong>：官方已集成 RL 对齐，在 MathVista、OcrBench 等多模态推理基准上达到 SOTA</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>趋势：</strong>2025 年 VLM 的竞争焦点从"更大模型"转向"更好的推理对齐"，RLVR + CoT-in-Vision 是主流方向，核心是可验证 Reward 驱动的 RL（无需人工标注）取代 RLHF（需要人工偏好对）。</div>
+      </div>
+    </div>
+
+    <!-- Q107 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">107</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 大规模分布式训练中，ZeRO 优化、Tensor 并行和流水线并行分别解决什么问题？3D 并行策略如何组合使用？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>大模型训练的内存瓶颈分析：</strong>
+          <ul>
+            <li>以 70B 模型 BF16 训练为例：参数 ~140GB，Adam 优化器状态（m/v/master weight）~420GB，激活值（根据 batch size 可达数百 GB），总需求远超单卡显存（80GB A100）</li>
+          </ul>
+          <strong>ZeRO（Zero Redundancy Optimizer，DeepSpeed）：</strong>
+          <ul>
+            <li>核心思想：消除数据并行（DP）中每张卡存储相同副本的冗余</li>
+            <li><strong>ZeRO Stage 1</strong>：分片优化器状态（Optimizer States Partition）——每卡只存 1/N 的 Adam m/v，反向传播后 AllGather 汇总</li>
+            <li><strong>ZeRO Stage 2</strong>：+ 分片梯度（Gradient Partition）——减少梯度 AllReduce 通信量</li>
+            <li><strong>ZeRO Stage 3</strong>：+ 分片参数（Parameter Partition）——参数也分片存储，前向/反向时按需 AllGather，内存最省但通信开销最大</li>
+            <li><strong>ZeRO-Offload</strong>：将优化器状态 Offload 到 CPU 内存，GPU 只保留参数和激活</li>
+          </ul>
+          <strong>Tensor 并行（Megatron-LM）：</strong>
+          <ul>
+            <li>将单层的权重矩阵 <strong>按列/行切分</strong> 到多卡（如 8 卡 TP），每卡计算部分 Attention Head 或 FFN 维度，再 AllReduce 汇聚</li>
+            <li>优势：减少单层内存；劣势：需要低延迟高带宽互联（NVLink 内部），跨机器 TP 效率差</li>
+            <li>通常限制在 <strong>单节点内（8 卡）</strong>做 TP</li>
+          </ul>
+          <strong>流水线并行（Pipeline Parallel）：</strong>
+          <ul>
+            <li>将模型按 <strong>层（Layer）</strong> 划分到不同节点，数据像流水线一样流过各阶段</li>
+            <li><strong>GPipe</strong>（Micro Batch）：将 Batch 切成 Micro Batch，填充流水线气泡，但需缓存所有 Micro Batch 的激活</li>
+            <li><strong>1F1B（One Forward One Backward，Megatron PP）</strong>：交替执行 Forward/Backward，激活内存减少，Pipeline Bubble 约 1/(m+1)（m 为 Micro Batch 数）</li>
+          </ul>
+          <strong>3D 并行策略：</strong>
+          <ul>
+            <li><strong>TP × PP × DP</strong> 三维组合：TP 在机内节点内（NVLink），PP 跨节点层划分，DP 跨节点数据复制（ZeRO 优化显存）</li>
+            <li>典型配置（1024 卡训练 70B）：TP=8（单机内），PP=8（8 台机器），DP=16（共 8×8×16=1024 卡）</li>
+            <li>Sequence Parallel（SP）：在 TP 的基础上，将 LayerNorm/Dropout 沿序列维度分片，进一步减少激活内存</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆口诀：</strong>ZeRO 解决"数据并行冗余显存"；Tensor 并行解决"单层权重太大"；Pipeline 并行解决"层数太多跨节点"。3D 并行 = 三者叠加，是训练百亿参数模型的工业标配。</div>
+      </div>
+    </div>
+
+    <!-- Q108 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">108</div>
+        <div style="flex:1">
+          <div class="q-title">FLUX 图像生成模型的架构有何创新？Flow Matching 与 DDPM/DDIM 相比有什么优势？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>FLUX（Black Forest Labs，2024）架构创新：</strong>
+          <ul>
+            <li><strong>双流 Transformer（Double Stream）</strong>：图像 Token 和文本 Token 在 Transformer 块中各维护独立的流（Stream），通过交叉注意力交互，而非将两者拼接到同一序列；更好地保留各模态的独立特征表示</li>
+            <li><strong>MM-DiT（Multi-Modal DiT）</strong>：基于 Stable Diffusion 3 的 MM-DiT 改进，每个块中图像和文本互相 Cross-Attend，然后各自经过 FFN 更新</li>
+            <li><strong>RoPE 位置编码用于图像 Patch</strong>：图像 Patch Token 使用二维 RoPE 编码位置，支持任意分辨率和宽高比的生成</li>
+            <li><strong>Flow Matching 训练目标</strong>（区别于传统 DDPM 噪声预测）</li>
+          </ul>
+          <strong>Flow Matching（Lipman et al. 2022 / Albergo & Vanden-Eijnden）：</strong>
+          <ul>
+            <li>传统 DDPM：前向过程逐步加高斯噪声（马尔可夫链），后向过程预测噪声 ε；路径是弯曲的随机游走</li>
+            <li>Flow Matching：定义从噪声 x_1 到数据 x_0 的 <strong>直线插值路径</strong>（Rectified Flow / Linear ODE）：<code>x_t = t·x_0 + (1-t)·x_1</code>，训练模型预测速度场 v_t</li>
+            <li><strong>优势</strong>：
+              <ul>
+                <li>路径更短更直，采样步数更少（8-20 步即可，DDPM 需 1000 步）</li>
+                <li>ODE 求解器可以用更大步长（Euler / Heun），减少 NFE（Number of Function Evaluations）</li>
+                <li>训练更稳定（不依赖噪声调度表 β_t 的精细设计）</li>
+                <li>理论更简洁：直接优化 CFM（Conditional Flow Matching）的 MSE 损失</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>SDXL vs FLUX 对比：</strong>
+          <ul>
+            <li>SDXL：U-Net + DDPM/DDIM，仍是卷积主导的架构；在文本细节（手、文字）上较弱</li>
+            <li>FLUX.1-dev（12B 参数）：全 Transformer DiT + Flow Matching；文字生成、手部细节、提示词遵循度均优于 SDXL；同等步数质量更高，已成为 2024-2025 年最主流的开源图像生成模型</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话总结：</strong>FLUX = MM-DiT 双流架构（更好图文交互）+ Flow Matching 训练（更直的路径、更少采样步）+ RoPE 位置编码（任意分辨率）。三个关键词记住就能说清楚 FLUX 相比 SD 系列的核心进步。</div>
+      </div>
+    </div>
+
+    <!-- Q109 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">109</div>
+        <div style="flex:1">
+          <div class="q-title">Transformer 的 Pre-LN 与 Post-LN 有什么区别？为什么现代大模型几乎都用 Pre-LN？RMSNorm 相比 LayerNorm 有何优势？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Post-LN（原始 Transformer，Vaswani 2017）：</strong>
+          <ul>
+            <li>结构：<code>x = LayerNorm(x + Sublayer(x))</code>，归一化放在残差连接之后</li>
+            <li>问题：残差通路在归一化之前，梯度需要穿过 LayerNorm 才能到达主流，导致深层 Transformer（>12 层）训练时 <strong>梯度消失/爆炸</strong> 严重，需要 Warmup + 精细调参才能收敛</li>
+          </ul>
+          <strong>Pre-LN（GPT-2 / LLaMA 等现代大模型）：</strong>
+          <ul>
+            <li>结构：<code>x = x + Sublayer(LayerNorm(x))</code>，归一化放在 Sublayer 之前，残差路径直通（无 LN 阻隔）</li>
+            <li>优势：残差路径梯度流畅，训练更稳定，不需要精细 Warmup，支持更深的网络；但理论上最后一层输出未经 LN 归一化，表示空间有轻微漂移（通常最后加一个 Final LN 解决）</li>
+            <li>几乎所有 2020 年后的大模型均采用 Pre-LN 或其变体（DeepNorm、RMSNorm Pre-LN）</li>
+          </ul>
+          <strong>RMSNorm（Root Mean Square Normalization，Zhang & Sennrich 2019）：</strong>
+          <ul>
+            <li>LayerNorm 公式：<code>y = (x - μ) / (σ + ε) × γ + β</code>，需要计算均值 μ 和方差 σ，以及可学习的 β 偏置</li>
+            <li>RMSNorm 简化：去掉均值归一化和偏置 β，只保留 RMS 缩放：<code>y = x / RMS(x) × γ</code>，其中 <code>RMS(x) = sqrt(mean(x²) + ε)</code></li>
+            <li>优势：
+              <ul>
+                <li>计算量减少约 7-15%（不需要计算均值，不需要减均值）</li>
+                <li>在大规模训练中效果与 LayerNorm 相当，实际质量损失可忽略</li>
+                <li>更简洁的实现，FP16/BF16 下数值更稳定</li>
+              </ul>
+            </li>
+            <li>采用方：LLaMA 全系列、Qwen 全系列、Mistral、DeepSeek 全系列均使用 RMSNorm Pre-LN</li>
+          </ul>
+          <strong>DeepNorm（微软，Transformer 深度突破）：</strong>对 Post-LN 加入额外的 α 缩放残差（<code>x = LayerNorm(α·x + Sublayer(x))</code>），配合特殊初始化，使 1000 层 Post-LN Transformer 可以稳定训练，但工程上复杂度更高，实际应用不及 RMSNorm Pre-LN 广泛。
+        </div>
+        <div class="tip-box">💡 <strong>面试高频考点：</strong>"为什么 LLaMA 用 RMSNorm 不用 LayerNorm？"——答：① 计算量更小（省去均值计算和偏置）；② 效果相当；③ 更简洁。同时说 Pre-LN 的训练稳定性优势，两点串联即是完整答案。</div>
       </div>
     </div>
 
