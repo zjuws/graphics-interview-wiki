@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">155+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">170+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1032,6 +1032,105 @@
           <strong>桌面端（IMR GPU）的取舍：</strong>桌面 GPU（NVIDIA/AMD）无 Tile Memory，Subpass 的带宽优化基本无效，驱动通常将多 Subpass 退化为普通 Pass；但语义上仍正确，代码可跨平台。
         </div>
         <div class="tip-box">💡 <strong>记忆口诀：</strong>TBDR = 分块 + 片上缓存；Subpass = 让 GBuffer 留在片上不出 DRAM；storeOp/loadOp DONT_CARE = 告诉驱动省掉无用带宽。这三句话串起整个移动端渲染优化的核心思路。</div>
+      </div>
+    </div>
+
+    <!-- Q111 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">111</div>
+        <div style="flex:1">
+          <div class="q-title">BVH（层次包围体）加速结构的构建原理是什么？SAH（表面积启发式）如何指导最优分割？DXR/Vulkan RT 中 TLAS 与 BLAS 各自的职责是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>BVH 基本原理：</strong>
+          <ul>
+            <li>BVH（Bounding Volume Hierarchy）是一棵二叉树，每个节点保存一个轴对齐包围盒（AABB），叶节点包含实际三角形图元</li>
+            <li>光线与场景求交时，从根节点出发，若光线与节点 AABB 不相交则剪枝整个子树；否则递归检测子节点，直至叶节点与三角形精确求交</li>
+            <li>时间复杂度从 O(N) 降至 O(log N)（理想平衡树），典型场景 100 万三角形只需约 20 次 AABB 测试</li>
+          </ul>
+          <strong>BVH 构建方法：</strong>
+          <ul>
+            <li><strong>中心点分割（Median Split）</strong>：按某轴中点将图元分为两半，简单但质量差，AABB 重叠多</li>
+            <li><strong>SAH（Surface Area Heuristic，表面积启发式）</strong>：
+              <ul>
+                <li>目标：最小化期望的光线-三角形相交测试次数</li>
+                <li>代价公式：<code>Cost = C_trav + (SA_left/SA_parent) × N_left × C_isect + (SA_right/SA_parent) × N_right × C_isect</code></li>
+                <li>其中 SA_left/SA_parent 是子节点与父节点表面积之比（代表光线命中概率），N 是图元数，C_trav/C_isect 是遍历/相交的相对开销</li>
+                <li>枚举 K 个分割平面候选（Binning SAH），选代价最小的分割 → 质量最优的 BVH 构建</li>
+              </ul>
+            </li>
+            <li><strong>HLBVH（Morton 码并行构建）</strong>：将图元中心坐标映射到 Morton 码（Z 序曲线），并行排序后快速构建 BVH，适合 GPU 端实时重建（如粒子/软体动画场景）</li>
+          </ul>
+          <strong>DXR/Vulkan Ray Tracing 中的两级结构：</strong>
+          <ul>
+            <li><strong>BLAS（Bottom-Level Acceleration Structure）</strong>：对单个 Mesh 的三角形构建的 BVH，包含模型的局部坐标系几何数据；静态 Mesh 的 BLAS 只需构建一次（VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT）</li>
+            <li><strong>TLAS（Top-Level Acceleration Structure）</strong>：管理多个 BLAS 实例，每个实例包含 BLAS 引用 + 4×3 变换矩阵；动态场景只需每帧重建 TLAS（Rebuild），静态 BLAS 不变</li>
+            <li>TLAS 的优势：① 支持同一 BLAS 多实例（Instance）复用，无需复制三角形数据；② TLAS 重建代价远低于 BLAS，适合频繁变化的场景（动画角色更新 BLAS，场景图更新 TLAS）</li>
+            <li><strong>Compaction</strong>：Build 后执行 BLAS Compaction，移除构建过程中的临时内存，通常可减少 30-50% VRAM</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>BVH + SAH = 光线追踪的"索引+代价优化"二元组；TLAS/BLAS 分层设计 = 让实例复用和增量更新成为可能。这两点是 DXR/Vulkan RT 硬件加速的核心设计哲学。</div>
+      </div>
+    </div>
+
+    <!-- Q112 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">112</div>
+        <div style="flex:1">
+          <div class="q-title">屏幕空间反射（SSR）的完整实现流程是什么？线性 Ray March 与 Hi-Z Tracing 有何本质区别？SSR 的主要局限性如何处理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SSR 的基本思路：</strong>
+          <ul>
+            <li>利用已渲染完成的 Color Buffer、Depth Buffer 和 Normal Buffer，对每个反射像素：① 计算视线与表面法线的反射方向；② 沿反射方向在屏幕空间做 Ray March；③ 找到与场景深度相交的点；④ 采样该点的颜色作为反射颜色</li>
+          </ul>
+          <strong>线性 Ray March（DDA 方法）：</strong>
+          <ul>
+            <li>在视图空间沿反射方向等步长（或 NDC 空间 DDA）推进，每步将当前 Ray 位置变换到屏幕空间，比较 Ray 深度与 Depth Buffer 深度</li>
+            <li>若 <code>ray.z > depth_buffer_sample</code>（Ray 在物体后面），则判定相交，取命中点 UV 采样颜色</li>
+            <li>缺点：步长固定，空旷区域浪费计算；步长太大会跨越薄物体造成漏检；步长太小则性能差</li>
+          </ul>
+          <strong>Hi-Z（Hierarchical-Z）Tracing：</strong>
+          <ul>
+            <li>预先构建 Depth Buffer 的 Mip 链（每层保存对应 Tile 的最大深度，即最近深度值），称为 Depth Pyramid</li>
+            <li>Ray March 从高 Mip 层开始（大步长），若 Ray 深度 < 当前 Mip 层最大深度，说明该大 Tile 内肯定无相交，直接跳过（大步前进）；若相交则降至下一 Mip 层精确化</li>
+            <li>类似 BVH 的层次剪枝：空旷区域迈大步，靠近物体时迈小步，大幅减少 Ray March 迭代次数（通常 10-20 次 vs 线性的 64-128 次）</li>
+          </ul>
+          <strong>SSR 完整管线：</strong>
+          <ul>
+            <li><strong>Pass 1 Ray Tracing</strong>：对每个高反射像素做 Hi-Z Ray March，输出命中 UV 和置信度（Fade Factor）</li>
+            <li><strong>Pass 2 Resolve</strong>：用命中 UV 采样 Color Buffer，结合粗糙度做模糊（粗糙表面反射模糊）；非命中区域 Fade 到 IBL/Sky 兜底</li>
+            <li><strong>Pass 3 Temporal Denoise</strong>：用 Motion Vector 积累历史帧减少噪声，配合 Variance Clamp 抑制 Ghosting</li>
+          </ul>
+          <strong>SSR 的主要局限及对策：</strong>
+          <ul>
+            <li>❌ 屏幕外几何体无法反射 → 兜底 IBL / Reflection Capture / RT Reflection</li>
+            <li>❌ 背面几何体不可见 → 对背向摄像机的面不执行 SSR（Normal 朝向判断）</li>
+            <li>❌ 薄物体穿透 → 引入厚度阈值（Thickness），允许一定的深度误差</li>
+            <li>❌ 边缘 Fade 明显 → 对屏幕边界和远处渐隐 Fade 到环境贴图，减少突变感</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一图串联：</strong>SSR = 视线反射方向 → Hi-Z Ray March（大步小步）→ 命中 UV → 采样颜色 → Temporal 降噪。"Hi-Z 相当于用 Depth Pyramid 做 BVH 剪枝"——这个类比能让面试官眼前一亮。</div>
       </div>
     </div>
 
@@ -2224,6 +2323,49 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q110 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">110</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 TSR（Temporal Super Resolution）的核心原理是什么？与 DLSS 4 / FSR 4 相比有何本质区别？TSR 如何解决时域 Ghosting 和 Rejection 问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>TSR 的核心设计目标：</strong>
+          <ul>
+            <li>UE5 内置的跨平台时域超分方案，无需特定 AI 硬件，在 PC/主机/移动端均可运行</li>
+            <li>将渲染分辨率降低到 50%（或更低），通过多帧时域积累恢复至 4K 质量，分摊光照计算开销</li>
+          </ul>
+          <strong>TSR 核心算法步骤：</strong>
+          <ul>
+            <li><strong>① Velocity Buffer（速度场）</strong>：TSR 依赖精确的逐像素运动向量（Motion Vector）。静态物体用相机运动矩阵计算，动态物体必须通过 Skeletal/Procedural 动画系统写入 Velocity Buffer；无准确 Motion Vector 的效果（粒子/透明物体）是 TSR 的最大挑战</li>
+            <li><strong>② History Reprojection</strong>：将上帧累积的 History Buffer 用 Velocity 重投影到当前帧像素位置，实现跨帧信息复用</li>
+            <li><strong>③ Neighborhood Clamping / Variance Clamping</strong>：TSR 计算当前帧像素 3×3 邻域的颜色分布（均值+方差），将重投影的历史颜色 Clamp 到邻域包围盒内，抑制鬼影（Ghosting）——这是传统 TAA 也有的操作</li>
+            <li><strong>④ TSR 专有：Flickering Heuristic（闪烁检测）</strong>：在 Clamp 前，TSR 额外检测历史重投影像素是否存在高频闪烁（如金属表面镜面高光跳动），对闪烁区域适度降低历史权重，减少持续性"历史污染"</li>
+            <li><strong>⑤ Anti-Ghosting Rejection</strong>：对运动区域边缘（Disocclusion）或深度不连续处，检测重投影深度与当前深度差异，超过阈值则拒绝历史（Full Rejection），以新帧数据为准，避免边缘残影</li>
+            <li><strong>⑥ Subpixel Jitter Accumulation</strong>：每帧使用 Halton 序列 Jitter 相机，多帧积累不同亚像素位置的样本，等效于在时域做 MSAA，恢复细节</li>
+          </ul>
+          <strong>TSR vs DLSS vs FSR 的本质区别：</strong>
+          <ul>
+            <li><strong>TSR（规则算法）</strong>：纯计算机视觉算法，无神经网络，CPU/GPU 通用，质量稳定，不依赖训练数据；Ghosting 和细节丢失仍存在，但明显优于 TAA</li>
+            <li><strong>DLSS 4（NVIDIA 神经网络）</strong>：基于 Transformer 的深度学习超分，Tensor Core 加速，利用高分辨率训练数据学习"超分先验"，对薄线、文字、毛发重建质量最高；但仅限 RTX GPU，且每个游戏需专门集成</li>
+            <li><strong>FSR 4（AMD ML 超分）</strong>：AMD 推出的机器学习超分（FSR 3 以前是传统算法 EASU+RCAS），FSR 4 引入神经网络，RDNAx 架构加速，开源跨 GPU，但对旧硬件回退到 FSR 3 算法</li>
+            <li><strong>核心权衡</strong>：DLSS（最佳质量，封闭）→ TSR（跨平台，无 AI 硬件依赖）→ FSR（开源通用，质量居中）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>TSR 的核心在于"Velocity Buffer + History Reprojection + Variance Clamping + Ghosting Rejection"四个串联步骤，每个步骤解决一个具体问题。能说清 TSR 是规则算法而非神经网络、以及与 DLSS 的硬件依赖区别，就覆盖了面试主要考点。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -2574,6 +2716,55 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           代价：代码量是 OpenGL 的数倍，开发复杂度极高。
         </div>
+      </div>
+    </div>
+
+    <!-- Q113 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">113</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan 同步机制深度解析：Execution Dependency 和 Memory Dependency 有何区别？Pipeline Barrier 的 srcStageMask/dstStageMask/srcAccessMask/dstAccessMask 各自的含义？Image Layout Transition 为何必须配合 Barrier？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Vulkan 同步的两个维度：</strong>
+          <ul>
+            <li><strong>Execution Dependency（执行依赖）</strong>：保证 A 操作在 B 操作之前完成——即"先做完 A 再做 B"的时序约束。但仅有执行依赖不保证 A 写的数据对 B 可见（Cache 可能未刷新）</li>
+            <li><strong>Memory Dependency（内存依赖）</strong>：在执行依赖基础上，强制 A 的写操作从写缓存（Write Cache）刷新到内存，并使 B 能读取的读缓存（Read Cache）失效，从而保证 B 看到 A 最新写入的值。"Execution + Memory Dependency = 完整的数据可见性保障"</li>
+          </ul>
+          <strong>Pipeline Barrier 四个关键字段：</strong>
+          <ul>
+            <li><strong>srcStageMask</strong>：指定 Barrier 之前哪些管线阶段的命令必须完成（源阶段）。例如 <code>VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT</code> 表示等待颜色写入阶段完成</li>
+            <li><strong>dstStageMask</strong>：指定 Barrier 之后哪些管线阶段的命令被阻塞，直到 Barrier 完成后才能开始（目标阶段）。例如 <code>VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT</code> 表示后续 Fragment Shader 等待</li>
+            <li><strong>srcAccessMask</strong>：指定源阶段中哪种类型的内存访问（写操作）需要被刷新。例如 <code>VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT</code> 表示颜色写入缓存需要刷出</li>
+            <li><strong>dstAccessMask</strong>：指定目标阶段中哪种类型的内存访问（读操作）需要使缓存失效。例如 <code>VK_ACCESS_SHADER_READ_BIT</code> 表示 Shader 读缓存需要无效化</li>
+          </ul>
+          <strong>典型用例：GBuffer Pass → Lighting Pass 的 Barrier：</strong>
+          <ul>
+            <li><code>srcStageMask = COLOR_ATTACHMENT_OUTPUT</code>（GBuffer 写完颜色）</li>
+            <li><code>dstStageMask = FRAGMENT_SHADER</code>（Lighting Pass Fragment Shader 要读）</li>
+            <li><code>srcAccessMask = COLOR_ATTACHMENT_WRITE</code>（刷出写缓存）</li>
+            <li><code>dstAccessMask = SHADER_READ</code>（使读缓存失效）</li>
+          </ul>
+          <strong>Image Layout Transition（图像布局转换）：</strong>
+          <ul>
+            <li>Vulkan 中 Image 有多种 Layout（UNDEFINED / COLOR_ATTACHMENT_OPTIMAL / SHADER_READ_ONLY_OPTIMAL / PRESENT_SRC_KHR 等），不同操作要求 Image 处于特定 Layout，GPU 内部可能有不同的内部格式/压缩状态</li>
+            <li>Layout 转换必须作为 Memory Barrier 的一部分提交（ImageMemoryBarrier 的 oldLayout → newLayout 字段），与 Execution/Memory Dependency 一并声明，确保转换期间无并发读写</li>
+            <li>错误示例：跳过 Barrier 直接切 Layout 可能导致验证层报错或 GPU 访问压缩/解压不一致的数据，出现花屏或崩溃</li>
+            <li><strong>UNDEFINED Layout 技巧</strong>：若不需要保留 Image 原内容（如每帧 Clear 的 Framebuffer），可用 <code>UNDEFINED → COLOR_ATTACHMENT_OPTIMAL</code>，GPU 可优化跳过实际内容搬运</li>
+          </ul>
+          <strong>过度同步的性能陷阱：</strong>全局 Barrier（srcStage = ALL_COMMANDS, dstStage = ALL_COMMANDS）会停止整个 GPU 流水线，相当于 GPU 完全 Flush，在移动端开销极大；应精确指定最小化的 Stage 和 Access Mask。
+        </div>
+        <div class="tip-box">💡 <strong>记忆框架：</strong>Execution Dependency = 时序保障；Memory Dependency = 数据可见性保障。Barrier 四元组 = (谁写完, 谁等待, 刷出什么缓存, 无效化什么缓存)。Image Layout Transition 只是随 Barrier 顺便声明的状态机切换。</div>
       </div>
     </div>
   </section>
@@ -4610,6 +4801,283 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>DeepNorm（微软，Transformer 深度突破）：</strong>对 Post-LN 加入额外的 α 缩放残差（<code>x = LayerNorm(α·x + Sublayer(x))</code>），配合特殊初始化，使 1000 层 Post-LN Transformer 可以稳定训练，但工程上复杂度更高，实际应用不及 RMSNorm Pre-LN 广泛。
         </div>
         <div class="tip-box">💡 <strong>面试高频考点：</strong>"为什么 LLaMA 用 RMSNorm 不用 LayerNorm？"——答：① 计算量更小（省去均值计算和偏置）；② 效果相当；③ 更简洁。同时说 Pre-LN 的训练稳定性优势，两点串联即是完整答案。</div>
+      </div>
+    </div>
+
+    <!-- Q114 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">114</div>
+        <div style="flex:1">
+          <div class="q-title">SGLang 的 RadixAttention 如何实现细粒度 Prefix KV Cache 共享？与 vLLM 的 Prefix Caching 相比有何优势？Cache-Aware Scheduling 的作用是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Prefix Caching 的动机：</strong>
+          <ul>
+            <li>多轮对话、RAG 场景中，大量请求共享相同的前缀（System Prompt、文档上下文），这部分 Token 的 KV Cache 可以复用，避免重复 Prefill 计算</li>
+            <li>vLLM 的 Prefix Caching：以固定 Block（16 Token）为单位做 Hash，前缀 Hash 匹配则复用该 Block 的 KV Cache；粒度较粗，只有完整 Block 对齐的前缀才能命中</li>
+          </ul>
+          <strong>RadixAttention（SGLang 核心创新）：</strong>
+          <ul>
+            <li>使用 <strong>Radix Tree（基数树）</strong>存储所有请求的 KV Cache，树的每条边对应一段 Token 序列，节点保存该前缀对应的物理 KV Cache 块</li>
+            <li><strong>细粒度前缀匹配</strong>：沿树路径做最长公共前缀（LCP）搜索，任意长度的公共前缀都可命中，不受 Block 对齐限制（相比 vLLM 的 Block Hash，匹配粒度更精细）</li>
+            <li><strong>写时复制（CoW）</strong>：多请求共享同一前缀节点时，节点引用计数递增；某请求需要修改时才复制，避免写冲突</li>
+            <li><strong>LRU 驱逐策略</strong>：树节点按最近使用时间排序，内存不足时驱逐最久未用的叶节点（类似 CPU Cache 的 LRU）</li>
+          </ul>
+          <strong>Cache-Aware Scheduling：</strong>
+          <ul>
+            <li>调度器在分配新请求时，优先选择与当前 Radix Tree 中命中率最高的请求优先处理（Hit-Rate-First Scheduling），最大化 KV Cache 命中，减少重新 Prefill 的开销</li>
+            <li>对多租户（Multi-Tenant）推理尤其有效：不同用户的 System Prompt 相同时，命中率接近 100%，整体 TTFT（Time To First Token）大幅降低</li>
+          </ul>
+          <strong>SGLang vs vLLM 综合对比：</strong>
+          <ul>
+            <li>RadixAttention 在 Multi-Turn / RAG / Shared Prefix 场景吞吐量比 vLLM 高 1.5-5×；单请求短文本场景两者接近</li>
+            <li>SGLang 还引入 <strong>Constrained Decoding</strong>（基于有限状态机约束 JSON/Regex 输出），减少结构化输出的无效 Token 生成</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>类比记忆：</strong>RadixAttention = KV Cache 的"文件系统目录树"，公共路径自动共享，节点引用计数管理生命周期；Cache-Aware Scheduling = 让调度器"优先处理命中缓存的请求"，类似 CPU Cache 的局部性原理。</div>
+      </div>
+    </div>
+
+    <!-- Q115 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">115</div>
+        <div style="flex:1">
+          <div class="q-title">Mamba / SSM（状态空间模型）的核心原理是什么？与 Transformer 自注意力相比有何优劣？Sliding Window Attention 和 Sparse Attention 又分别如何缓解长序列的 O(N²) 问题？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Transformer 自注意力的复杂度问题：</strong>
+          <ul>
+            <li>自注意力计算 QK^T 的复杂度为 O(N²)，N 为序列长度；1M Token 上下文的注意力矩阵需要 ~2PB 内存，完全不可行</li>
+          </ul>
+          <strong>SSM（State Space Model）/ Mamba（Gu & Dao，2023）：</strong>
+          <ul>
+            <li>核心思想：用<strong>连续时间状态空间方程</strong> <code>h'(t) = Ah(t) + Bx(t)</code>，<code>y(t) = Ch(t)</code> 描述序列依赖，将其离散化为循环形式（类似 RNN），单步推理 O(1) 状态大小</li>
+            <li><strong>选择性机制（S6）</strong>：Mamba 引入输入相关的 A/B/C 矩阵（动态权重），使 SSM 具备与内容相关的选择能力（普通 SSM 的 A/B/C 是固定的），弥补了传统 SSM 无法"忘记"无关信息的缺陷</li>
+            <li><strong>硬件感知并行训练</strong>：推理时串行（O(N) 时间，O(1) 状态），训练时可通过并行扫描（Parallel Scan）算法并行化，配合 FlashAttention 类似的 IO-Aware CUDA Kernel 实现高效训练</li>
+            <li><strong>优势</strong>：① 推理内存恒定（无 KV Cache 无限增长问题）；② 长序列吞吐量高（O(N) vs Transformer O(N²)）</li>
+            <li><strong>劣势</strong>：① 长距离精确信息检索（In-Context Learning）能力弱于 Transformer；② 对"任意位置 Attention"的需求场景（如 RAG 精确匹配）效果略差</li>
+          </ul>
+          <strong>Sliding Window Attention（SWA）：</strong>
+          <ul>
+            <li>每个 Token 只与其前后 W 个 Token 做 Attention（W 为窗口大小），复杂度降至 O(N×W)</li>
+            <li>通过多层堆叠，底层局部窗口的信息可以逐层传播，感受野以 L×W 扩展（L 为层数）；Mistral-7B 使用 SWA，局部窗口 4096，有效上下文通过层传播可达 32K+</li>
+            <li>缺点：无法直接 Attend 到远处非窗口内的 Token，对需要全局信息的任务有损失</li>
+          </ul>
+          <strong>Sparse Attention（BigBird / Longformer）：</strong>
+          <ul>
+            <li>结合三类注意力模式：① 局部窗口注意力（Local Window）；② 全局 Token 注意力（CLS 等特殊 Token Attend 所有位置）；③ 随机稀疏注意力（Random Attention）</li>
+            <li>理论上任意两 Token 间信息都可通过 O(log N) 跳全局 Token 传递，同时保持 O(N) 复杂度</li>
+          </ul>
+          <strong>混合架构趋势：</strong>2024-2025 年主流方案是 <strong>Hybrid Mamba-Transformer</strong>（如 Jamba、Zamba），在 Full Attention 层之间插入 Mamba 层，长序列用 SSM 处理，关键跨位置依赖由少量 Attention 层处理，兼顾效率与质量。
+        </div>
+        <div class="tip-box">💡 <strong>核心对比：</strong>Transformer（全局 O(N²)，精确，KV Cache 随序列增长）→ SWA（局部 O(NW)，有损）→ Mamba（递归 O(N)，无 KV Cache，长距检索弱）→ Hybrid（折衷最优）。这条演进线串起了长序列建模的主流技术路线。</div>
+      </div>
+    </div>
+
+    <!-- Q116 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">116</div>
+        <div style="flex:1">
+          <div class="q-title">主流 VLM 架构对比：InternVL3 和 Qwen2.5-VL 如何实现动态分辨率输入？ViT 与 LLM 的连接层设计有何差异？视觉 Token 压缩（Token Merge / Pooling）的必要性是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>早期 VLM 的固定分辨率局限（LLaVA-1.5 等）：</strong>
+          <ul>
+            <li>将图像 Resize 到固定分辨率（如 336×336），经 ViT 编码后得到固定数量的视觉 Token（如 256 个），通过 MLP 投影层连接至 LLM</li>
+            <li>高分辨率图像（文档、图表）强行压缩后细节丢失严重，OCR 任务效果差</li>
+          </ul>
+          <strong>动态分辨率方案：</strong>
+          <ul>
+            <li><strong>InternVL 系列（Dynamic High Resolution）</strong>：将高分辨率图像切分为多个固定大小（448×448）的 Tile，每个 Tile 独立经 ViT 编码；额外生成一个 Thumbnail（缩略图）提供全局上下文；所有 Tile 的 Token 拼接后送入 LLM。Tile 数量动态（最多 12 个），总视觉 Token 数随图像复杂度变化</li>
+            <li><strong>Qwen2.5-VL（Naive Dynamic Resolution）</strong>：直接将不同分辨率图像的 Patch 映射为不同数量的视觉 Token，无需固定 Tile；引入 <strong>2D-RoPE（MRoPE）</strong> 编码每个 Patch 的二维位置信息，LLM 侧直接 Attend 变长视觉 Token 序列；视频帧同样支持动态 Token 数（按帧率/时长采样）</li>
+          </ul>
+          <strong>ViT-LLM 连接层设计对比：</strong>
+          <ul>
+            <li><strong>MLP Projector（LLaVA）</strong>：两层线性变换，简单高效；视觉 Token 逐一映射到 LLM 维度，Token 数不变</li>
+            <li><strong>Pixel Shuffle / C-Abstractor（InternVL）</strong>：将 2×2 相邻视觉 Token 合并为 1 个（空间降采样 4×），同时通道数扩大，减少 LLM 侧处理的 Token 数（从 1024 → 256），降低计算量，效果优于简单 Pooling</li>
+            <li><strong>原生集成（Qwen2.5-VL）</strong>：ViT 与 LLM 共同训练，视觉 Token 直接在 LLM Attention 中与文本 Token 交互，无独立投影层；MRoPE 使视觉 Token 的位置信息自然融入</li>
+          </ul>
+          <strong>视觉 Token 压缩的必要性：</strong>
+          <ul>
+            <li>高分辨率图像经 ViT 编码后视觉 Token 可达 1000-4000 个，与文本 Token 拼接后序列长度极大，Attention 计算量 O(N²) 急剧增加</li>
+            <li>压缩方案：Spatial Pooling（平均池化）、Token Merging（相似 Token 合并）、Perceiver Resampler（固定数量 Query 蒸馏视觉信息）；InternVL 的 Pixel Shuffle 是工程上最常用的高效方案</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>2025 VLM 发展趋势：</strong>动态分辨率 + 原生多模态训练（ViT 与 LLM 联合）+ 视频理解（时序 Token 管理）是主流方向；InternVL 和 Qwen-VL 系列是国内最有影响力的两条开源路线，面试必须能说清两者架构异同。</div>
+      </div>
+    </div>
+
+    <!-- Q117 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">117</div>
+        <div style="flex:1">
+          <div class="q-title">ControlNet 的 Zero Convolution 机制为何能在训练初期不破坏基础扩散模型？IP-Adapter 与 ControlNet 的条件注入方式有何本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ControlNet 核心设计（Zhang et al. 2023）：</strong>
+          <ul>
+            <li>在 Stable Diffusion 的 U-Net Encoder 旁添加一个<strong>可训练副本</strong>（Trainable Copy），接受控制条件（如 Canny 边缘图、Depth Map、Pose 关键点）作为额外输入</li>
+            <li>副本的输出通过加法注入到 SD U-Net 的对应 Decoder 层</li>
+          </ul>
+          <strong>Zero Convolution（零卷积）的作用：</strong>
+          <ul>
+            <li>连接控制分支与主干 U-Net 的卷积层，其权重初始化为<strong>全零</strong>，偏置也初始化为零</li>
+            <li><strong>训练初期效果</strong>：权重全零 → Zero Conv 输出全零 → 副本注入主干的贡献为零 → 主干 U-Net 完全不受影响，仍能正常生成图像（生成能力不损坏）</li>
+            <li>随着训练进行，Zero Conv 权重逐渐从零开始学习，控制分支的影响慢慢注入；整个过程是"从无到有"的渐进式影响，避免了训练初期梯度爆炸或模型崩溃</li>
+            <li>相比之下，若直接用普通随机初始化的卷积连接，训练初期随机噪声注入主干，会立刻破坏预训练权重</li>
+          </ul>
+          <strong>ControlNet 支持的条件类型：</strong>Canny/HED 边缘图、Depth/Normal Map、OpenPose 人体姿态、Segmentation Map、Scribble、Line Art 等，每种条件需单独训练对应 ControlNet 权重。
+          <br/><br/>
+          <strong>IP-Adapter（腾讯 ARC Lab，2023）：</strong>
+          <ul>
+            <li>目标：以<strong>参考图像风格/内容</strong>为条件控制生成，而非几何结构（区别于 ControlNet）</li>
+            <li>核心：引入解耦的 Cross-Attention 模块，文本特征走原有的 Cross-Attention，图像特征（CLIP Image Encoder 提取）走<strong>独立的新增 Cross-Attention</strong>，两者各自的 K/V 不互相干扰</li>
+            <li>仅训练新增的 Cross-Attention 层（约 22M 参数），SD U-Net 主干权重冻结，参数高效</li>
+          </ul>
+          <strong>ControlNet vs IP-Adapter 本质区别：</strong>
+          <ul>
+            <li><strong>ControlNet</strong>：控制<strong>空间结构/几何</strong>（边缘、深度、姿态），通过残差加法注入 Decoder 层；控制图与生成图空间位置严格对应</li>
+            <li><strong>IP-Adapter</strong>：控制<strong>外观风格/语义内容</strong>（参考图的风格、人脸、物体），通过独立 Cross-Attention 注入；不严格绑定空间位置，侧重"看起来像参考图"</li>
+            <li>两者可组合使用：ControlNet 控制姿态 + IP-Adapter 控制角色外观，实现精确控制生成</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话区分：</strong>ControlNet = "照着这张结构图生成"（几何约束）；IP-Adapter = "生成一张风格像这张图的图"（外观约束）。Zero Conv 的作用是"从零开始学影响，训练初期不干扰主干"。</div>
+      </div>
+    </div>
+
+    <!-- Q118 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">118</div>
+        <div style="flex:1">
+          <div class="q-title">llama.cpp / GGUF 的量化部署与 GPTQ/AWQ 的 GPU 量化有何区别？INT4 量化为什么能大幅降低显存而精度损失较小？量化感知训练（QAT）与训练后量化（PTQ）的适用场景？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>量化的基本原理：</strong>
+          <ul>
+            <li>将浮点权重/激活值映射到低位整数（INT8/INT4/INT2），减少内存和带宽需求</li>
+            <li><strong>对称量化</strong>：<code>q = round(x / scale)</code>，<code>scale = max(|x|) / 127</code>；<strong>非对称量化</strong>：<code>q = round(x / scale) + zero_point</code>，可处理非对称分布</li>
+            <li>INT4 理论上比 FP16 节省 4× 显存，带宽需求降至 1/4，适合 Memory-Bound 的自回归解码阶段</li>
+          </ul>
+          <strong>GPTQ（GPU PTQ，2022）：</strong>
+          <ul>
+            <li>Layer-wise 训练后量化，使用 OBQ（Optimal Brain Quantization）算法：按列顺序量化权重，每量化一列立刻更新其余列的权重来补偿误差（基于 Hessian 二阶信息）</li>
+            <li>量化为 INT4 时 Perplexity 损失约 0.1-0.5，实用。仅需少量校准数据（128 序列），速度较快</li>
+          </ul>
+          <strong>AWQ（Activation-Aware Weight Quantization，2023）：</strong>
+          <ul>
+            <li>观察到权重中约 1% 的"显著通道"（Salient Channels）对精度影响极大，这些通道对应激活值较大的输入通道</li>
+            <li>对显著通道使用较大的缩放因子（Scale-Up）保护精度，其他通道正常量化；通过搜索最优 Scale 因子实现，无需反向传播</li>
+            <li>比 GPTQ 精度更高（尤其 INT4），且支持更高效的 Kernel（TinyChat / AWQ CUDA Kernel）</li>
+          </ul>
+          <strong>GGUF / llama.cpp 量化：</strong>
+          <ul>
+            <li>面向 CPU/低端 GPU 的边端部署，支持 Q2_K/Q4_K/Q5_K/Q8_0 等多种量化精度</li>
+            <li>采用分组量化（Group Quantization）：每 32/64 个权重共享一组 Scale/Zero，减少量化误差；GGUF 格式将模型结构和量化参数打包为单文件，便于分发</li>
+            <li>支持混合精度（重要层用 Q8，其他层用 Q4），平衡速度和精度</li>
+            <li>主要差异：GPTQ/AWQ 面向 CUDA GPU（A100/H100）高性能服务；GGUF 面向边端 CPU 甚至 Apple M 系列 Metal GPU</li>
+          </ul>
+          <strong>QAT（量化感知训练）vs PTQ（训练后量化）：</strong>
+          <ul>
+            <li><strong>PTQ</strong>（GPTQ/AWQ/GGUF 均属此类）：在已训练好的模型上直接量化，速度快，无需重训练；适合大模型（70B+）快速量化部署，精度损失 INT8 可接受，INT4 有轻微下降</li>
+            <li><strong>QAT</strong>：在训练时引入模拟量化节点（Fake Quantize），反向传播时使用 STE（直通估计器）绕过不可微的取整操作；模型主动学习在量化约束下工作，精度最好，但需要完整训练流程，计算成本高；适合小模型（1-7B）且对精度要求极高的场景（端侧手机部署 INT4）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>工程选型口诀：</strong>服务端大模型 → AWQ/GPTQ（GPU INT4）；端侧手机 CPU → GGUF Q4_K_M；对精度极敏感的小模型 → QAT INT8。说清"PTQ 速度快但精度略损，QAT 精度好但要重训"，就覆盖了面试核心考点。</div>
+      </div>
+    </div>
+
+    <!-- Q119 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">119</div>
+        <div style="flex:1">
+          <div class="q-title">LLM Function Calling / Tool Use 的完整实现机制是什么？结构化输出（JSON Schema 约束）如何通过有限状态机（FSM）保证格式正确性？与 ReAct Agent 的关系？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Function Calling 的完整流程：</strong>
+          <ul>
+            <li><strong>① 工具声明</strong>：调用方将可用工具的 JSON Schema（函数名、参数名、类型、描述）注入 System Prompt 或特殊 Tool Definition 格式</li>
+            <li><strong>② 模型决策</strong>：LLM 根据用户请求判断是否需要调用工具，若需要则输出结构化 Tool Call JSON（<code>{"name": "get_weather", "arguments": {"city": "北京"}}</code>），而非直接回答</li>
+            <li><strong>③ 工具执行</strong>：调用方解析 Tool Call JSON，实际执行对应函数（API 调用、数据库查询等），获取结果</li>
+            <li><strong>④ 结果回传</strong>：将工具执行结果以 Tool Result 角色插入 Conversation History，LLM 继续生成最终回答</li>
+            <li><strong>⑤ 多轮工具调用</strong>：复杂任务中 LLM 可连续调用多个工具，每次调用后根据结果决定下一步</li>
+          </ul>
+          <strong>训练侧支持：</strong>专门训练的 Function Calling 模型（如 GPT-4o、Qwen2.5、Llama 3.1）在 SFT 阶段使用大量工具调用示例，学习"何时该用工具"和"如何生成合法 JSON"。
+          <br/><br/>
+          <strong>结构化输出 / JSON Schema 约束（Constrained Decoding）：</strong>
+          <ul>
+            <li>问题：LLM 生成的 JSON 可能格式错误（漏括号、类型不匹配），导致解析失败</li>
+            <li><strong>有限状态机（FSM）约束解码</strong>：将 JSON Schema 编译为 FSM，每个状态表示当前合法的下一个字符集合；每个解码步骤只允许在当前状态合法的 Token 中采样（对非法 Token 的 Logit 设为 -inf），保证输出 100% 符合 Schema</li>
+            <li>代表实现：Outlines（Python 库）/ SGLang Constrained Decoding / llama.cpp Grammar Sampling（使用 GBNF 文法）</li>
+            <li>代价：编译 FSM 有一次性开销（通常 &lt;1ms），解码时每步 Token Mask 计算 ~0.1ms；对性能影响极小</li>
+          </ul>
+          <strong>Function Calling vs ReAct Agent：</strong>
+          <ul>
+            <li><strong>Function Calling</strong>：侧重单步工具调用的精确格式保证，是技术实现层面的机制</li>
+            <li><strong>ReAct（Reason + Act，Yao et al. 2022）</strong>：是一个 Agent 框架范式，LLM 交替产生 Thought（推理）和 Action（工具调用），观察工具结果后继续 Thought，形成循环直到任务完成</li>
+            <li>关系：ReAct 框架的 Action 步骤通常通过 Function Calling 机制实现；Function Calling 提供调用的格式保障，ReAct 提供多步推理的流程框架</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>Function Calling = 让 LLM 输出结构化 Tool 调用 + 外部系统执行 + 结果回传；Constrained Decoding = 用 FSM 保证 JSON 格式正确，对非法 Token 屏蔽 Logit；ReAct = 多步 Thought-Action-Observation 循环，Function Calling 是 ReAct Action 的底层实现。</div>
       </div>
     </div>
 
