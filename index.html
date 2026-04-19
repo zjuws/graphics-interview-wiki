@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">170+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">185+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1131,6 +1131,47 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>一图串联：</strong>SSR = 视线反射方向 → Hi-Z Ray March（大步小步）→ 命中 UV → 采样颜色 → Temporal 降噪。"Hi-Z 相当于用 Depth Pyramid 做 BVH 剪枝"——这个类比能让面试官眼前一亮。</div>
+      </div>
+    </div>
+
+    <!-- Q121 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q121</div>
+        <div style="flex:1">
+          <div class="q-title">LOD / HLOD / Imposter 系统：原理、适用场景与 UE5 实现</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>LOD（Level of Detail）基础：</strong>
+          <ul>
+            <li>根据物体与相机的屏幕空间像素面积（Screen Size）动态切换预制的不同精度网格（LOD0 最精细 → LODN 最粗糙），减少远距离无效面数</li>
+            <li>切换阈值由 ScreenSize 百分比控制；切换时可用 Dithering（Dithered LOD Transition）避免突变，利用 TAA 时域平均实现无缝过渡</li>
+            <li>代价：美术需为每个 Mesh 手工或自动生成多级 LOD；切换点设置不当会产生 "Popping" 闪跳</li>
+          </ul>
+          <strong>HLOD（Hierarchical LOD）：</strong>
+          <ul>
+            <li>将场景内多个静态 Mesh 合并成单一的"代理 Mesh"（Proxy Mesh），当整个群组距离足够远时用代理替换所有子物体，大幅减少 DrawCall 数</li>
+            <li>UE5 HLOD 系统支持 World Partition 下的 Runtime HLOD Layer：可配置多层 HLOD，远景自动合并到最粗糙代理；支持 Nanite HLOD（代理也是 Nanite Mesh，无需手动 LOD 链）</li>
+            <li>适用：开放世界大量重复建筑、树木、石块等静态场景资产</li>
+          </ul>
+          <strong>Imposter（公告板 / 广告牌渲染）：</strong>
+          <ul>
+            <li>极远距离时，用一张或几张预渲染的 2D 纹理公告板替代 3D Mesh，从任意视角看都近似真实外观</li>
+            <li><strong>Octahedral Imposter</strong>：将 Mesh 从八面体均匀分布的方向预渲染成一组图片（含 Albedo/Normal/Depth），运行时根据视角 UV 查表并插值两张相邻视角图像，实现视差修正的伪 3D 效果；适合树木、植被、远景建筑</li>
+            <li>VS Billboarding：传统 Billboard 只有单张正面贴图，无视差修正；Octahedral Imposter 支持完整 360° 视角查找，质量远高于传统 Billboard</li>
+          </ul>
+          <strong>选择策略：</strong>近景 LOD0（全精度）→ 中景 LOD + HLOD 合批 → 远景 Imposter → 极远 Culling。Nanite 出现后近中景可直接用 Nanite 替代手工 LOD，HLOD 仍负责合并 DrawCall。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>LOD 解决"面数"，HLOD 解决"DrawCall"，Imposter 解决"极远距离开销"，三者协同覆盖从中景到地平线的全距离范围优化。Nanite 取代了 LOD 链但不能取代 HLOD 的 DrawCall 合并。</div>
       </div>
     </div>
 
@@ -2115,6 +2156,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q122 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q122</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Virtual Shadow Map（VSM）分页机制深度解析：Page Table / Physical Pool / Clipmap 设计</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VSM 核心动机：</strong>传统 Shadow Map 分辨率固定，无法同时满足近处高精度与远处低浪费的需求；CSM 需手动划分 Cascade，过渡边界明显。VSM 借鉴虚拟内存思想，按需分配阴影分辨率。
+          <br/><br/>
+          <strong>分页架构（三层结构）：</strong>
+          <ul>
+            <li><strong>Virtual Page Table（虚拟页表）</strong>：逻辑上是一张极高分辨率的 Shadow Map（UE5 中 16K×16K），但实际不分配物理内存；每一个"Page"（如 128×128 texel）对应一个页表项，记录该 Page 是否被分配、在物理池中的地址</li>
+            <li><strong>Physical Page Pool（物理页池）</strong>：一块固定大小的纹理 Atlas，存储实际渲染的深度数据；只有被相机可见且在阴影覆盖范围内的 Page 才会被分配到物理池中，节省显存</li>
+            <li><strong>Page 标记（Marking Pass）</strong>：每帧先做一次 Marking Pass，遍历屏幕可见像素，计算每个像素对应的阴影 UV，标记哪些 Virtual Page 需要更新；只有被标记的 Page 才在 Shadow Render Pass 中写入 Physical Pool</li>
+          </ul>
+          <strong>Clipmap 设计（方向光）：</strong>
+          <ul>
+            <li>方向光 VSM 使用类似 Clipmap 的多级 Mip 结构（UE5 默认 8 级），每级覆盖范围是上一级 2 倍，精度降低一半，对应 CSM 的 Cascade 功能但更平滑</li>
+            <li>相机移动时，Clipmap 以"Page 粒度"滚动更新（类似 Toroidal Addressing），只重新渲染移入视野的新 Page，无需全量重绘，减少每帧开销</li>
+          </ul>
+          <strong>Nanite 与非 Nanite 的协同：</strong>
+          <ul>
+            <li>Nanite Mesh 可直接参与 VSM 的 Rasterize Pass，利用 Nanite 的 Cluster 级裁剪确保只渲染必要三角形</li>
+            <li>非 Nanite Mesh 有独立的 Marking Job 队列（即常见的"Non-nanite Marking Job Queue overflow"警告来源），当非 Nanite 物体过多或 Queue 容量不足时出现溢出，需增大 CVarShadow.Virtual.NonNaniteMarkingPassBudget</li>
+          </ul>
+          <strong>关键优势：</strong>稳定高精度（近处可达等效 16K）、无 CSM 接缝、与 Nanite 深度耦合、增量更新减少 Overdraw。代价：Page 管理本身有 CPU/GPU 调度开销，物理池大小是显存瓶颈。
+        </div>
+        <div class="tip-box">💡 <strong>记忆类比：</strong>VSM = GPU 虚拟内存。Virtual Page Table = 页表（逻辑地址），Physical Pool = DRAM（物理内存），Marking Pass = 缺页中断检测，Page Update = 缺页补充。Clipmap 滚动 = TLB 刷新的最小化版本。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -2767,6 +2849,48 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>记忆框架：</strong>Execution Dependency = 时序保障；Memory Dependency = 数据可见性保障。Barrier 四元组 = (谁写完, 谁等待, 刷出什么缓存, 无效化什么缓存)。Image Layout Transition 只是随 Barrier 顺便声明的状态机切换。</div>
       </div>
     </div>
+
+    <!-- Q120 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q120</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan Ray Tracing 管线：vkCmdTraceRaysKHR / 着色器绑定表 SBT / RGEN-CHIT-MISS-AHIT 分工</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>光线追踪管线 vs 光栅化管线：</strong>
+          <ul>
+            <li>光栅化：Draw Call → 顶点着色 → 片元着色，流程固定且按几何体批次执行</li>
+            <li>光线追踪：<code>vkCmdTraceRaysKHR</code> 发射光线，每条光线独立遍历 BVH 加速结构，命中/未命中时回调不同着色器，流程动态分叉</li>
+          </ul>
+          <strong>四类核心着色器：</strong>
+          <ul>
+            <li><strong>RGEN（Ray Generation）</strong>：入口，每个像素一个线程，生成初始射线（方向、起点），调用 <code>traceRayEXT()</code></li>
+            <li><strong>CHIT（Closest Hit）</strong>：光线命中最近几何体时执行，负责着色（采样材质、计算光照、继续发射次级光线）</li>
+            <li><strong>MISS（Miss）</strong>：光线未命中任何几何体时执行，负责采样天空盒/环境光照</li>
+            <li><strong>AHIT（Any Hit）</strong>：光线穿过半透明几何体时每次相交都回调（可提前终止），常用于透明阴影/Alpha Test</li>
+            <li><strong>Intersection</strong>（可选）：自定义基元的相交测试，如程序化球体/曲线</li>
+          </ul>
+          <strong>Shader Binding Table（SBT）：</strong>
+          <ul>
+            <li>SBT 是一块 GPU Buffer，按 <strong>四段布局</strong>（RayGen Region / Miss Region / Hit Group Region / Callable Region）存储着色器句柄（Shader Handle，32B）和每个几何体/材质实例的用户数据（Shader Record）</li>
+            <li>vkCmdTraceRaysKHR 传入四个 StridedDeviceAddressRegion，GPU 根据光线类型和命中几何体的 Instance/Geometry 偏移自动索引 SBT，找到对应着色器执行</li>
+            <li>命中组选择公式：<code>HitGroupIndex = RayContribToHitGroupIndex + MultiplierForGeometryContribution × GeometryIndex + InstanceShaderBindingTableRecordOffset</code>，通过这三个字段可为不同材质的不同光线类型（Primary/Shadow/AO）挂载不同的 CHIT/AHIT 着色器</li>
+          </ul>
+          <strong>与 DXR 的对应关系：</strong>Vulkan SBT = DXR Shader Table；CHIT = DXR ClosestHitShader；MISS = DXR MissShader；vkCmdTraceRaysKHR = DispatchRays。概念一一对应，只是 API 命名不同。
+        </div>
+        <div class="tip-box">💡 <strong>记忆要点：</strong>SBT = "光追材质表"，把几何体和着色器动态绑定；RGEN 发射 → BVH 遍历 → CHIT/MISS/AHIT 按情况回调 → RGEN 汇总结果写 Image。SBT 的 Stride 字段允许每个几何体携带不同用户数据（如材质 Index），是光追多材质的关键机制。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 10. 3D 数学 ══ -->
@@ -5078,6 +5202,289 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>Function Calling = 让 LLM 输出结构化 Tool 调用 + 外部系统执行 + 结果回传；Constrained Decoding = 用 FSM 保证 JSON 格式正确，对非法 Token 屏蔽 Logit；ReAct = 多步 Thought-Action-Observation 循环，Function Calling 是 ReAct Action 的底层实现。</div>
+      </div>
+    </div>
+
+    <!-- Q123 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q123</div>
+        <div style="flex:1">
+          <div class="q-title">DiT（Diffusion Transformer）架构深度解析：adaLN-Zero / Patch Embedding / Timestep 条件注入 vs UNet</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DiT（Scalable Diffusion Models with Transformers，Peebles 2023）核心思想：</strong>用 Transformer 替换扩散模型中的 UNet backbone，在 Latent 空间（LDM 风格）做去噪，验证了扩散模型的 Scaling Law。
+          <br/><br/>
+          <strong>关键架构设计：</strong>
+          <ul>
+            <li><strong>Patch Embedding</strong>：将 Latent（如 32×32）按 p×p 划分 Patch（默认 p=2 或 4），线性展平后加 2D sin-cos 位置编码，转为 token 序列送入 Transformer</li>
+            <li><strong>adaLN-Zero（Adaptive LayerNorm）</strong>：条件信号（Timestep t + Class Label c）先经 MLP 生成 γ、β、α 六个调制参数；LayerNorm 后用 γ/β 做仿射变换，残差分支乘 α（初始化为 0，使初始网络等效恒等变换）</li>
+            <li><strong>Timestep & Class 条件注入</strong>：t 做 Sinusoidal Embedding → MLP；c 做 Class Embedding → MLP；两者相加后统一调制每个 DiT Block，比 Cross-Attention 注入更轻量</li>
+            <li><strong>Final Layer</strong>：用 adaLN 处理最后一层后，Linear Decode 回 (p×p×2C) 维，分为 ε（噪声预测）和 Σ（方差预测）两部分</li>
+          </ul>
+          <strong>DiT vs UNet（Score 模型 backbone）：</strong>
+          <ul>
+            <li>UNet：Skip Connection 携带多尺度局部特征，适合像素级细节；参数量有上限，Scaling 困难</li>
+            <li>DiT：全 Transformer，全局 Self-Attention 自然建模长距离依赖；参数量随深度/宽度线性可扩；FLOPs 增大时 FID 持续下降，验证了 Scaling 规律</li>
+            <li>DiT-XL/2（最大变体）在 ImageNet 256×256 FID=2.27，首次超越 ADM-UNet</li>
+          </ul>
+          <strong>后续演进：</strong>Sora（OpenAI）将 DiT 扩展到视频（Space-Time Patch）；FLUX 使用双流 MM-DiT（文本与图像各自 Self-Attention + Cross-Attention 融合）；Stable Diffusion 3 也采用 MM-DiT 架构。
+        </div>
+        <div class="tip-box">💡 <strong>一句话：</strong>DiT = LDM 的 UNet 换成 Transformer + adaLN-Zero 条件注入 + Patch Embedding；核心贡献是证明扩散模型的 Gflops-FID Scaling Law。</div>
+      </div>
+    </div>
+
+    <!-- Q124 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q124</div>
+        <div style="flex:1">
+          <div class="q-title">GAN vs Diffusion Model：生成机制、训练稳定性、多样性/质量对比及各自适用场景</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>生成机制对比：</strong>
+          <ul>
+            <li><strong>GAN（生成对抗网络）</strong>：Generator 从噪声直接生成样本，Discriminator 判别真假；二者博弈驱动 G 学习数据分布；单步推理（Generator forward 一次即得结果），推理速度极快</li>
+            <li><strong>Diffusion Model</strong>：Forward 过程逐步向数据加高斯噪声（T 步），Reverse 过程用神经网络逐步去噪；推理需要 20~1000 步 Denoising（DDIM/DPM-Solver 可缩短到 10~50 步），速度较慢</li>
+          </ul>
+          <strong>训练稳定性：</strong>
+          <ul>
+            <li>GAN：博弈导致 Mode Collapse（生成单一模式）、梯度消失（Discriminator 过强时）、训练不收敛等问题；需要仔细调超参、学习率、Spectral Norm 等技巧</li>
+            <li>Diffusion：只需训练一个去噪网络，目标是简单的 MSE 噪声预测；无对抗博弈，训练极稳定，但收敛慢（大量扩散步骤）</li>
+          </ul>
+          <strong>生成质量 & 多样性：</strong>
+          <ul>
+            <li>GAN：FID 曾是 SOTA，但多样性有限（Mode Coverage 不足）；Precision 高但 Recall（多样性覆盖）低</li>
+            <li>Diffusion：多样性显著优于 GAN（完整覆盖数据分布），样本质量在大规模预训练后全面超越 GAN；2022 年后成为 SOTA</li>
+          </ul>
+          <strong>适用场景：</strong>
+          <ul>
+            <li>GAN 仍占优：实时生成（游戏 Avatar、人脸交换、实时风格迁移，需单步推理）、Super Resolution（ESRGAN）、医学图像（数据增强）</li>
+            <li>Diffusion 占优：高质量图文生成（SDXL/FLUX/Midjourney）、视频生成（Sora）、3D/4D 生成、科学分子设计（FoldDiff）等质量优先场景</li>
+          </ul>
+          <strong>混合趋势：</strong>Consistency Model（单步扩散蒸馏，速度接近 GAN）、LCM、Lightning 等让 Diffusion 在速度上逼近 GAN，进一步缩小差距。
+        </div>
+        <div class="tip-box">💡 <strong>记忆对比：</strong>GAN = 快但不稳，Diffusion = 稳且强但慢。现代 Diffusion 蒸馏（Consistency / Rectified Flow）已大幅压缩推理步数，GAN 在大规模图像生成领域的优势基本消失。</div>
+      </div>
+    </div>
+
+    <!-- Q125 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q125</div>
+        <div style="flex:1">
+          <div class="q-title">LLM KV Cache 管理进阶：驱逐策略（H2O / StreamingLLM / SnapKV）与长上下文优化</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>KV Cache 为什么需要驱逐：</strong>Transformer Decoder 推理时 KV Cache 随上下文线性增长，100K token 的 70B 模型 KV Cache 可达数十 GB，超出单卡显存；需要在不重新计算的前提下丢弃不重要的 token KV。
+          <br/><br/>
+          <strong>主流驱逐策略：</strong>
+          <ul>
+            <li><strong>H2O（Heavy Hitter Oracle）</strong>：统计注意力分数累积 Hit 次数，保留累积 Attention Score 最高的 "Heavy Hitter" Token；原理：少数 Token 承担了大部分注意力（Power Law），保留它们可最小化信息损失；代价：需要动态统计，硬件并行度下降</li>
+            <li><strong>StreamingLLM（Attention Sink）</strong>：发现 Attention 分数中初始 Token（Sink Token，通常是 BOS）始终获得极高分数（即使语义无关），原因是 Softmax 归一化强制某些 Token 成为"概率收纳器"；解决方案：始终保留 Sink Token（4 个）+ 滑动窗口内近期 Token，无限流式推理而不退化</li>
+            <li><strong>SnapKV</strong>：在 Prefill 阶段对每个 Head 统计 Query 的注意力分布热点，提前确定哪些 KV 位置重要，在 Prefill 末端一次性压缩 KV Cache，减少 Decode 阶段内存占用；精度优于简单 Sliding Window</li>
+          </ul>
+          <strong>与 PagedAttention（vLLM）的区别：</strong>PagedAttention 解决的是 KV Cache 的碎片化分配（物理内存管理），驱逐策略解决的是超长序列超出显存的问题；二者可以组合使用。
+          <br/><br/>
+          <strong>长上下文专项优化：</strong>
+          <ul>
+            <li>MLA（DeepSeek-V2/V3）：低秩压缩 KV 维度，KV Cache 降低 ~5×，同时保留性能</li>
+            <li>GQA/MQA：多 Query 共享少量 KV Head，Cache 大小减少 Group Size 倍</li>
+            <li>量化 KV Cache（KVQuant / KVSharer）：将 KV 量化为 INT4/INT8，显存减半但精度损失可控</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>驱逐策略核心问题 = "丢哪些 Token 损失最小"。H2O 保留累积高注意力；StreamingLLM 保留 Sink Token + 近期窗口；SnapKV 在 Prefill 提前压缩。三者都是 Training-Free，可直接部署在现有模型。</div>
+      </div>
+    </div>
+
+    <!-- Q126 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q126</div>
+        <div style="flex:1">
+          <div class="q-title">多 Agent 框架对比：LangGraph 状态机 vs AutoGen 对话驱动 vs CrewAI 角色扮演</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三大框架设计哲学：</strong>
+          <ul>
+            <li><strong>LangGraph</strong>：以有向图（State Machine）为核心抽象，Node = Agent/Tool 调用，Edge = 状态转移（可条件分支）；State 在图中流动传递；优势：流程可视化、易于调试、支持 Checkpoint（暂停/恢复）和 Human-in-the-Loop；适合：复杂工业级工作流（多条件分支、并行节点、循环）</li>
+            <li><strong>AutoGen（微软）</strong>：以多 Agent 对话为核心，Agent 间通过消息传递协作；支持 UserProxy（代理人类）、AssistantAgent、GroupChat 多人协作；优势：灵活、易上手、适合探索性任务；劣势：流程不确定性高，难以精确控制执行路径</li>
+            <li><strong>CrewAI</strong>：以角色扮演（Role + Goal + Backstory）为核心，每个 Agent 有明确职责；Task 有顺序或并行两种执行模式；优势：对非工程师友好、语义驱动；劣势：底层控制弱，复杂逻辑难以实现</li>
+          </ul>
+          <strong>技术对比维度：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">
+            <tr style="background:#e0e7ff"><th style="padding:4px 8px;border:1px solid #c7d2fe">维度</th><th style="padding:4px 8px;border:1px solid #c7d2fe">LangGraph</th><th style="padding:4px 8px;border:1px solid #c7d2fe">AutoGen</th><th style="padding:4px 8px;border:1px solid #c7d2fe">CrewAI</th></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">编排范式</td><td style="padding:4px 8px;border:1px solid #e2e6ea">状态机图</td><td style="padding:4px 8px;border:1px solid #e2e6ea">对话驱动</td><td style="padding:4px 8px;border:1px solid #e2e6ea">角色任务</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">流程确定性</td><td style="padding:4px 8px;border:1px solid #e2e6ea">高</td><td style="padding:4px 8px;border:1px solid #e2e6ea">低</td><td style="padding:4px 8px;border:1px solid #e2e6ea">中</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">Human-in-Loop</td><td style="padding:4px 8px;border:1px solid #e2e6ea">原生支持</td><td style="padding:4px 8px;border:1px solid #e2e6ea">支持</td><td style="padding:4px 8px;border:1px solid #e2e6ea">有限</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">适合规模</td><td style="padding:4px 8px;border:1px solid #e2e6ea">大型工业</td><td style="padding:4px 8px;border:1px solid #e2e6ea">原型探索</td><td style="padding:4px 8px;border:1px solid #e2e6ea">中等任务</td></tr>
+          </table>
+          <br/>
+          <strong>Agent 协作核心问题：</strong>
+          <ul>
+            <li><strong>幻觉传播</strong>：一个 Agent 的错误输出成为下一个 Agent 的输入，逐步放大；需要 Verification Agent 或人工检查点</li>
+            <li><strong>工具调用失败处理</strong>：需要 Retry 机制和 Fallback 策略</li>
+            <li><strong>上下文爆炸</strong>：多轮对话中历史累积过长，需要 Memory 压缩（Summarization Agent / Vector Store 持久化）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>选型建议：</strong>生产复杂工作流 → LangGraph；快速原型多 Agent 协作 → AutoGen；内容生成/角色分工 → CrewAI。2025~2026 年趋势：LangGraph 在企业级场景占主导；MCP（Model Context Protocol）标准化 Agent-Tool 接口，与各框架正在深度集成。</div>
+      </div>
+    </div>
+
+    <!-- Q127 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q127</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 推理框架全景：vLLM vs SGLang vs TensorRT-LLM vs Triton Inference Server — 架构差异与选型</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>四大框架定位：</strong>
+          <ul>
+            <li><strong>vLLM（UC Berkeley）</strong>：业界标准开源框架；核心创新 PagedAttention（分页 KV Cache）+ Continuous Batching；支持最广泛的模型格式；适合：开源模型通用部署、研究原型、中等吞吐量场景</li>
+            <li><strong>SGLang（UC Berkeley）</strong>：面向复杂 LLM 程序（多轮对话、Tree-of-Thought、RAG）；核心创新 RadixAttention（KV Cache Prefix 树复用）+ 编译器优化（SGLang DSL）；Prefix 缓存命中率高时吞吐量显著超越 vLLM；适合：Prefix 长且共享度高的 Serving（Few-Shot / System Prompt 固定场景）</li>
+            <li><strong>TensorRT-LLM（NVIDIA）</strong>：极致性能优化；将模型编译为 TensorRT Engine，融合算子（Fused QKV / Fused MLP）、INT8/FP8 量化、In-flight Batching；硬件强绑定（只支持 NVIDIA GPU）；适合：NVIDIA 生产环境极致吞吐量（P/T100 系列）</li>
+            <li><strong>Triton Inference Server（NVIDIA）</strong>：通用推理服务框架，支持多后端（TensorRT / ONNX / PyTorch / OpenVINO）；提供 gRPC/HTTP API、动态批处理、多模型并发管理；适合：多模型混合 Serving、边缘/云端统一接口管理</li>
+          </ul>
+          <strong>关键性能指标对比（以 LLaMA-3 70B 为参考）：</strong>
+          <ul>
+            <li>吞吐量（Throughput）：TensorRT-LLM &gt; SGLang（高 Prefix 命中）≈ vLLM &gt; 原生 HF</li>
+            <li>首 Token 延迟（TTFT）：SGLang RadixAttention 在 Prefix 命中时极低；TensorRT-LLM 编译优化 TTFT 最低</li>
+            <li>易用性：vLLM &gt; SGLang &gt; TensorRT-LLM（编译复杂）</li>
+          </ul>
+          <strong>生产建议：</strong>NVIDIA 硬件 + 追求极致性能 → TensorRT-LLM；开源模型快速上线 → vLLM；多轮对话/RAG 高复用前缀 → SGLang；多模型混合服务 → Triton + 各后端。
+        </div>
+        <div class="tip-box">💡 <strong>核心差异：</strong>vLLM = PagedAttention（碎片消除）；SGLang = RadixAttention（前缀复用）；TensorRT-LLM = 编译期算子融合（NVIDIA 极致优化）；Triton = 多后端统一服务层。从 2024 年起，各框架已互相借鉴，边界逐渐模糊，选型以实测性能为准。</div>
+      </div>
+    </div>
+
+    <!-- Q128 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q128</div>
+        <div style="flex:1">
+          <div class="q-title">CLIP 对比学习原理：InfoNCE 损失 / 图文对齐 / Zero-Shot 分类 / 在多模态大模型中的地位</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>CLIP（Contrastive Language-Image Pretraining，OpenAI 2021）核心原理：</strong>
+          <ul>
+            <li>双编码器架构：Image Encoder（ViT 或 ResNet）+ Text Encoder（Transformer）分别将图像和文本编码到同一 d 维对齐空间</li>
+            <li><strong>InfoNCE 对比损失</strong>：对于 batch 内 N 个图文对，计算 N×N 相似度矩阵；正对（配对图文）相似度最大化，负对（非配对）相似度最小化；损失 = 行方向 CrossEntropy + 列方向 CrossEntropy 的均值</li>
+            <li>训练数据：400M 从互联网抓取的图文对（WebImageText），无需人工标注</li>
+          </ul>
+          <strong>Zero-Shot 分类机制：</strong>
+          <ul>
+            <li>将类别名称模板化为文本（"a photo of a {class}"），用 Text Encoder 编码所有类别文本 → 得到文本特征库</li>
+            <li>将测试图像用 Image Encoder 编码，与文本特征库做余弦相似度，取最高相似度类别</li>
+            <li>无需任何微调，ImageNet Zero-Shot Top-1 ~76%，与监督 ResNet-50 相当</li>
+          </ul>
+          <strong>CLIP 在多模态大模型中的地位：</strong>
+          <ul>
+            <li><strong>视觉编码器来源</strong>：LLaVA / InternVL / Qwen2.5-VL 等 VLM 大量使用 CLIP ViT（或 SigLIP）作为 Visual Backbone，提供图文对齐的视觉特征</li>
+            <li><strong>Stable Diffusion Text Conditioning</strong>：CLIP Text Encoder 编码提示词，作为 UNet Cross-Attention 的 Key/Value，引导去噪方向</li>
+            <li><strong>检索增强</strong>：CLIP 相似度常用于图文跨模态检索（以文搜图、以图搜文）</li>
+          </ul>
+          <strong>CLIP 的局限与升级：</strong>
+          <ul>
+            <li>细粒度理解弱（分不清"红色的车在蓝色车左边"等关系）→ CLIP 升级到 SigLIP（Sigmoid Loss 替换 Softmax，支持超大 batch），InternViT 进一步用 LLM 对齐</li>
+            <li>长文本理解弱（Text Encoder 截断 77 token）→ 新一代 VLM 用更长 LLM 做文本侧</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话：</strong>CLIP = 用海量图文对 + InfoNCE 对比损失，将图像和文本编码到同一空间；Zero-Shot 能力来源于文本模板与视觉特征的直接匹配；是几乎所有 VLM 和文生图模型的视觉基础设施。</div>
+      </div>
+    </div>
+
+    <!-- Q129 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q129</div>
+        <div style="flex:1">
+          <div class="q-title">SAM / SAM2 视觉基础模型：Promptable Segmentation / Memory Bank / 视频追踪机制</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag common">通用</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SAM（Segment Anything Model，Meta 2023）：</strong>
+          <ul>
+            <li><strong>核心范式：Promptable Segmentation</strong>——用户输入 Prompt（点击、Box、文本、Mask），模型返回对应分割掩码；一个模型解决任意分割任务，无需针对特定类别训练</li>
+            <li><strong>三组件架构</strong>：① Image Encoder（ViT-H MAE 预训练，重量级，每帧运行一次）提取 Image Embedding；② Prompt Encoder（点/Box/文本映射为 Sparse/Dense Embedding）；③ Mask Decoder（轻量 Transformer，将 Image+Prompt Embedding 解码为掩码）</li>
+            <li>训练数据：SA-1B，11M 图像 + 10 亿以上掩码（半自动标注 + 人工校正）</li>
+          </ul>
+          <strong>SAM2（Meta 2024）：</strong>
+          <ul>
+            <li><strong>扩展到视频</strong>：在图像 SAM 基础上增加 Memory Bank 机制，将历史帧的分割结果（Object Pointer + Dense Memory Features）存入 Memory Bank</li>
+            <li><strong>Memory Attention</strong>：当前帧 Image Embedding 通过 Cross-Attention 查询 Memory Bank，实现目标在视频中的时序追踪（Spatio-temporal Coherence）</li>
+            <li>Memory Bank 结构：Spatial Memory（过去最近 N 帧的帧级特征）+ Object Pointer（每帧目标的轻量 Token 记忆），两者共同参与 Memory Attention</li>
+            <li>实时性：Image Encoder 用更轻量的 Hiera（分层 ViT），相同精度下速度比 SAM 快 6×；视频追踪可达实时（≥30fps on A100）</li>
+          </ul>
+          <strong>在 VLM / 渲染领域的应用：</strong>
+          <ul>
+            <li>3D Gaussian Splatting 中用 SAM 做交互式物体分割，实现 3DGS 的语义编辑</li>
+            <li>视频生成评估：SAM2 追踪生成视频中物体的时序一致性</li>
+            <li>自动标注管线：代替人工标注大规模分割数据集</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>SAM vs SAM2 关键差异：</strong>SAM = 单图 Promptable Segmentation；SAM2 = SAM + Memory Bank + Memory Attention，将 Prompt 引导的分割扩展到视频时序追踪。Memory Bank 是 SAM2 的核心创新，相当于给分割模型加了"短期记忆"。</div>
       </div>
     </div>
 
