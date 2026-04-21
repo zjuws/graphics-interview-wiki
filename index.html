@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">185+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">200+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1175,6 +1175,132 @@
       </div>
     </div>
 
+    <!-- Q134 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q134</div>
+        <div style="flex:1">
+          <div class="q-title">NeRF vs 3D Gaussian Splatting：隐式神经场 vs 显式高斯表达 — 渲染方式、训练速度、实时性对比</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>NeRF（Neural Radiance Field，Mildenhall 2020）基础：</strong>
+          <ul>
+            <li>用 MLP（多层感知机）隐式表示场景：输入 (x,y,z) 位置 + (θ,φ) 视角方向，输出体密度 σ 和颜色 RGB</li>
+            <li>渲染方式：体积渲染（Volume Rendering），沿每条射线采样 N 个点，用 α 合成积分颜色</li>
+            <li>训练：用多角度 2D 照片监督，反向传播优化 MLP 参数；训练时间数小时，推理每帧数秒（原始版本）</li>
+            <li>改进：Instant NGP（Multiresolution Hash Encoding）将训练压缩到数分钟</li>
+          </ul>
+          <strong>3D Gaussian Splatting（3DGS，Kerbl 2023）基础：</strong>
+          <ul>
+            <li>显式表达：用大量 3D 高斯椭球（Gaussian Primitive）稀疏表示场景，每个高斯有：位置 μ、协方差矩阵 Σ（控制形状/方向）、透明度 α、球谐函数系数（表示视角相关颜色）</li>
+            <li>渲染方式：将 3D 高斯投影到 2D 屏幕空间得到 2D 高斯，从前到后按深度排序，做 α-blending 合成；核心是可微分的 Gaussian Splatting Rasterizer（CUDA 实现）</li>
+            <li>训练：从 SfM 初始化稀疏点云，用梯度下降优化高斯参数；训练 30~60 分钟；推理 30~100fps 实时</li>
+          </ul>
+          <strong>核心对比：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">
+            <tr style="background:#e0e7ff"><th style="padding:4px 8px;border:1px solid #c7d2fe">维度</th><th style="padding:4px 8px;border:1px solid #c7d2fe">NeRF</th><th style="padding:4px 8px;border:1px solid #c7d2fe">3DGS</th></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">表达方式</td><td style="padding:4px 8px;border:1px solid #e2e6ea">隐式（MLP）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">显式（高斯椭球点云）</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">渲染范式</td><td style="padding:4px 8px;border:1px solid #e2e6ea">体积渲染（射线采样）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">光栅化（投影+排序+α合成）</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">训练速度</td><td style="padding:4px 8px;border:1px solid #e2e6ea">数小时（NGP 数分钟）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">30~60 分钟</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">推理速度</td><td style="padding:4px 8px;border:1px solid #e2e6ea">数秒/帧（NGP ~几fps）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">30~100 fps 实时</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">编辑性</td><td style="padding:4px 8px;border:1px solid #e2e6ea">差（需重训/隐式空间）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">好（直接操作高斯体）</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">显存占用</td><td style="padding:4px 8px;border:1px solid #e2e6ea">小（MLP 参数）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">大（数十万~数百万高斯）</td></tr>
+          </table>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>3DGS 最大优势是"实时"——光栅化管线比体积射线快 10~100×；最大劣势是显存占用大、拓扑结构弱（无法直接 Mesh 化）。趋势：3DGS 正成为 AR/VR 场景重建的主流，NeRF 退守科研和慢速高质量重建场景。</div>
+      </div>
+    </div>
+
+    <!-- Q135 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q135</div>
+        <div style="flex:1">
+          <div class="q-title">3DGS 核心渲染流程深度解析：高斯投影 / 球谐系数 / Alpha 合成 / 自适应致密化（Densification）</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>3DGS 渲染四步流程：</strong>
+          <ol>
+            <li><strong>3D → 2D 投影</strong>：将每个 3D 高斯的协方差矩阵 Σ = RSS<sup>T</sup>R<sup>T</sup>（R=旋转四元数，S=缩放矩阵）通过雅可比近似投影到 2D 屏幕空间，得到 2D 高斯的中心 μ' 和 2D 协方差 Σ'</li>
+            <li><strong>排序</strong>：对所有 2D 高斯按相机深度从前到后排序（Tile-based Rasterizer 对每个 tile 独立排序）</li>
+            <li><strong>α-blending 合成</strong>：沿深度方向从前到后累积：<code>C = Σ c_i α_i Π_{j&lt;i}(1-α_j)</code>，颜色 c_i 由球谐函数（SH）按当前视角方向计算，α_i 由 3D 高斯在该像素处的响应乘以不透明度得到</li>
+            <li><strong>可微分反传</strong>：整个光栅化过程可微，通过与 GT 照片的 L1+SSIM 损失反向传播更新位置/协方差/SH/不透明度</li>
+          </ol>
+          <strong>自适应致密化（Adaptive Density Control）：</strong>
+          <ul>
+            <li>训练中定期检测梯度较大的高斯（说明该区域重建不足）：
+              <ul>
+                <li><strong>Clone（克隆）</strong>：小高斯（尺寸 &lt; 阈值）→ 在附近克隆一个，填补欠重建区域</li>
+                <li><strong>Split（分裂）</strong>：大高斯（覆盖过大区域）→ 分裂为两个更小高斯，提升细节</li>
+              </ul>
+            </li>
+            <li>定期剪枝：透明度接近 0 的无效高斯被删除，控制总数量</li>
+            <li>典型场景最终高斯数量：室内 100K~300K，室外大场景 1M+</li>
+          </ul>
+          <strong>4DGS / Dynamic 3DGS：</strong>引入时间维度，高斯的位置/旋转随时间变形；用形变场（Deformation Field）或每帧独立优化支持动态场景重建，是视频生成、虚拟数字人的研究热点。
+        </div>
+        <div class="tip-box">💡 <strong>记忆串联：</strong>3DGS = 一堆 3D 椭圆气球 → 投影成 2D 椭圆 → 从前到后叠加（α-blending）→ 梯度驱动气球分裂/克隆。球谐函数负责颜色随视角变化（类似 NeRF 的视角相关颜色）。</div>
+      </div>
+    </div>
+
+    <!-- Q137 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q137</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Mass Entity / ECS 架构：Archetype 内存布局 / Processor 并行 / 与 Actor 系统的协同边界</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ECS（Entity-Component-System）核心思想：</strong>
+          <ul>
+            <li><strong>Entity</strong>：轻量 ID（64位整数），无数据，无行为，仅标识一个逻辑对象</li>
+            <li><strong>Component</strong>：纯数据结构体（POD），如 TransformFragment、MovementFragment，无任何逻辑</li>
+            <li><strong>System（Processor）</strong>：纯逻辑，批量处理所有具有特定 Component 组合的 Entity；并行 Processor 在多核上 SIMD 友好地处理连续内存中的 Component 数组</li>
+          </ul>
+          <strong>UE5 Mass Entity 架构：</strong>
+          <ul>
+            <li><strong>Archetype（原型）</strong>：具有相同 Fragment（Component）组合的 Entity 被分组到同一个 Archetype 中；每个 Archetype 的 Fragment 数据以 Structure of Arrays（SoA）格式连续存储在 Chunk 内存中，对 Cache 极友好</li>
+            <li><strong>Fragment（碎片）</strong>：UE5 对 Component 的命名，继承自 FMassFragment；与 Actor/Component 系统不同，Fragment 是纯数据，不能有虚函数</li>
+            <li><strong>Processor</strong>：继承自 UMassProcessor，声明需要读写的 Fragment 类型（EntityQuery），系统自动推导依赖并行化；每帧批量迭代所有满足条件的 Entity Chunk</li>
+            <li><strong>Tag</strong>：无数据的 Fragment，用于状态标记（如 FMassDeadTag），不占 Chunk 内存但影响 Archetype 分组</li>
+          </ul>
+          <strong>与 Actor 系统的边界：</strong>
+          <ul>
+            <li>Mass 适合：大规模同质化对象（群体 NPC、车辆、子弹、粒子），数量 10K~100K+，每帧简单更新</li>
+            <li>Actor 适合：少量复杂对象（玩家、Boss、交互物体），需要 Blueprint/C++ 逻辑、碰撞事件、UI 绑定</li>
+            <li>协同：Mass Entity 通过 UMassSignalSubsystem 与 Actor 系统通信（发送 Signal → Actor 响应），或用 Visualizer Processor 将 Mass Entity 的位置同步到 ISM（InstancedStaticMesh）渲染</li>
+          </ul>
+          <strong>性能优势：</strong>单帧 50K 个 NPC 用 Mass 可在 1ms 内完成 AI 更新 + 移动；等效 Actor 方案需 10ms+；Epic 《黑客帝国：觉醒》Demo 中 35000 个行人使用 Mass 实现。
+        </div>
+        <div class="tip-box">💡 <strong>ECS 三句话：</strong>Entity = ID，Component = 数据，System = 逻辑。Mass 的核心性能来自 Archetype SoA 内存布局（Cache Line 连续）+ Processor 并行。与 Actor 不是替代而是互补——Mass 管海量简单对象，Actor 管少量复杂对象。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -1587,6 +1713,66 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
       </div>
     </div>
 
+    <!-- Q139 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q139</div>
+        <div style="flex:1">
+          <div class="q-title">实时全局光照横向对比：UE5 Lumen vs DDGI vs VXGI vs SSGI — 原理、精度、性能开销</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>四种方案对比：</strong>
+          <ul>
+            <li>
+              <strong>SSGI（Screen Space Global Illumination）</strong>：
+              仅利用屏幕可见像素做间接光弹射；沿法线半球 Ray March 命中的屏幕 Radiance 加权积分；
+              优点：实现简单，无额外几何数据；缺点：屏外物体不贡献，噪声大，需大量 TAA 积累；
+              性能：~0.5ms，适合中低端平台降级 fallback
+            </li>
+            <li>
+              <strong>VXGI（Voxel Cone Tracing，NVIDIA）</strong>：
+              将场景体素化为 Mip 层级 3D 纹理，沿 Cone 方向步进采样体素 Radiance；
+              能处理屏外光照，支持粗粒度软 GI；
+              缺点：体素化开销大（需定期更新），分辨率粗，精度有限；
+              性能：~2~5ms（分辨率 128³），主要用于移动端/低端 PC 的 GI 近似
+            </li>
+            <li>
+              <strong>DDGI（Dynamic Diffuse Global Illumination，NVIDIA RTX）</strong>：
+              在场景中均匀分布 Probe 网格，每个 Probe 用光追向球面均匀方向发射少量射线，积累 Irradiance + Distance 信息存入 Probe Atlas；
+              实时物体采样周围最近 8 个 Probe 插值得到间接光；
+              优点：支持动态场景、处理屏外遮挡；缺点：Probe 更新有延迟（时域积累），光泄漏（Light Leaking）需要 Visibility 权重修正；
+              性能：~1~3ms（需 RTX 硬件光追）
+            </li>
+            <li>
+              <strong>UE5 Lumen</strong>：
+              混合方案：近处用软件光追（HWRT 不可用时回退到 SDF + Mesh Card）发射短程射线，远处用 Screen Space Probe（屏幕空间 Probe）补充；Surface Cache 存储每个 Mesh 表面的 Radiance，Radiance Cache 缓存全局 Probe 的间接光；
+              支持多次弹射、自发光、天光；与 VSM/Nanite 深度集成；
+              性能：~3~8ms（PC 中高端），移动端无法使用；
+              优势：无需 RTX 即可得到高质量 GI，是当前开放世界 3A 的标准解决方案
+            </li>
+          </ul>
+          <strong>选型建议：</strong>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">
+            <tr style="background:#e0e7ff"><th style="padding:4px 8px;border:1px solid #c7d2fe">平台</th><th style="padding:4px 8px;border:1px solid #c7d2fe">推荐方案</th></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">高端 PC（UE5）</td><td style="padding:4px 8px;border:1px solid #e2e6ea">Lumen</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">RTX 显卡</td><td style="padding:4px 8px;border:1px solid #e2e6ea">DDGI + RTXGI SDK</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">中低端 PC / 主机</td><td style="padding:4px 8px;border:1px solid #e2e6ea">VXGI 或 Light Probe Bake</td></tr>
+            <tr><td style="padding:4px 8px;border:1px solid #e2e6ea">移动端</td><td style="padding:4px 8px;border:1px solid #e2e6ea">SSGI + 烘焙 Lightmap</td></tr>
+          </table>
+        </div>
+        <div class="tip-box">💡 <strong>核心差异：</strong>SSGI = 屏幕内；VXGI = 体素格；DDGI = 光追 Probe 网格；Lumen = 混合光追+SDF+Surface Cache。精度和开销从左到右依次升高，平台适用性从左到右依次降低。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 4. PBR ══ -->
@@ -1832,6 +2018,45 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>记忆技巧：</strong>各向异性 = 把圆形 GGX 高光拉成椭圆，需要切线方向信息；多层材质 = 两个 BRDF 叠加但要保证能量守恒（顶层反射部分不再传入底层）。</div>
+      </div>
+    </div>
+
+    <!-- Q138 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q138</div>
+        <div style="flex:1">
+          <div class="q-title">PBR 薄膜干涉（Iridescence）与彩虹光晕：物理原理 / Airy 函数近似 / 在肥皂泡/碟片/甲虫翅膀中的实现</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>物理原理：薄膜干涉（Thin-Film Interference）</strong>
+          <ul>
+            <li>当光线照射到极薄（数百纳米）的透明薄膜时，一部分在薄膜上表面反射，另一部分进入薄膜后在下表面反射再射出；两束反射光之间存在光程差，发生波相干叠加（干涉）</li>
+            <li>光程差 <code>Δ = 2 n d cos θ</code>（n = 薄膜折射率，d = 薄膜厚度，θ = 折射角）；当 Δ 等于某波长 λ 的整数倍时该波长增强，否则减弱 → 反射颜色随观察角度变化（即虹彩效果）</li>
+            <li>典型材质：肥皂泡、油膜、CD/DVD 表面、甲虫外壳、珍珠</li>
+          </ul>
+          <strong>实时渲染近似：</strong>
+          <ul>
+            <li><strong>Airy 函数法（精确）</strong>：基于全反射矩阵计算三层界面（空气-薄膜-基底）的菲涅耳系数，积分 Airy 级数；精度高但计算复杂，主要用于离线渲染</li>
+            <li><strong>Adobe / Filament 近似</strong>：把薄膜厚度 d 作为参数，预计算 d × cosθ 到 RGB 反射率的 LUT 纹理（将光程差映射到可见光谱的颜色贡献）；运行时采样 LUT，将结果乘入 Fresnel 项 F，与常规 Cook-Torrance BRDF 叠加</li>
+            <li>参数：在 PBR 材质中增加 <code>iridescenceThickness</code>（薄膜厚度，单位 nm）和 <code>iridescenceIOR</code>（折射率）两个额外通道</li>
+          </ul>
+          <strong>UE5 / Unity 中的实现：</strong>
+          <ul>
+            <li>UE5：通过自定义 MaterialFunction 传入 iridescenceIOR 和 thickness，手写 HLSL 查 LUT，将调制后的 Fresnel 项输出到 Specular / Emissive 通道</li>
+            <li>Filament：原生支持 iridescence 材质模式（2022+），内置 LUT 和 Airy 近似</li>
+          </ul>
+          <strong>与各向异性 / Clearcoat 的配合：</strong>甲虫翅膀 = 薄膜干涉（颜色虹彩）+ 各向异性（反光方向）+ Clearcoat（光滑表面反光）三者叠加。
+        </div>
+        <div class="tip-box">💡 <strong>记忆要点：</strong>薄膜干涉 = 极薄透明层上下表面两束反射光的波叠加，颜色随角度/厚度变化。实时渲染核心是"光程差→波长→RGB"这张 LUT，把复杂的波动光学压缩为一次纹理查找。</div>
       </div>
     </div>
 
@@ -2888,6 +3113,51 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>与 DXR 的对应关系：</strong>Vulkan SBT = DXR Shader Table；CHIT = DXR ClosestHitShader；MISS = DXR MissShader；vkCmdTraceRaysKHR = DispatchRays。概念一一对应，只是 API 命名不同。
         </div>
         <div class="tip-box">💡 <strong>记忆要点：</strong>SBT = "光追材质表"，把几何体和着色器动态绑定；RGEN 发射 → BVH 遍历 → CHIT/MISS/AHIT 按情况回调 → RGEN 汇总结果写 Image。SBT 的 Stride 字段允许每个几何体携带不同用户数据（如材质 Index），是光追多材质的关键机制。</div>
+      </div>
+    </div>
+
+    <!-- Q136 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q136</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan Compute Shader 性能优化：Subgroup 操作 / Shared Memory Bank Conflict / Occupancy / Push Constant</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Subgroup（子组）操作：</strong>
+          <ul>
+            <li>Subgroup = GPU 硬件上同时执行的最小线程组，NVIDIA 称 Warp（32 线程），AMD 称 Wavefront（32/64 线程）</li>
+            <li>Vulkan 1.1 通过 <code>GL_KHR_shader_subgroup</code> 扩展暴露子组操作：<code>subgroupBroadcast</code>（广播）、<code>subgroupAdd</code>（Reduce 加法）、<code>subgroupPrefixAdd</code>（前缀和）、<code>subgroupBallot</code>（条件 bitmask）</li>
+            <li>核心优势：子组内通信无需 Shared Memory（无内存读写，无 Barrier），直接寄存器级传递；前缀和等 Reduce 操作比 Shared Memory 版本快 2~5×</li>
+            <li>典型用途：Prefix Sum、Histogram、BVH 构建、Prefix Scan（GPU 排序）</li>
+          </ul>
+          <strong>Shared Memory Bank Conflict：</strong>
+          <ul>
+            <li>Shared Memory 被分为 32 个 Bank（每个 Bank 4 字节），同一 Warp 内若多个线程访问同一 Bank 的不同地址 → Bank Conflict，串行化访问</li>
+            <li>避免方法：① Padding（在数组末尾加 1 个元素偏移，打散 Bank 对齐）；② 访问模式调整（Stride 为奇数）；③ 改用 Subgroup 操作完全绕过 Shared Memory</li>
+          </ul>
+          <strong>Occupancy（占用率）优化：</strong>
+          <ul>
+            <li>Occupancy = 活跃 Warp 数 / SM 最大 Warp 数；高 Occupancy 能隐藏内存延迟（Latency Hiding）</li>
+            <li>影响因素：Register 用量（寄存器越多，可同时驻留 Warp 越少）、Shared Memory 大小、WorkGroup 大小</li>
+            <li>调优：用 <code>nvcc --ptxas-options=-v</code> 或 Nsight 查寄存器使用量；调整 WorkGroup 大小（通常 128~256 最优）；对寄存器密集着色器考虑 <code>layout(local_size_x=64)</code> 换取更高 Occupancy</li>
+          </ul>
+          <strong>Push Constant vs UBO vs SSBO：</strong>
+          <ul>
+            <li><strong>Push Constant</strong>：每次 DrawCall/DispatchCompute 前通过 <code>vkCmdPushConstants</code> 直接推送少量数据（最大 128B），驻留寄存器级缓存，零延迟访问；适合 Per-Draw 变化的小参数（如 Transform Matrix、帧索引）</li>
+            <li><strong>UBO</strong>：统一缓冲区，每帧少变，读取有 Cache 加速；适合多 Shader 共享的常量数据</li>
+            <li><strong>SSBO</strong>：可读写、可变大小；读写延迟高于 UBO；适合 Compute Shader 输出数据</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>调优优先级：</strong>① 先检查 Occupancy（Nsight），如不足则查寄存器溢出 / Shared Memory 超限；② 检查 Bank Conflict（Shared Memory 访问 Pattern）；③ 能用 Subgroup 则优先替换 Shared Memory Reduce；④ 频繁变化的参数用 Push Constant。</div>
       </div>
     </div>
 
@@ -5485,6 +5755,188 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>SAM vs SAM2 关键差异：</strong>SAM = 单图 Promptable Segmentation；SAM2 = SAM + Memory Bank + Memory Attention，将 Prompt 引导的分割扩展到视频时序追踪。Memory Bank 是 SAM2 的核心创新，相当于给分割模型加了"短期记忆"。</div>
+      </div>
+    </div>
+
+    <!-- Q130 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q130</div>
+        <div style="flex:1">
+          <div class="q-title">Rectified Flow & Flow Matching：直线化 ODE 路径 / 与 DDPM 的本质区别 / FLUX 如何基于 Rectified Flow 构建</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>扩散模型（DDPM）的路径问题：</strong>
+          <ul>
+            <li>DDPM 的 Forward 过程是 SDE（随机微分方程），加噪路径弯曲、随机；Reverse 需要数十~数百步去噪</li>
+            <li>DDIM 虽然可以用 ODE 形式加速（10~50步），但路径仍然弯曲，步数多时才准确</li>
+          </ul>
+          <strong>Flow Matching（Lipman 2022）核心思想：</strong>
+          <ul>
+            <li>直接学习一个 <strong>速度场（Velocity Field）</strong> v(x,t)，使粒子从噪声分布 p₀（标准高斯）沿概率流 ODE（<code>dx/dt = v(x,t)</code>）流向数据分布 p₁</li>
+            <li>训练目标：给定数据点 x₁ 和噪声 x₀，在插值路径 x_t = (1-t)x₀ + t x₁ 上，让网络预测速度 v_t ≈ x₁ - x₀（即从噪声到数据的直线方向）</li>
+            <li>损失：<code>L = E‖v_θ(x_t, t) - (x₁ - x₀)‖²</code>，简洁且无需 Score Function 估计</li>
+          </ul>
+          <strong>Rectified Flow（Liu 2022，SD3/FLUX 基础）：</strong>
+          <ul>
+            <li>特殊的 Flow Matching：强制插值路径为直线（x_t = (1-t)x₀ + t x₁），Velocity = x₁ - x₀ 是常数；ODE 路径越直，NFE（函数评估次数）越少，可1~2步推理</li>
+            <li><strong>Reflow</strong>：通过多次 Rectified Flow 训练迭代让路径越来越直（第1次→Rectified Flow，第2次→2-Rectified Flow...），最终支持单步采样</li>
+          </ul>
+          <strong>FLUX（Black Forest Labs 2024）如何使用：</strong>
+          <ul>
+            <li>FLUX.1 基于 Rectified Flow + MM-DiT（双流 Transformer）架构</li>
+            <li>训练目标是 Flow Matching，velocity target = (x_data - x_noise)</li>
+            <li>推理用 Euler ODE Solver，默认 20~50 步；因路径更直，更少步数即可达到 SDXL 40步的质量</li>
+          </ul>
+          <strong>与 DDPM/DDIM 对比：</strong>DDPM = SDE + Score Matching；Flow Matching = ODE + Velocity Matching；路径更直 → 步数更少 → 速度更快；训练更稳定（无需 Noise Schedule 精心设计）。
+        </div>
+        <div class="tip-box">💡 <strong>一句话：</strong>Flow Matching = 教网络预测从噪声到数据的直线速度方向；Rectified Flow = 强制路径为直线，路径越直步数越少，FLUX 就是 Rectified Flow + MM-DiT 的组合。</div>
+      </div>
+    </div>
+
+    <!-- Q131 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q131</div>
+        <div style="flex:1">
+          <div class="q-title">Video Diffusion 架构：CogVideoX / HunyuanVideo 的时空 DiT、3D VAE、Full Attention vs 分离注意力设计</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>视频生成的核心难点：</strong>
+          <ul>
+            <li>时序一致性：相邻帧物体运动要平滑，颜色/纹理要一致</li>
+            <li>计算量：视频 = 图像 × T 帧，注意力计算 O((HW·T)²)，极度昂贵</li>
+            <li>时空压缩：需要同时对空间和时间维度做 VAE 压缩降低序列长度</li>
+          </ul>
+          <strong>3D VAE（时空 VAE）：</strong>
+          <ul>
+            <li>将视频从 (T, H, W, 3) 压缩为 latent (T/t_d, H/h_d, W/w_d, C)；空间下采样比例 8×，时间下采样比例 4×（CogVideoX）</li>
+            <li>Encoder 用 3D 卷积（或 Causal 3D 卷积），能捕获时间帧间相关性；Causal 卷积保证帧 i 的 latent 只依赖第 0~i 帧，支持流式推理</li>
+          </ul>
+          <strong>CogVideoX（智谱 AI 2024）：</strong>
+          <ul>
+            <li>Full 3D Attention：时空 Patch 打平后做完整 Self-Attention，所有帧的 Patch 互相关注，时序一致性最强</li>
+            <li>文本通过专用 Expert Transformer（双流 MM-DiT，类 FLUX）与视频 Token 融合</li>
+            <li>代价：序列长度 = (T/4) × (H/8) × (W/8)，一段 6s 720P 视频约 6K Token，注意力计算仍较贵</li>
+          </ul>
+          <strong>HunyuanVideo（腾讯 2024）：</strong>
+          <ul>
+            <li>双流 MM-DiT + 单流 DiT 混合：前半段双流（图像/文本各自注意力+Cross-Attention），后半段单流（合并处理），在参数量与效果间取平衡</li>
+            <li>Full 3D Attention，RoPE 3D（时间 + 宽度 + 高度各自独立的 RoPE 频率），支持任意分辨率和时长的视频生成</li>
+            <li>720P 5s 视频推理一次需要 ~80GB A100 显存（全精度），FP8 量化可降到 ~24GB</li>
+          </ul>
+          <strong>分离注意力（Factorized Attention，早期方案）：</strong>先做空间维度 Self-Attention（每帧内），再做时间维度 Self-Attention（跨帧），计算量 O(H²W² + T²) vs Full 3D O((HWT)²)；时序一致性弱于 Full 3D，适合低算力场景（AnimateDiff 采用此方案）。
+        </div>
+        <div class="tip-box">💡 <strong>核心选择：</strong>Full 3D Attention（CogVideoX/HunyuanVideo）= 质量优先；Factorized Attention（AnimateDiff）= 速度优先。3D VAE 是降低 Full Attention 计算量的关键——先压缩 8×（空间）×4×（时间），再做注意力。</div>
+      </div>
+    </div>
+
+    <!-- Q132 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q132</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 位置编码全景：Sinusoidal / ALiBi / RoPE / NTK-aware Scaling / LongRoPE 外推原理对比</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Sinusoidal（绝对位置编码，原始 Transformer）：</strong>
+          <ul>
+            <li>直接将位置 pos 编码为 sin/cos 函数加到 Token Embedding；外推能力差——超出训练长度后位置编码未见过，注意力分数紊乱</li>
+          </ul>
+          <strong>ALiBi（Attention with Linear Biases，Press 2021）：</strong>
+          <ul>
+            <li>不修改 Token Embedding；在注意力分数矩阵中直接加一个线性惩罚 <code>A_{ij} = QK^T/√d - m|i-j|</code>，m 是每个头不同的斜率</li>
+            <li>天然外推：线性偏置对近距离 Token 惩罚小，远距离大，即使超出训练长度也能合理抑制远距离注意力；训练长度 1024 可外推到 4096</li>
+            <li>缺点：对相对位置感知是单调衰减，无法捕获非单调的长程依赖；Llama/Qwen 系列放弃 ALiBi 转用 RoPE</li>
+          </ul>
+          <strong>RoPE（Rotary Position Embedding，Su 2021，LLaMA/Qwen/GPT-NeoX 标准）：</strong>
+          <ul>
+            <li>将 Q/K 向量旋转一个与位置相关的角度，相当于在内积中引入相对位置：<code>(Rθ_m Q)·(Rθ_n K) = Q·R_{θ(m-n)}K</code>，仅依赖相对距离 m-n</li>
+            <li>外推失效原因：旋转频率 θ_i = 10000^(-2i/d) 对应最低频分量的"波长"约为 2π×10000^(d/2)/d；当序列长度超过训练长度，低频分量相位溢出，注意力分布变混乱</li>
+          </ul>
+          <strong>NTK-aware Scaling（Reddit 2023，Llama 社区）：</strong>
+          <ul>
+            <li>将 RoPE 的 base（默认 10000）按比例扩大：<code>base_new = base × (L_target/L_train)^(d/(d-2))</code>；相当于拉伸所有频率的波长，使低频分量在新长度下不溢出</li>
+            <li>无需微调即可外推 2~4×，加上少量微调可外推 8~16×；Llama-3 将 base 调到 500000 支持 128K</li>
+          </ul>
+          <strong>LongRoPE / YaRN：</strong>
+          <ul>
+            <li><strong>YaRN</strong>：对高频分量用插值（压缩）、低频分量用 NTK 外推，分段处理；比纯 NTK Scaling 更精确，配合继续预训练效果最佳</li>
+            <li><strong>LongRoPE</strong>：搜索每个注意力头、每个频率分量的独立缩放因子（非均匀缩放），最优化长上下文性能；Phi-3 Mini 128K 采用此方案</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>对比记忆：</strong>ALiBi = 加线性偏置（简单外推）；RoPE = 旋转编码（相对位置，主流）；NTK Scaling = 拉伸 base 频率（零训练外推）；YaRN = 分频段缩放（精度最高）；LongRoPE = 逐头逐频搜索（极长上下文）。2025 年主流：RoPE + 大 base（500K+）。</div>
+      </div>
+    </div>
+
+    <!-- Q133 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q133</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 后训练数据工程：SFT 数据质量 vs 数量 / 指令遵循的数据配方 / 灾难遗忘与 Replay 策略</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>SFT（Supervised Fine-Tuning）数据质量 vs 数量：</strong>
+          <ul>
+            <li><strong>LIMA 论文（Zhou 2023）"Less Is More"</strong>：仅用 1000 条精选高质量指令数据微调 LLaMA-65B，效果接近用 50K 条数据微调的 Alpaca；说明数据质量远比数量重要</li>
+            <li>质量衡量维度：① 指令多样性（任务类型覆盖）；② 回答的准确性/有用性；③ 格式规范；④ 拒绝有害/错误内容</li>
+            <li>数据清洗：去重（MinHash/SimHash）、语言检测、困惑度过滤（用 base LM 评估，过高 or 过低均丢弃）、质量打分（GPT-4 Judge 或人工）</li>
+          </ul>
+          <strong>指令数据配方（Instruction Mix）：</strong>
+          <ul>
+            <li>任务分布：对话/QA 30~40%、代码 15~25%、数学推理 10~20%、创意写作 10%、安全拒绝 5~10%（实际比例因模型目标而异）</li>
+            <li>难度分布：混合简单（格式稳定训练）+ 困难（能力边界提升），避免全量简单数据导致"过拟合容易指令"</li>
+            <li>合成数据：用 GPT-4 / Claude 自动生成指令（Self-Instruct / Evol-Instruct），再用 Judge 过滤低质量；主流大模型 SFT 数据 50%+ 为合成数据</li>
+          </ul>
+          <strong>灾难遗忘（Catastrophic Forgetting）：</strong>
+          <ul>
+            <li>问题：SFT 时集中训练某类任务，预训练中学到的其他能力（如数学、代码）退化</li>
+            <li><strong>Replay / Experience Replay</strong>：在 SFT 数据中混入一定比例（5~20%）的预训练数据（通用文本），维持原有能力</li>
+            <li><strong>EWC（弹性权重巩固）</strong>：基于 Fisher 信息矩阵惩罚重要参数的变化；理论精确但计算开销大，工业实践中较少单独使用</li>
+            <li><strong>LoRA 方案</strong>：只微调低秩适配器，冻结原始权重，天然缓解灾难遗忘；但能力提升幅度有上限</li>
+          </ul>
+          <strong>DPO 数据工程：</strong>
+          <ul>
+            <li>偏好对（Chosen, Rejected）的质量极关键；Rejected 应尽量"接近但不如 Chosen"（而非明显错误），否则梯度信号太弱</li>
+            <li>On-Policy DPO：用当前模型生成 Rejected，比用固定 Rejected 数据更有效（Iterative DPO / SPIN）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>数据质量三定律：</strong>① 1000 条精品 &gt; 50000 条噪声（LIMA）；② 多样性优先，任务分布要平衡；③ SFT 后必须 Replay 部分预训练数据，否则通用能力退化。灾难遗忘的最简解 = 混入预训练数据做 Replay。</div>
       </div>
     </div>
 
