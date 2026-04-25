@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">200+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">215+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1301,6 +1301,92 @@
       </div>
     </div>
 
+    <!-- Q140 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q140</div>
+        <div style="flex:1">
+          <div class="q-title">Visibility Buffer / Deferred Texturing：为什么说它是现代 GPU 的"第二次延迟渲染革命"？与传统 GBuffer 延迟渲染的核心差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 GBuffer 延迟渲染的带宽瓶颈：</strong>
+          <ul>
+            <li>GBuffer 延迟渲染将几何信息（Normal、Albedo、Roughness、Metallic、Velocity...）全部写入多张 Render Target（典型 4-8 张 MRT），总带宽高达 128-256 bit/pixel</li>
+            <li>高分辨率（4K）+ 高帧率（120fps）场景下，GBuffer 的写入带宽成为主要瓶颈，尤其在移动端 GPU（TBDR 架构，On-Chip Tile 大小有限）上更严重</li>
+            <li>Overdraw 问题：多 Pass 场景几何变换（VS）可能重复执行，但 GBuffer 写入 Overdraw 会浪费带宽</li>
+          </ul>
+          <strong>Visibility Buffer 核心思想：</strong>
+          <ul>
+            <li><strong>Pass 1 — Visibility Pass</strong>：只写一张 32-64 bit 的 Visibility Buffer，每像素仅存储 <code>TriangleID + DrawCallID</code>（或 MeshletID + PrimitiveID）</li>
+            <li><strong>Pass 2 — Deferred Texturing（Material Pass）</strong>：在全屏 Compute/Pixel Shader 中，读取 Visibility Buffer 的 ID → 重建重心坐标 → 查找对应材质 → 采样纹理 → 计算光照，一次完成所有材质计算</li>
+            <li>关键优势：① 仅最终可见像素被着色，Zero Overdraw；② 带宽从 128-256 bit 降至 32-64 bit；③ 天然支持 Bindless 纹理（每像素独立查找材质参数）</li>
+          </ul>
+          <strong>与 GBuffer 延迟渲染对比：</strong>
+          <ul>
+            <li><strong>GBuffer 延迟</strong>：写 N 张 RT → 光照 Pass 读 N 张 RT；带宽高，材质种类有限（GBuffer 字段固定）；对 MSAA 不友好</li>
+            <li><strong>Visibility Buffer</strong>：写 1 张 RT → Material Pass 按需取样；带宽极低；支持任意材质（Bindless）；对 Nanite 类 GPU Driven 管线天然友好</li>
+            <li>代价：Material Pass 中重建重心坐标的数学开销（Attribute Interpolation）需要 Compute Shader，实现复杂度高；调试工具链不如 GBuffer 成熟</li>
+          </ul>
+          <strong>UE5 Nanite 与 Visibility Buffer 的关系：</strong>Nanite 的 Rasterization Pass 输出正是 Visibility Buffer（Cluster ID + Triangle ID），后续 Base Pass 通过 Deferred Texturing 模式按需重建属性，与 Visibility Buffer 架构高度一致。
+        </div>
+        <div class="tip-box">💡 <strong>一句话：</strong>Visibility Buffer = 只存"谁在这个像素上"（ID）而不存"这个像素长什么样"（GBuffer 全属性），延迟到 Deferred Texturing 阶段按需重建，带宽降一个数量级，Zero Overdraw，是 GPU Driven 渲染的标配管线。</div>
+      </div>
+    </div>
+
+    <!-- Q141 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q141</div>
+        <div style="flex:1">
+          <div class="q-title">GPU 粒子系统架构：Compute Shader 粒子模拟流程 / Culling & Sorting / 与 CPU 粒子系统的根本差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>CPU 粒子系统局限：</strong>
+          <ul>
+            <li>每帧在 CPU 端遍历所有活跃粒子，更新位置/速度/生命周期，再上传顶点数据到 GPU；百万粒子时 CPU 带宽和内存拷贝成为瓶颈</li>
+            <li>排序（Depth Sort，半透明粒子需要从后到前渲染）在 CPU 侧为 O(N log N)，代价高昂</li>
+          </ul>
+          <strong>GPU 粒子系统（Compute Shader 驱动）核心流程：</strong>
+          <ul>
+            <li><strong>① 粒子 Buffer 设计</strong>：粒子数据（位置、速度、生命周期、颜色、大小）存储在 GPU SSBO/UAV，双 Buffer（Ping-Pong）交替作为 Read/Write</li>
+            <li><strong>② Simulate Dispatch</strong>：每个 Thread 处理一个粒子；运行物理（重力、风场、碰撞）；更新生命周期；"死亡"粒子标记为可回收（AtomicAdd 写入 Dead List）</li>
+            <li><strong>③ Emit Dispatch</strong>：从 Dead List 原子弹出槽位，写入新粒子初始参数（由 Emitter 配置驱动）；无 CPU 介入</li>
+            <li><strong>④ Culling</strong>：在 Compute Shader 中做视锥裁剪（AABB vs Frustum Planes），写入 Alive 粒子 Index Buffer；支持数百万粒子的 GPU 端并行剔除</li>
+            <li><strong>⑤ GPU Radix Sort</strong>：对半透明粒子按 Camera Depth 做 GPU Radix Sort（并行 O(N)），输出排序后的 Index Buffer，供 Draw Call 使用</li>
+            <li><strong>⑥ Indirect Draw</strong>：Compute Shader 直接填写 DrawInstancedIndirect 参数（存活粒子数），CPU 只发起一次 Indirect Draw Call，无 Readback</li>
+          </ul>
+          <strong>碰撞处理：</strong>
+          <ul>
+            <li>轻量方案：Depth Buffer Collision（读取 Depth Buffer，反射速度向量）；适合地面/场景主体</li>
+            <li>精确方案：粒子 vs SDF（Signed Distance Field）场景，距离函数求法线；UE5 Niagara 支持 SDF Collision</li>
+          </ul>
+          <strong>UE5 Niagara vs Legacy Cascade：</strong>
+          <ul>
+            <li>Cascade：CPU 驱动，Module 顺序执行，Tick 开销与粒子数线性增长</li>
+            <li>Niagara：Compute GPU Simulation，HLSL 自定义逻辑，数据驱动（堆栈 Module），可读取 GPU 场景数据（Collision/Fluid）；百万粒子仍流畅</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>GPU 粒子 = 数据全在 GPU SSBO → Simulate/Emit/Cull/Sort 全用 Compute → Indirect Draw 让 CPU 只管发起，不管细节。核心思想是"把 CPU 的 for 循环变成 GPU 的并行 Dispatch"，天花板是 GPU VRAM 而不是 CPU 带宽。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -1770,6 +1856,49 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
           </table>
         </div>
         <div class="tip-box">💡 <strong>核心差异：</strong>SSGI = 屏幕内；VXGI = 体素格；DDGI = 光追 Probe 网格；Lumen = 混合光追+SDF+Surface Cache。精度和开销从左到右依次升高，平台适用性从左到右依次降低。</div>
+      </div>
+    </div>
+
+    <!-- Q143 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q143</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR 实时路径追踪采样：重采样重要性采样（RIS）原理 / 时域与空域复用（Temporal & Spatial Reuse）/ 与传统 MIS 的本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>实时光线追踪（如 DXR）每像素每帧只能发射 1-4 条光线，噪声极大；如何用极少样本数获得高质量光照估计，是实时路径追踪的核心挑战。
+          <br/><br/>
+          <strong>重采样重要性采样（RIS，Resampled Importance Sampling）：</strong>
+          <ul>
+            <li>从一个易采样的候选分布 q(x) 中采 M 个候选样本，再按目标分布 p(x)（真实散射函数 × 可见度）做加权随机选择，输出 1 个高质量样本</li>
+            <li>权重 w_i = p(x_i) / q(x_i)；输出样本期望等于按 p(x) 直接采样，但计算开销仅为 M 次候选生成 + 1 次权重归一化</li>
+            <li>本质是"从 M 个差样本中挑出 1 个好样本"，M 越大越接近真实 p(x) 采样，方差越低</li>
+          </ul>
+          <strong>ReSTIR（Reservoir-based SpatioTemporal Importance Resampling，Bitterli 2020）：</strong>
+          <ul>
+            <li><strong>Reservoir 数据结构</strong>：每像素维护一个 Reservoir，记录当前"赢家"样本及其累积权重 W_sum 和样本数 M；新样本进来时以概率 w_new / W_sum 决定是否替换赢家，实现在线更新</li>
+            <li><strong>时域复用（Temporal Reuse）</strong>：当前帧像素的 Reservoir 与上一帧对应像素的 Reservoir 合并（Motion Vector 重投影）；相当于将过去 M 帧的样本都考虑进来，M 有效增大 20~30×</li>
+            <li><strong>空域复用（Spatial Reuse）</strong>：从周围 k 个邻居像素的 Reservoir 中合并样本；增益：邻居看到相似光源，采样质量类似但独立，进一步降低方差</li>
+            <li>整体效果：每像素等效采样数从 1 提升至数百，噪声大幅降低，适合直接光（直接照明 ReSTIR DI）和间接光（ReSTIR GI，2021）</li>
+          </ul>
+          <strong>与传统 MIS（Multiple Importance Sampling）对比：</strong>
+          <ul>
+            <li>MIS：在同一像素内将多个采样策略（BRDF 采样 + 光源采样）混合，每次采样都显式计算多个 PDF，综合权重；适合每像素 8-32spp 的离线渲染</li>
+            <li>ReSTIR：不需要在单帧内增加采样数，而是通过时域/空域的样本 Reuse 来放大有效样本数；专为 1spp 实时场景设计；代价是需要 Reservoir Buffer 和时域稳定性处理（Ghost / Lag 问题）</li>
+          </ul>
+          <strong>工业应用：</strong>Cyberpunk 2077（PC 路径追踪模式）、NVIDIA RTX Direct Illumination（RTXDI SDK）均基于 ReSTIR DI；ReSTIR GI 用于间接照明实时化。
+        </div>
+        <div class="tip-box">💡 <strong>一句话：</strong>ReSTIR = 用 Reservoir 数据结构在线维护"最优候选样本"，通过时域帧间复用 + 空域邻居复用把有效样本数放大 100×，实现 1spp 路径追踪接近 128spp 的噪声水平。</div>
       </div>
     </div>
 
@@ -3158,6 +3287,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>调优优先级：</strong>① 先检查 Occupancy（Nsight），如不足则查寄存器溢出 / Shared Memory 超限；② 检查 Bank Conflict（Shared Memory 访问 Pattern）；③ 能用 Subgroup 则优先替换 Shared Memory Reduce；④ 频繁变化的参数用 Push Constant。</div>
+      </div>
+    </div>
+
+    <!-- Q142 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q142</div>
+        <div style="flex:1">
+          <div class="q-title">Vulkan 多队列并行与异步计算（Async Compute）：Graphics / Compute / Transfer 队列族的分工？如何用 Semaphore 协调跨队列依赖？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Vulkan 队列族（Queue Family）分类：</strong>
+          <ul>
+            <li><strong>Graphics Queue</strong>：支持图形渲染（Draw Call）+ 计算（Compute Dispatch）+ 传输（Transfer）；通常只有 1 个，GPU 的主要工作队列</li>
+            <li><strong>Compute Queue（异步计算）</strong>：仅支持 Compute Dispatch；与 Graphics Queue 完全并行运行，利用 GPU 在渲染间隙的空闲 CU/SM</li>
+            <li><strong>Transfer Queue（DMA Queue）</strong>：专用 DMA 引擎，负责 CPU→GPU 内存拷贝（Host→Device）或纹理 Mip 生成；与渲染/计算完全异步，适合后台资源流送</li>
+          </ul>
+          <strong>异步计算（Async Compute）的性能收益：</strong>
+          <ul>
+            <li>GPU 渲染管线并非 100% 占用所有单元；Vertex Shader 密集时 Raster/ROP 单元空闲，此时 Async Compute 队列可利用空闲 CU 做后处理（SSAO、粒子模拟、AI 推理）</li>
+            <li>典型场景：Depth Prepass 期间异步运行 Shadow Map 过滤；光照 Pass 期间异步运行 GPU 粒子模拟；将 Async Compute 完成时间早于 Lighting Pass 结束，隐藏延迟</li>
+          </ul>
+          <strong>Vulkan 跨队列同步机制：</strong>
+          <ul>
+            <li><strong>VkSemaphore（信号量）</strong>：Queue 间同步原语；Signal Semaphore 在队列提交完成时触发，Wait Semaphore 在另一队列开始前等待；不能在 CPU 侧查询状态（CPU 用 Fence）</li>
+            <li><strong>VkFence</strong>：CPU-GPU 同步；<code>vkWaitForFences</code> 让 CPU 等待 GPU 提交完成；常用于帧缓冲可用判断</li>
+            <li><strong>Timeline Semaphore（Vulkan 1.2+）</strong>：有计数器的信号量，支持 CPU Signal/Wait、多队列多点同步，比 Binary Semaphore 灵活得多；推荐用于复杂帧图（Frame Graph）</li>
+            <li>典型 Async Compute 流程：<code>Graphics Queue Submit（Signal Sem A）→ Compute Queue Submit（Wait Sem A，执行异步计算，Signal Sem B）→ Graphics Queue Submit（Wait Sem B，读取 Compute 结果）</code></li>
+          </ul>
+          <strong>注意事项：</strong>跨队列资源共享需要 <code>SHARING_MODE_CONCURRENT</code> 或显式 Queue Family Ownership Transfer（Acquire/Release Barrier）；滥用异步计算反而增加同步开销，需通过 GPU Profiler（Nsight / RenderDoc Frame Capture）验证实际收益。
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>Vulkan 多队列 = Graphics + Async Compute + DMA Transfer 三路并行；Semaphore 管队列间依赖（GPU→GPU），Fence 管 CPU 等 GPU（CPU→GPU），Timeline Semaphore 是现代最优解。Async Compute 价值在于"利用渲染间隙的空闲 CU"，不是万能提速方案。</div>
       </div>
     </div>
 
@@ -5937,6 +6107,267 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>数据质量三定律：</strong>① 1000 条精品 &gt; 50000 条噪声（LIMA）；② 多样性优先，任务分布要平衡；③ SFT 后必须 Replay 部分预训练数据，否则通用能力退化。灾难遗忘的最简解 = 混入预训练数据做 Replay。</div>
+      </div>
+    </div>
+
+    <!-- Q144 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q144</div>
+        <div style="flex:1">
+          <div class="q-title">o1 / o3 长链推理（Long-Chain CoT）架构：思维链（CoT）如何从 Prompt 工程演进为 RL 训练目标？Process Reward Model（PRM）与 Outcome Reward Model（ORM）的区别？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>思维链（Chain-of-Thought）的演进：</strong>
+          <ul>
+            <li><strong>CoT Prompting（Wei 2022）</strong>：在 Prompt 中加入逐步推理示例（Few-Shot CoT）或直接说"Let's think step by step"（Zero-Shot CoT），引导 LLM 生成推理步骤再给出答案；本质是 Prompt 工程，推理能力受限于预训练时的知识</li>
+            <li><strong>Scaling CoT（o1 方向）</strong>：将推理时间计算（Inference-Time Compute）作为新的 Scaling 维度；让模型生成更长的 &lt;thinking&gt; 思考过程（可达数千 Token），通过搜索/回溯找到更优解路径；类似 AlphaGo 的 MCTS 搜索</li>
+            <li><strong>GRPO / STaR / RLVR</strong>：用强化学习训练模型"写好 CoT"；奖励信号来自最终答案的正确性（ORM）或每个推理步骤的质量（PRM）</li>
+          </ul>
+          <strong>ORM vs PRM：</strong>
+          <ul>
+            <li><strong>ORM（Outcome Reward Model）</strong>：仅基于最终答案打分（正确/错误）；实现简单，适合有明确答案的任务（数学、代码）；缺点：无法区分"运气答对"与"真正理解"，稀疏奖励导致训练信号弱</li>
+            <li><strong>PRM（Process Reward Model）</strong>：对推理链中每个步骤分别打分（正确推理步骤 +1，错误步骤 -1）；密集奖励信号，引导模型学会"正确的推理方式"，不仅要答对还要过程对；代价：需要人工标注每个步骤（成本极高）或用 Self-Play 自动生成步骤标注</li>
+            <li>o1/o3 据推测使用 PRM + Best-of-N Search（生成 N 条推理链，用 PRM 选最优）+ MCTS 类搜索策略</li>
+          </ul>
+          <strong>DeepSeek-R1 的 GRPO 方案：</strong>
+          <ul>
+            <li>Group Relative Policy Optimization：采样一组输出，按组内相对排名计算优势函数，无需独立 Value Network（节省显存）</li>
+            <li>Reward 设计：数学/代码题用 ORM（答案是否正确）+ 格式奖励（&lt;think&gt; 块格式正确性）；发现 Aha Moment：模型在 RL 训练中自发学会"回退重试"行为</li>
+          </ul>
+          <strong>Scaling Inference-Time Compute：</strong>推理时计算量 ∝ 思考 Token 数；o3 在 ARC-AGI 任务上通过增加推理计算量（高算力模式：~20分钟/题）达到人类水平，展示了推理时 Scaling Law 的潜力。
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>o1 的本质 = 把测试时计算作为新 Scaling 维度（推理越多越准）；PRM 给过程打分 vs ORM 给结果打分；GRPO = 无需 Value Model 的组相对优势强化学习，是 DeepSeek-R1 的关键创新。</div>
+      </div>
+    </div>
+
+    <!-- Q145 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q145</div>
+        <div style="flex:1">
+          <div class="q-title">MoE 路由机制深度解析：DeepSeek-V3 的辅助损失无关路由（Auxiliary-Loss-Free）+ 专家选择平衡 / Qwen3 的 Think 模式 MoE 设计？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MoE 基础路由机制：</strong>
+          <ul>
+            <li>每个 Token 经过 Gate 网络（通常是线性层 + Softmax/TopK）选择 Top-K 专家（通常 K=2）；只激活选中专家的参数，其余专家零梯度；总参数量大，激活参数量小（稀疏激活）</li>
+            <li>核心挑战：<strong>专家负载不均衡</strong>（Load Imbalance）——某些专家被频繁选中（热门专家），其他专家得不到训练（专家坍塌）</li>
+          </ul>
+          <strong>传统平衡方案的代价：</strong>
+          <ul>
+            <li><strong>辅助负载均衡损失（Auxiliary Loss）</strong>：在总损失中加入惩罚项，鼓励各专家使用率均等；但辅助损失引入训练目标冲突（语言建模 vs 负载均衡），损害模型性能（PPL 升高）</li>
+          </ul>
+          <strong>DeepSeek-V3 创新——辅助损失无关路由（Auxiliary-Loss-Free Balancing）：</strong>
+          <ul>
+            <li>为每个专家维护一个<strong>偏置项 b_i</strong>，在路由 Logit 中加入 b_i（只影响路由决策，不影响梯度传播到 Gate 参数）</li>
+            <li>动态更新 b_i：若专家 i 的负载高于目标 → 减小 b_i（降低被选中概率）；低于目标 → 增大 b_i；更新频率为每 Step，系数为超参</li>
+            <li>效果：实现专家负载均衡，同时 Gate 参数完全按语言建模目标优化，无目标冲突；DeepSeek-V3 671B 总参数 / 37B 激活参数，性能超越同类 MoE</li>
+          </ul>
+          <strong>DeepSeek-V3 其他 MoE 设计：</strong>
+          <ul>
+            <li><strong>共享专家（Shared Expert）</strong>：少量专家对所有 Token 激活（不参与路由），处理通用知识；其余为路由专家，处理专业知识；类似 MoE + Dense 的混合</li>
+            <li><strong>Multi-Token Prediction（MTP）</strong>：每个位置同时预测 1~3 个未来 Token，作为辅助训练目标，加速训练收敛（参考 Meta MTP 工作）</li>
+          </ul>
+          <strong>Qwen3 MoE 设计（2025）：</strong>
+          <ul>
+            <li>Qwen3-235B-A22B：235B 总参数，22B 激活参数，128 专家选 8；引入<strong>Thinking Mode</strong>（慢思考模式），通过 &lt;think&gt; 标签切换，与 Dense Qwen3-32B 性能相当</li>
+            <li>路由粒度更细（每层 128 专家 Top-8），相比 Mixtral 8 专家 Top-2 更精细，减少专家间信息损失</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心：</strong>MoE 负载均衡难点在于"传统辅助 Loss 会伤模型性能"；DeepSeek-V3 的解法是给每个专家加可动态调整的偏置项，不干扰 Gate 梯度，优雅解决目标冲突。记住"偏置项动态调节 = 无损均衡"这个设计精髓。</div>
+      </div>
+    </div>
+
+    <!-- Q146 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q146</div>
+        <div style="flex:1">
+          <div class="q-title">Text-to-3D 生成：DreamFusion（Score Distillation Sampling）/ Zero123++（视角一致性）/ 3DGS + Diffusion 融合方案的原理与局限？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Text-to-3D 的挑战：</strong>3D 标注数据极稀缺（相比图像少 100×），无法直接训练 3D 生成模型；主流方案将 2D Diffusion 的生成先验"蒸馏"到 3D 表示中。
+          <br/><br/>
+          <strong>DreamFusion（Poole 2022）— Score Distillation Sampling（SDS）：</strong>
+          <ul>
+            <li>核心思想：用冻结的 2D Diffusion 模型（Imagen）作为评分函数，优化一个可微 3D 表示（NeRF）</li>
+            <li><strong>SDS 梯度</strong>：随机采样视角渲染 NeRF → 加噪 → 用 Diffusion U-Net 预测噪声 → 将预测噪声与实际噪声的差作为 NeRF 参数更新梯度；直觉：让 Diffusion 模型"嫌弃"当前渲染结果，梯度指向让渲染更像真实图像的方向</li>
+            <li>局限：① Over-Smoothing（SDS 梯度方差大，结果模糊）；② Janus Problem（多面孔：从不同视角看到的脸不一致）；③ 优化慢（每个 3D 物体需 ~1-2 小时）</li>
+          </ul>
+          <strong>后续改进：</strong>
+          <ul>
+            <li><strong>Variational Score Distillation（VSD，ProlificDreamer 2023）</strong>：将 NeRF 本身也视为分布，用变分推断替代点优化，显著提升细节质量</li>
+            <li><strong>Zero123（Liu 2023）</strong>：Fine-tune Stable Diffusion，条件化输入包含参考图 + 相对视角变化（Δazimuth, Δelevation, Δfov），学习新视角合成；Zero123++ 扩展为多视角一致生成（固定 6 视角布局，视角间交叉注意力保证一致性）</li>
+            <li><strong>3DGS + Diffusion（DreamGaussian / GaussianDreamer）</strong>：用 Zero123++ 生成多视角图，再用 3D Gaussian Splatting 重建 3D 资产，数秒完成 Text-to-3D，替代 NeRF 慢优化</li>
+            <li><strong>InstantMesh / CRM</strong>：将 Zero123++ 多视角 + 直接 Feed-Forward 网络预测网格（不再迭代优化），推理时间从小时级降至秒级</li>
+          </ul>
+          <strong>Janus Problem 根源：</strong>2D Diffusion 训练时只见到正面视角图像，对"侧面/背面应该长什么样"建模不足；3D 感知扩散模型（如 MVDiffusion、SyncDreamer）通过多视角联合生成部分解决。
+        </div>
+        <div class="tip-box">💡 <strong>进化链：</strong>DreamFusion（SDS，慢但开创性）→ Zero123++（视角条件合成）→ DreamGaussian（3DGS 加速重建）→ InstantMesh（秒级 Feed-Forward 预测）。面试说清 SDS 的"用 Diffusion 评分函数指导 3D 优化"思路，就覆盖了核心考点。</div>
+      </div>
+    </div>
+
+    <!-- Q147 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q147</div>
+        <div style="flex:1">
+          <div class="q-title">多模态大模型（MLLM）前沿架构：InternVL3 / Qwen2.5-VL / LLaVA-OneVision 的视觉编码器选型 / 动态分辨率 / 视频理解策略？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VLM 通用架构（LLaVA 范式）：</strong>
+          <ul>
+            <li><strong>视觉编码器</strong>（ViT/SigLIP/InternViT）→ <strong>视觉-语言连接器</strong>（MLP / Perceiver Resampler / Pixel Shuffle）→ <strong>LLM Decoder</strong>（Qwen/LLaMA/InternLM）</li>
+            <li>视觉 Token 直接拼接到文本 Token 前，参与自回归生成；高分辨率图像可产生数百~数千视觉 Token</li>
+          </ul>
+          <strong>视觉编码器选型演进：</strong>
+          <ul>
+            <li><strong>CLIP ViT-L/14</strong>（LLaVA 1.0-1.5）：经过图文对比预训练，语义对齐好；但分辨率固定（224/336px），细粒度 OCR/图表理解差</li>
+            <li><strong>SigLIP（Sigmoid Loss CLIP，Google 2023）</strong>：用 Sigmoid 替代 InfoNCE 对比损失，每样本独立计算，无需负样本对 Batch；更适合高分辨率微调（LLaVA-OneVision 采用）</li>
+            <li><strong>InternViT-6B</strong>：6B 参数视觉编码器，专门预训练增强 OCR/文档/表格理解；InternVL 系列的核心竞争力</li>
+          </ul>
+          <strong>动态分辨率策略：</strong>
+          <ul>
+            <li><strong>InternVL Tile + Thumbnail</strong>：将高分辨率图切分为 N×M 个 448px Tile，每个 Tile 独立编码；同时保留一个缩略图 Thumbnail（448px）提供全局上下文；Tile + Thumbnail Token 拼接后送入 LLM</li>
+            <li><strong>Qwen2.5-VL M-RoPE（多模态 RoPE）</strong>：为视觉 Token 分配独立的 2D 空间 RoPE 位置编码（行/列各一套），文本 Token 用标准 1D RoPE；让 LLM 天然感知图像的 2D 空间结构，无需 Tile 数量限制</li>
+          </ul>
+          <strong>视频理解策略：</strong>
+          <ul>
+            <li><strong>帧采样</strong>：固定帧率（1fps/2fps）或按场景变化动态采帧；每帧独立编码视觉 Token</li>
+            <li><strong>时序压缩</strong>：Video Token 通过 Temporal Pooling（相邻帧 Token 平均/拼接）压缩，减少 LLM 输入 Token 数；Qwen2.5-VL 用 3D 卷积做时域下采样</li>
+            <li><strong>时间戳嵌入</strong>：在 Video Token 中注入时间戳信息（绝对时间/相对时间），使 LLM 能理解事件发生的时序关系；支持 "第几秒发生了什么" 类查询</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆框架：</strong>VLM = 视觉编码器（SigLIP/InternViT）+ 连接器（MLP/Pixel Shuffle）+ LLM；动态分辨率两大流派：InternVL Tile切图 vs Qwen2.5-VL M-RoPE原生2D位置感知；视频理解核心是时序压缩（避免 Token 爆炸）。</div>
+      </div>
+    </div>
+
+    <!-- Q148 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q148</div>
+        <div style="flex:1">
+          <div class="q-title">LLM Serving 批处理优化：Chunked Prefill / Prefill-Decode 解聚（Disaggregation）/ Speculative Decoding + Draft Model 的协同？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Prefill vs Decode 的根本差异：</strong>
+          <ul>
+            <li><strong>Prefill 阶段</strong>：一次性处理所有输入 Token，计算是 Compute-Bound（大矩阵乘法），GPU 利用率接近 100%；时间复杂度 O(N²)（注意力计算）</li>
+            <li><strong>Decode 阶段</strong>：每步只生成 1 个 Token，是 Memory-Bound（读取 KV Cache 和权重），GPU 算力利用率低（通常 &lt;20%）；时间复杂度 O(N) per step</li>
+          </ul>
+          <strong>Chunked Prefill（分块预填充）：</strong>
+          <ul>
+            <li>问题：长 Prompt 的 Prefill 阶段耗时极长（阻塞），导致其他请求的 Decode 延迟（Time-to-First-Token 高）</li>
+            <li>方案：将 Prefill 切成固定大小的 Chunk（如 512 Token/Chunk），每个调度步交替执行一个 Prefill Chunk + 若干 Decode Token；使 TTFT 更均匀，避免 Prefill 独占 GPU</li>
+            <li>SGLang / vLLM v0.4+ 均支持 Chunked Prefill</li>
+          </ul>
+          <strong>Prefill-Decode 解聚（Disaggregation / PD Separation）：</strong>
+          <ul>
+            <li>思路：将 Prefill 和 Decode 部署在不同的 GPU 实例上（Prefill 实例 Compute-Bound → 高算力 GPU；Decode 实例 Memory-Bound → 高显存/带宽 GPU）</li>
+            <li>KV Cache 通过高速网络（NVLink / InfiniBand）从 Prefill 实例迁移到 Decode 实例</li>
+            <li>代表系统：Splitwise（MSR）、Mooncake（月之暗面 Kimi）；实现吞吐量和延迟的双重优化</li>
+          </ul>
+          <strong>Speculative Decoding + Draft Model 协同：</strong>
+          <ul>
+            <li>Draft Model（小模型，如 68M）快速生成 K 个候选 Token；Target Model 一次并行 Verify 所有 K 个 Token（等效 1 次 Forward）；接受则保留，拒绝则从 Target 分布重采样</li>
+            <li>加速比：若草稿接受率 α 高，相当于每次 Forward 输出 K×α 个 Token，吞吐量提升 2-3×</li>
+            <li>EAGLE（DeepMind 2024）：Draft Model 复用 Target 的 Feature（Feature-Level Draft），大幅提升接受率（70%+ → 85%+），配合 Tree Attention 同时验证多条草稿路径</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>三招组合拳：</strong>① Chunked Prefill = 把长 Prefill 切片，避免阻塞 Decode；② PD 解聚 = Prefill/Decode 分离部署，各取所长；③ Speculative Decoding = 小模型猜 + 大模型验，Decode 速度提升 2-3×。三者可叠加使用，是现代 LLM 推理系统的标配优化。</div>
+      </div>
+    </div>
+
+    <!-- Q149 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q149</div>
+        <div style="flex:1">
+          <div class="q-title">Diffusion 条件控制精细化：ControlNet v1.1 / T2I-Adapter / IP-Adapter v2 的架构差异？ControlNet+ + 与 InstantID 的扩展原理？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>纯文本条件的 Diffusion Model（SD/SDXL）难以精确控制生成图像的结构（姿态、边缘、深度）或外观（人脸 ID、风格），需要额外条件控制机制。
+          <br/><br/>
+          <strong>ControlNet v1.1（Zhang 2023）：</strong>
+          <ul>
+            <li>将 UNet 的 Encoder（下采样半部分）完整复制一份作为 Trainable Copy；原始 UNet 参数冻结</li>
+            <li>条件图（边缘图/深度图/姿态骨架）经过 Zero Convolution（初始化为 0 的 1×1 卷积）注入 Trainable Encoder；Zero Conv 保证训练初期 ControlNet 输出为 0，不破坏原始 UNet 的生成能力</li>
+            <li>Trainable Encoder 每层输出加到原始 UNet 的对应 Decoder 层（skip connection 风格）</li>
+            <li>代价：增加约 50% 参数量（完整 Encoder 副本），推理显存需求翻倍</li>
+          </ul>
+          <strong>T2I-Adapter（Mou 2023）：</strong>
+          <ul>
+            <li>更轻量的方案：小型适配器网络（约 77M 参数），将条件图映射为 4 个特征，加入 UNet Encoder 的对应层</li>
+            <li>不复制完整 Encoder，参数量仅为 ControlNet 的 1/10；推理速度更快，可叠加多个 Adapter（同时控制结构 + 风格）</li>
+          </ul>
+          <strong>IP-Adapter v2（Ye 2023）— 图像外观控制：</strong>
+          <ul>
+            <li>目标：将参考图的外观（风格/颜色/人脸 ID）注入生成过程，而非结构</li>
+            <li>架构：参考图经 CLIP/ViT 图像编码器 → Projection Layer → 作为额外 Key/Value，插入 UNet 每个 Cross-Attention 层（"解耦 Cross-Attention"：文本 Cross-Attn + 图像 Cross-Attn 并行）</li>
+            <li>训练：冻结 UNet，仅训练 Projection Layer + 新增 Cross-Attention 权重（约 22M）；数据：图文对（用图像外观作为条件，文字描述作为提示）</li>
+            <li>IP-Adapter v2 改进：引入额外人脸特征（ArcFace embedding），增强人脸 ID 保持能力</li>
+          </ul>
+          <strong>InstantID（Wang 2024）：</strong>
+          <ul>
+            <li>结合 ControlNet（姿态/骨架控制结构）+ IP-Adapter（ArcFace 人脸 ID 保持外观）+ IdentityNet（专用人脸对齐模块）</li>
+            <li>单张人脸照片即可 Zero-Shot 生成保持人脸 ID 的风格化图像（无需 DreamBooth 微调）</li>
+          </ul>
+          <strong>选型总结：</strong>结构控制（姿态/边缘/深度）→ ControlNet；外观/风格控制 → IP-Adapter；精确人脸 ID → InstantID；轻量多条件叠加 → T2I-Adapter。
+        </div>
+        <div class="tip-box">💡 <strong>记忆要点：</strong>ControlNet = 复制 Encoder 副本 + Zero Conv（零初始化保护原始权重）；IP-Adapter = 解耦 Cross-Attention（图像 Key/Value 并行于文本 Key/Value）；InstantID = ControlNet + IP-Adapter + ArcFace 三合一人脸 ID 方案。</div>
       </div>
     </div>
 
