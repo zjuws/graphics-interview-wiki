@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">215+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">230+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -1384,6 +1384,99 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>GPU 粒子 = 数据全在 GPU SSBO → Simulate/Emit/Cull/Sort 全用 Compute → Indirect Draw 让 CPU 只管发起，不管细节。核心思想是"把 CPU 的 for 循环变成 GPU 的并行 Dispatch"，天花板是 GPU VRAM 而不是 CPU 带宽。</div>
+      </div>
+    </div>
+
+    <!-- Q150 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q150</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 World Partition 大世界流送：Cell 分区机制 / Runtime Hash Grid / HLOD Layer 生成流程 / 与传统 World Composition 的根本区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 World Composition 的局限：</strong>
+          <ul>
+            <li>地图拆分为若干 Sub-Level（.umap），以关卡为粒度加载/卸载；每个 Sub-Level 内部的 Actor 全部随关卡一同加载，无法精细控制单个 Actor 的流送时机</li>
+            <li>手动划定关卡边界，美术负担重；大型开放世界（如 100km² 地形）维护困难，容易出现关卡边界处加载抖动</li>
+          </ul>
+          <strong>World Partition 核心架构（UE5 正式引入）：</strong>
+          <ul>
+            <li><strong>单一持久关卡（Single Persistent World）</strong>：所有 Actor 存储在同一个 .umap，编辑器不再需要手动拆分 Sub-Level；Actor 携带 <code>bIsSpatiallyLoaded</code> 标记和 <code>RuntimeGrid</code> 属性</li>
+            <li><strong>Runtime Hash Grid（运行时哈希网格）</strong>：世界坐标按 Cell 大小（默认 12800cm = 128m）划分哈希格；每个格子存储其中的 Actor 列表；Camera 所在 Cell 及其周围 N 圈 Cell 为加载范围（Streaming Source Radius）</li>
+            <li><strong>Data Layers</strong>：类似 Photoshop 图层，Actor 可属于多个 Data Layer；Data Layer 可在运行时动态激活/关闭（昼夜切换、剧情分支），与空间流送正交叠加</li>
+            <li><strong>Actor Descriptor（ActorDesc）</strong>：编辑器预计算每个 Actor 的空间包围盒并缓存为 ActorDesc，运行时按 Cell 加载时直接使用 ActorDesc，无需先反序列化整个 Actor</li>
+          </ul>
+          <strong>HLOD（Hierarchical LOD）Layer 生成流程：</strong>
+          <ul>
+            <li>World Partition 自动将场景 Actor 按 HLOD Layer 聚合为代理网格（Proxy Mesh）或 Imposter；当 Actor 距离相机超过 HLOD 切换距离时，以单个低多边形代理替代一片 Actor 群</li>
+            <li>HLOD Layer 可分多级（HLOD0 = 近距代理，HLOD1 = 远距更简化代理），每级由 HLOD Builder 在编辑器构建并烘焙；运行时流送加载对应 HLOD 资产，原始 Actor 保持未加载</li>
+            <li>Nanite HLOD：UE5.1+ 支持将 HLOD 代理直接生成为 Nanite Mesh，实现跨 LOD 层级的无缝连续细节</li>
+          </ul>
+          <strong>与 World Composition 关键区别：</strong>
+          <ul>
+            <li><strong>粒度</strong>：World Partition = Actor 粒度流送；World Composition = Sub-Level（文件）粒度加载</li>
+            <li><strong>自动化</strong>：World Partition 自动划分 Cell，无需手动绘制关卡边界</li>
+            <li><strong>协作</strong>：World Partition 配合 One File Per Actor（OFPA）使每个 Actor 存为独立小文件，大幅改善多人协作 Merge 冲突</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心记忆：</strong>World Partition = 单一持久关卡 + Runtime Hash Grid（以 Cell 为流送粒度）+ Data Layer（运行时动态层）+ HLOD 自动聚合。与 World Composition 最大区别是"粒度从关卡级降到 Actor 级"，配合 OFPA 彻底解决大世界协作和流送精度问题。</div>
+      </div>
+    </div>
+
+    <!-- Q151 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q151</div>
+        <div style="flex:1">
+          <div class="q-title">TAA 深度问题：Ghosting（重影）与 Disocclusion（遮挡解除）的成因与处理策略？Velocity Buffer 局限 / Neighborhood Clamping 的失效场景？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>TAA 基本原理回顾：</strong>
+          <ul>
+            <li>时域抗锯齿将当前帧与历史帧混合（指数移动平均，混合权重 α ≈ 0.1），累积多帧样本降低锯齿；每帧 Jitter 采样偏移亚像素位置，使不同帧覆盖不同采样点</li>
+          </ul>
+          <strong>Ghosting（重影）成因：</strong>
+          <ul>
+            <li>动态物体移动时，历史帧像素（上一帧位置）与当前帧像素（新位置）内容不同，但 Motion Vector 重投影后若有误差（运动模糊、蒙皮动画、粒子）则混入过时历史，产生拖尾残影</li>
+            <li>Velocity Buffer 局限：静态 Mesh 无 Velocity，依赖 Camera Velocity 全局重投影；蒙皮动画/粒子无正确 Per-Pixel Velocity → 历史像素位置错误 → Ghosting 严重</li>
+          </ul>
+          <strong>Neighborhood Clamping（邻域钳制）策略：</strong>
+          <ul>
+            <li>在当前帧 3×3（或 5×5）邻域内计算颜色的 Min/Max（或均值±方差包围盒），将历史帧颜色钳制到该范围内，强制丢弃偏离当前内容的历史数据</li>
+            <li>效果：大幅减少 Ghosting，代价是在运动边缘引入细微模糊（历史贡献被截断）</li>
+            <li><strong>失效场景</strong>：① 薄细节（电线、草叶）—— 邻域颜色方差大，Clamp 范围过宽，历史仍可混入；② 高频纹理（棋盘格）—— 当前帧采样颜色和历史差异大，Clamp 失效或过度 Clamp；③ 发光粒子/高亮光斑 —— HDR 颜色动态范围大，Clamp 无法覆盖所有情况</li>
+          </ul>
+          <strong>Disocclusion（遮挡解除）问题：</strong>
+          <ul>
+            <li>物体移动导致原本被遮挡的背景区域重新暴露，该区域的历史帧数据来自原来的前景物体颜色，混合后产生颜色溢出（背景区域带有前景物体颜色残影）</li>
+            <li>检测方案：比较当前帧 Depth 与历史帧重投影 Depth 差异（Depth Test Rejection），差异超过阈值则标记为 Disocclusion，降低历史权重（甚至全用当前帧）</li>
+          </ul>
+          <strong>UE5 TSR 的改进方案：</strong>
+          <ul>
+            <li><strong>Responsive AA（响应式 AA 标记）</strong>：粒子/UI 等特殊物体标记为 Responsive，对这些像素完全拒绝历史贡献，避免 Ghosting</li>
+            <li><strong>Per-Object Velocity（逐对象速度）</strong>：蒙皮 Mesh 输出精确 Per-Vertex Velocity，解决骨骼动画 Ghosting</li>
+            <li><strong>TSR 的 Rejection 机制</strong>：通过 Gradient/Variance 更精确地判断历史有效性，局部自适应调整混合权重</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>关键记忆：</strong>TAA Ghosting 根源 = 历史像素重投影位置错误（Velocity 不准）或内容过时；Neighborhood Clamping 是主要防线但在薄细节/高频纹理处失效；Disocclusion 用 Depth 差异检测并降权历史贡献。TSR 在 UE5 通过精确 Per-Object Velocity + Rejection 机制大幅改善。</div>
       </div>
     </div>
 
@@ -3328,6 +3421,50 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>注意事项：</strong>跨队列资源共享需要 <code>SHARING_MODE_CONCURRENT</code> 或显式 Queue Family Ownership Transfer（Acquire/Release Barrier）；滥用异步计算反而增加同步开销，需通过 GPU Profiler（Nsight / RenderDoc Frame Capture）验证实际收益。
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>Vulkan 多队列 = Graphics + Async Compute + DMA Transfer 三路并行；Semaphore 管队列间依赖（GPU→GPU），Fence 管 CPU 等 GPU（CPU→GPU），Timeline Semaphore 是现代最优解。Async Compute 价值在于"利用渲染间隙的空闲 CU"，不是万能提速方案。</div>
+      </div>
+    </div>
+
+    <!-- Q152 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q152</div>
+        <div style="flex:1">
+          <div class="q-title">Frame Graph / Render Graph 架构：为什么现代引擎（UE5 RDG / Frostbite FrameGraph）要引入渲染图？Pass 依赖分析 / 资源生命周期自动管理 / Transient Resource 原理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统渲染代码的痛点：</strong>
+          <ul>
+            <li>每个渲染 Pass 手动管理 RT 创建/释放、同步屏障（Barrier/Semaphore）、Image Layout Transition，代码耦合严重，容易漏写 Barrier 导致 Validation 错误</li>
+            <li>难以自动做 Pass 裁剪（某个 Pass 输出不被后续使用时，应跳过该 Pass 减少 GPU 工作量）</li>
+            <li>Transient 资源（Pass 内部中间 RT，生命周期不超过 1 帧）无法统一管理，内存碎片化</li>
+          </ul>
+          <strong>Frame Graph 核心思想（Frostbite 2017，Wihlidal）：</strong>
+          <ul>
+            <li><strong>声明阶段（Setup Phase）</strong>：每个 Pass 声明其读取（Input）和写入（Output）的资源，不执行任何 GPU 工作，仅构建有向无环图（DAG）</li>
+            <li><strong>编译阶段（Compile Phase）</strong>：① 拓扑排序 Pass 执行顺序；② 标记 Unreferenced Pass（输出不被任何后续 Pass 消费）并裁剪；③ 计算每个 Transient 资源的生命周期（First Write → Last Read）；④ 自动插入 Barrier / Image Layout Transition</li>
+            <li><strong>执行阶段（Execute Phase）</strong>：按编译结果顺序提交 GPU 命令；Transient 资源从 Aliasing Heap（内存别名池）分配，不同生命周期不重叠的资源复用同一物理内存</li>
+          </ul>
+          <strong>UE5 RDG（Render Dependency Graph）实现：</strong>
+          <ul>
+            <li>宏 <code>RDG_EVENT_SCOPE</code>、<code>AddPass</code>、<code>FRDGBufferRef</code>/<code>FRDGTextureRef</code> 等封装 Pass 声明；资源为虚拟引用，只有被实际执行的 Pass 引用的资源才分配物理内存</li>
+            <li><strong>Pass Merging（Pass 合并）</strong>：生产者-消费者相邻 Pass 若在同一 Queue 且无资源冲突，可合并为单个 RenderPass（Vulkan Subpass / Metal Render Command Encoder），减少 Load/Store 开销</li>
+            <li><strong>Async Compute 调度</strong>：RDG 自动检测 Pass 间无数据依赖的情况，将其调度到 Async Compute Queue，无需手动管理 Semaphore</li>
+          </ul>
+          <strong>Transient Resource（瞬态资源）与 Aliasing：</strong>
+          <ul>
+            <li>Transient Resource 是帧内中间结果（如 GBuffer、Shadow Map、SSAO Buffer），帧结束后即可丢弃；Frame Graph 在 Transient Memory Heap 上按生命周期分配，不同 Pass 的不相交资源可别名共享同一 GPU 内存页，显著降低 VRAM 峰值用量（典型节省 20-40%）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心价值：</strong>Frame Graph = 声明式渲染架构，三大收益：① 自动 Pass 裁剪（无用 Pass 不执行）；② 自动 Barrier 推导（省掉手写同步的最大坑）；③ Transient Resource Aliasing（VRAM 峰值显著下降）。UE5 RDG 是工业界最成熟实现之一，面试提到它加分。</div>
       </div>
     </div>
 
@@ -6368,6 +6505,305 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>选型总结：</strong>结构控制（姿态/边缘/深度）→ ControlNet；外观/风格控制 → IP-Adapter；精确人脸 ID → InstantID；轻量多条件叠加 → T2I-Adapter。
         </div>
         <div class="tip-box">💡 <strong>记忆要点：</strong>ControlNet = 复制 Encoder 副本 + Zero Conv（零初始化保护原始权重）；IP-Adapter = 解耦 Cross-Attention（图像 Key/Value 并行于文本 Key/Value）；InstantID = ControlNet + IP-Adapter + ArcFace 三合一人脸 ID 方案。</div>
+      </div>
+    </div>
+
+    <!-- Q153 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q153</div>
+        <div style="flex:1">
+          <div class="q-title">线性注意力与高效序列模型全景：RetNet / GLA / Mamba2 / RWKV-6 的核心机制对比？与标准 Transformer Self-Attention 的根本区别和工程权衡？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准 Self-Attention 的复杂度问题：</strong>
+          <ul>
+            <li>时间复杂度 O(N²d)，KV Cache 显存 O(N·L·d)（N=序列长度，L=层数，d=隐藏维度）；长序列（128K+）时推理显存和计算量爆炸</li>
+          </ul>
+          <strong>线性注意力（Linear Attention）基础：</strong>
+          <ul>
+            <li>核心技巧：用核函数 φ(Q)·φ(K)ᵀ 替代 softmax(QKᵀ)，利用矩阵乘法结合律将 O(N²) 降为 O(N)；但精度损失导致语言建模困难，是主要挑战</li>
+          </ul>
+          <strong>主要架构对比：</strong>
+          <ul>
+            <li><strong>RetNet（微软 2023）</strong>：引入衰减因子（Retention Decay γ），对距离远的 Token 施加指数级衰减，类似 RNN 遗忘门；支持三种推理模式：Parallel（训练并行，类 Attention）/ Recurrent（推理 O(1) 步复杂度，类 RNN）/ Chunkwise Recurrent（折中）</li>
+            <li><strong>GLA（Gated Linear Attention，2023）</strong>：在线性注意力的 KV 状态上加 Data-Dependent Gating（输入依赖的门控矩阵），大幅提升模型对序列内容的选择性遗忘能力；硬件友好的 Chunkwise 实现（类 Flash-Linear-Attention）</li>
+            <li><strong>Mamba2（SSM + SSD，2024）</strong>：将 Mamba 的 SSM 形式化为结构化状态空间对偶（SSD），与线性注意力在数学上等价；头维度更大（支持 Multi-Head），GPU 利用率更高；与 Attention 混合（Hybrid Mamba2-Transformer）在长上下文任务上超越纯 Transformer</li>
+            <li><strong>RWKV-6（2024）</strong>：纯 RNN 架构，Attention 层替换为 Time-Mix（可看作线性注意力 + 时域卷积）；训练时完全并行，推理时 O(1) 步状态更新；RWKV-6 引入 Data-Dependent Receptance（输入依赖门），弥补早期版本表达力不足</li>
+          </ul>
+          <strong>实践权衡：</strong>
+          <ul>
+            <li>In-Context Learning（ICL）能力：标准 Attention > Hybrid > 纯 Linear/RNN；推理速度（长序列）：RNN ≫ Linear Attention > Attention；现阶段 Hybrid 架构（如 Jamba、Zamba、Falcon-H1）是业界折中主流</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>一句话对比：</strong>RetNet = 衰减因子线性注意力（三模式）；GLA = 数据依赖门控线性注意力；Mamba2 = SSM 与线性注意力对偶统一；RWKV-6 = 纯 RNN 并行训练。Hybrid 混合架构（少量 Attention + 多数线性层）是当前最优实践，兼顾 ICL 能力与长序列效率。</div>
+      </div>
+    </div>
+
+    <!-- Q154 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q154</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 长文档理解：RAG 与 Long Context Window 的本质区别？各自适用场景 / 混合方案 RAG + Long Context / 检索精度与延迟的工程权衡？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>本质区别：</strong>
+          <ul>
+            <li><strong>RAG（检索增强生成）</strong>：在推理时按需检索相关片段（Top-K Chunks），只将相关内容塞入 Context，无需预先加载全文；检索质量决定回答质量；上限受限于检索召回率</li>
+            <li><strong>Long Context Window</strong>：将整个文档（几十~几百万 Token）全量输入 LLM；无检索步骤，所有信息全程可访问；但 KV Cache 显存随 N 线性增长，推理成本高（Prefill 时间 O(N²)）</li>
+          </ul>
+          <strong>各自适用场景：</strong>
+          <ul>
+            <li>RAG 适合：① 知识库规模超过任何模型 Context Window（TB 级文档库）；② 需要实时更新的知识（新文章随时入库）；③ 成本敏感场景（每次只注入几千 Token）</li>
+            <li>Long Context 适合：① 文档内部有大量交叉引用（代码库理解、法律合同全文分析）；② 检索难以准确定位所需片段（隐含推理需要全文语境）；③ 单文档问答精度要求极高</li>
+          </ul>
+          <strong>混合方案（RAG + Long Context）：</strong>
+          <ul>
+            <li><strong>Iterative RAG + Long Window</strong>：先用 RAG 检索候选片段（减少 Noise），再将高相关片段 + 适量全文上下文组合成较长 Context 输入模型，兼顾精度与成本</li>
+            <li><strong>Cache-Augmented Generation（CAG / KV Cache Reuse）</strong>：将整本书/代码库一次性 Prefill 并缓存 KV Cache（SGLang RadixAttention / vLLM Prefix Caching），后续查询直接复用 KV Cache，避免重复 Prefill；适合高频查询同一文档</li>
+          </ul>
+          <strong>检索精度优化：</strong>
+          <ul>
+            <li><strong>Hybrid Retrieval</strong>：向量检索（语义）+ BM25（关键词）融合，Reciprocal Rank Fusion（RRF）综合排序</li>
+            <li><strong>Late Interaction（ColBERT）</strong>：每个 Token 级别做交互打分，比 Sentence Embedding 更精确但更慢</li>
+            <li><strong>Re-Ranking</strong>：Cross-Encoder 对 Top-K 候选重排，提升精度，代价是额外推理延迟</li>
+            <li><strong>Contextual Chunking</strong>：切片时保留上下文摘要（Anthropic Contextual Retrieval 方案：每个 Chunk 前加入全文上下文描述），解决孤立 Chunk 语义缺失问题</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>工程决策框架：</strong>文档库超过 Context Window → 必须 RAG；单文档精准分析 → 优先 Long Context；高频查询同一文档 → KV Cache Reuse（CAG）最优。混合方案：RAG 初筛 + Long Context 精读，是实际产品（如 Perplexity / NotebookLM）的常见架构。</div>
+      </div>
+    </div>
+
+    <!-- Q155 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q155</div>
+        <div style="flex:1">
+          <div class="q-title">Model Merging（模型合并）：SLERP / TIES-Merging / DARE / Model Soup 的原理与适用场景？为什么合并多个 Fine-tuned 模型有时优于单个模型？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Model Merging 动机：</strong>
+          <ul>
+            <li>不同 Fine-tuned 模型（在不同数据/任务上微调的同底座模型）掌握不同知识；直接平均参数（Model Soup）有时能综合多个模型能力，且无需额外训练、无需数据</li>
+            <li>模型权重空间假设：同一预训练底座的微调模型在参数空间中处于同一 Loss 盆地，权重插值/叠加时语义信息不会完全破坏</li>
+          </ul>
+          <strong>主要合并方法：</strong>
+          <ul>
+            <li><strong>Model Soup（Wortsman 2022）</strong>：将同一底座的多个微调 checkpoint 等权平均（Uniform Soup）或选取高验证集准确率的子集平均（Greedy Soup）；实验表明能提升泛化能力（OOD 鲁棒性），原理类似集成学习</li>
+            <li><strong>SLERP（球面线性插值）</strong>：在参数向量空间做球面插值（而非 Euclidean 线性插值），保持向量模长不变；适合合并两个差异较大的模型，避免插值时参数模长收缩导致能力下降；常用于 Stable Diffusion 模型混合、角色风格混合</li>
+            <li><strong>TIES-Merging（Yadav 2023）</strong>：解决多模型合并时参数冲突问题；步骤：① Trim（剪去绝对值小的任务向量）；② Elect Sign（对每个参数位置投票确定符号方向）；③ Disjoint Merge（只合并符号一致的任务向量）；显著优于简单平均</li>
+            <li><strong>DARE（Yu 2023）</strong>：以一定概率随机将任务向量（微调后权重 - 底座权重）置零（类似 Dropout），然后重新缩放；降低任务向量的密度，减少合并时的干扰；可与 TIES 组合（DARE-TIES）</li>
+          </ul>
+          <strong>为什么合并有时优于单模型？</strong>
+          <ul>
+            <li>不同任务微调模型学到不同的\"特化方向\"（任务向量），合并后模型同时具备多种能力；等效于在参数空间做模型集成，但推理成本与单模型相同</li>
+            <li>局限：合并前提是同一预训练底座；底座差异越大，合并效果越差；合并超过 5-6 个模型后收益递减</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆要点：</strong>Model Soup = 等权平均；SLERP = 球面插值（两模型，保模长）；TIES = 剪枝+符号投票+对齐合并（多模型冲突处理）；DARE = 随机稀疏化任务向量（减干扰）。工程上 DARE-TIES 是目前效果最稳定的多模型合并方案，无需额外训练。</div>
+      </div>
+    </div>
+
+    <!-- Q156 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q156</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 对齐安全深度：RLHF 完整流程（SFT→RM→PPO）的痛点 / Constitutional AI（CAI）/ RLAIF（AI 反馈替代人工反馈）的原理与优势？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RLHF 完整流程：</strong>
+          <ul>
+            <li><strong>Step 1 SFT（Supervised Fine-Tuning）</strong>：在高质量人工示范数据上监督微调，让模型学习格式和基本能力</li>
+            <li><strong>Step 2 RM（Reward Model）训练</strong>：收集人工偏好标注（两个回答中哪个更好），训练奖励模型预测人类偏好分数；是整个 RLHF 质量的核心瓶颈</li>
+            <li><strong>Step 3 PPO（Proximal Policy Optimization）</strong>：以 RM 分数作为奖励信号，用 PPO 算法优化 LLM 策略；加入 KL Divergence 惩罚项（防止策略过度偏离 SFT 模型，避免 Reward Hacking）</li>
+          </ul>
+          <strong>RLHF 主要痛点：</strong>
+          <ul>
+            <li>① 人工偏好标注成本高、不一致（标注者主观偏差）；② RM 可能被 Goodhart's Law 攻破（模型找到非预期方式刷高 RM 分）；③ PPO 训练不稳定，超参敏感；④ RM 泛化性差（分布外提示上可靠性下降）</li>
+          </ul>
+          <strong>Constitutional AI（CAI，Anthropic 2022）：</strong>
+          <ul>
+            <li>核心思想：将对齐原则写成宪法（Principle List），让模型自我批评并修改有害回答（Red-Team → Critique → Revision），无需人工逐样本标注</li>
+            <li>两阶段：① SL-CAI（监督阶段）：模型自我修改，生成高质量修订回答，用于 SFT；② RL-CAI（强化阶段）：用 AI 生成偏好标注训练 RM（AI Feedback），替代人工偏好标注</li>
+          </ul>
+          <strong>RLAIF（AI Feedback，Lee 2023）：</strong>
+          <ul>
+            <li>用强大 LLM（如 Claude-3 / GPT-4）替代人类标注者生成偏好标注（Which response is better?）；论文显示 RLAIF 在有用性方面与人类反馈 RLHF 相当，但成本降低 100×</li>
+            <li>变体：Self-RLAIF —— 同一模型同时作为生成器和评估器（需要 Prompt 设计确保评估视角独立）</li>
+          </ul>
+          <strong>DPO（Direct Preference Optimization）的兴起：</strong>
+          <ul>
+            <li>将 RLHF 的 RM + PPO 两阶段合并为直接在偏好数据上优化的分类目标（无需显式 RM 和 RL），等价于隐式地优化 RLHF 目标；训练稳定，代价是需要预先收集配对偏好数据</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>演进链：</strong>RLHF（人工偏好 → RM → PPO，贵且不稳）→ CAI（宪法自我批评 + AI 标注，Anthropic 路线）→ RLAIF（AI 完全替代人工标注）→ DPO（跳过 RM/PPO，直接偏好优化）。理解 Reward Hacking 和 Goodhart's Law 是回答 RLHF 局限的核心。</div>
+      </div>
+    </div>
+
+    <!-- Q157 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q157</div>
+        <div style="flex:1">
+          <div class="q-title">Any-to-Any 多模态统一模型：Emu3 / AnyGPT / Unified-IO 2 的统一 Tokenization 策略？图像/音频/视频 Token 化方案与 LLM Decoder 的融合机制？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Any-to-Any 模型动机：</strong>
+          <ul>
+            <li>当前多模态系统通常是\"拼接式\"：CLIP 编码图像 → 投影到 LLM → LLM 生成文本；但不能从文本生成图像（理解 vs 生成分离）。Any-to-Any 目标：单一模型同时理解和生成任意模态</li>
+          </ul>
+          <strong>核心挑战 — 多模态统一 Tokenization：</strong>
+          <ul>
+            <li><strong>图像 Tokenization（VQ-VAE / VQ-GAN）</strong>：将图像压缩为离散 Token 序列（如 16×16 个 Token，每个 Token 来自 Codebook 索引）；LLM 将图像 Token 与文本 Token 同等处理，用 Next-Token Prediction 学习图像生成</li>
+            <li><strong>音频 Tokenization（EnCodec / SoundStream）</strong>：神经音频编解码器将波形压缩为多层残差码（RVQ），每帧多个离散码；LLM 自回归生成音频码序列</li>
+            <li><strong>视频 Tokenization</strong>：3D VQ-VAE 在时间维度也做下采样，将视频压缩为时空 Token 序列；问题：序列长度爆炸（1秒视频 = 数百 Token）</li>
+          </ul>
+          <strong>代表性模型：</strong>
+          <ul>
+            <li><strong>Emu3（BAAI 2024）</strong>：将图像用 SBER 量化器（Space-time VQ）tokenize 为离散 ID，与文本 Token 混合，用标准 LLM（Qwen 底座）的 Next-Token Prediction 联合训练理解（VQA）+ 生成（文生图/图生图）；去掉扩散模型，纯 AR 生成</li>
+            <li><strong>AnyGPT（上海 AI Lab 2024）</strong>：文本/图像（SEED 量化器）/语音（SpeechTokenizer）/音乐（EnCodec）统一 Tokenization，拼接为混合序列，用 LLaMA-2 做 Next-Token Prediction；支持任意模态互转</li>
+            <li><strong>Unified-IO 2（2023）</strong>：引入 Multimodal Mixture of Denoisers（MMoD），对图像/视频/音频统一用 Dense Prediction Token 表示，支持输入输出各任意模态；参数规模最大（7B）</li>
+          </ul>
+          <strong>AR 生成 vs Diffusion 生成的权衡：</strong>
+          <ul>
+            <li>AR（如 Emu3）：统一架构，无需单独扩散模型，便于 Scaling，但图像质量通常低于专门扩散模型（SDXL/FLUX）；Diffusion（DALL-E 3/Stable Diffusion）：图像质量高，但理解生成独立，无法 Any-to-Any</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>关键洞察：</strong>Any-to-Any 统一模型的核心是\"把一切变成 Token\"——图像用 VQ-VAE，音频用 EnCodec，视频用 3D VQ；然后用单一 LLM 做 Next-Token Prediction 统一建模。代价是生成质量通常低于专用生成模型，但架构简洁、迁移学习能力强。</div>
+      </div>
+    </div>
+
+    <!-- Q158 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q158</div>
+        <div style="flex:1">
+          <div class="q-title">AI Agent 记忆管理架构：短期记忆（In-Context）/ 长期记忆（外部存储）/ 情节记忆（Episodic）/ 语义记忆（Semantic）的设计模式？MemGPT / Mem0 的实现原理？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Agent 记忆分类（类比认知科学）：</strong>
+          <ul>
+            <li><strong>短期记忆（In-Context / Working Memory）</strong>：当前会话的对话历史，存储在 LLM Context Window 内；容量受 Token 限制，会话结束即丢失；优点：无需检索，LLM 直接访问</li>
+            <li><strong>情节记忆（Episodic Memory）</strong>：过去交互的具体事件记录（如\"用户在2025-03-15问了X问题\"），按时间序存储；用于个性化和上下文延续</li>
+            <li><strong>语义记忆（Semantic Memory）</strong>：通用事实和知识（如\"用户喜欢简洁回答\"\"项目使用 TypeScript\"），存储为结构化键值对或知识图谱</li>
+            <li><strong>程序记忆（Procedural Memory）</strong>：存储在 System Prompt 或 Tool Definitions 中的操作规则，不随会话变化</li>
+          </ul>
+          <strong>MemGPT（Packer 2023）架构：</strong>
+          <ul>
+            <li>灵感来自操作系统的虚拟内存管理；将 LLM Context 视为\"主存\"，外部向量数据库/文档存储视为\"磁盘\"</li>
+            <li>Context 分区：Main Context（当前对话，频繁访问）+ Recall Storage（历史对话向量库）+ Archival Storage（长期知识库）</li>
+            <li>LLM 自主决定何时将内容从 Context 换出到外部存储，何时检索调入；通过 Tool Call（<code>archival_memory_insert</code>/<code>archival_memory_search</code>）实现分页操作，无需外部调度器</li>
+          </ul>
+          <strong>Mem0（mem0.ai 2024）架构：</strong>
+          <ul>
+            <li>每次对话后，LLM 自动提取关键信息（Extraction）→ 与现有记忆做冲突检测和更新（Contradiction Resolution）→ 写入混合存储（向量 DB + 图 DB + KV Store）</li>
+            <li>支持 User/Session/Agent 三层记忆粒度；检索时混合语义检索 + 关键词检索；实测比 Pure RAG 在个性化问答中准确率提升 25%+</li>
+          </ul>
+          <strong>工程设计要点：</strong>
+          <ul>
+            <li><strong>记忆写入时机</strong>：会话结束后异步写入（避免增加响应延迟）；重要信息（用户偏好/项目约束）应实时写入</li>
+            <li><strong>记忆冲突处理</strong>：新记忆与旧记忆矛盾时，优先新信息并标记旧信息为过期（而非直接覆盖，保留审计链）</li>
+            <li><strong>隐私与遗忘权</strong>：设计记忆 TTL（存活时间）和用户触发的记忆删除 API，满足 GDPR 遗忘权要求</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>记忆四分法：</strong>短期（Context Window）/ 情节（事件时间序列）/ 语义（结构化事实 KV）/ 程序（System Prompt 规则）。MemGPT = LLM 自主管理内存换页；Mem0 = 对话后自动提取+冲突消解+混合存储。面试关键词：\"记忆写入时机\"和\"冲突消解策略\"是区分深度的点。</div>
+      </div>
+    </div>
+
+    <!-- Q159 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q159</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 结构化输出与约束解码：JSON Schema 约束 / XGrammar / Outlines / LMQL 的实现原理？与 Function Calling 的区别？生产环境的可靠性工程策略？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>LLM 生成文本是自回归采样过程，天然无法保证输出严格符合 JSON Schema 等结构化格式；Agent 和工具调用场景对结构化输出可靠性要求极高（解析失败 = 系统崩溃）。
+          <br/><br/>
+          <strong>约束解码（Constrained Decoding）核心原理：</strong>
+          <ul>
+            <li>在每个解码步骤，根据当前已生成 Token 序列和目标文法（Grammar / Schema），计算当前位置哪些词汇 Token 是合法的（Logit Masking），将不合法 Token 的 Logit 设为 -∞，强制模型只能生成合法 Token</li>
+            <li>实现关键：将 JSON Schema / 正则表达式 / 上下文无关文法（CFG）编译为确定性有限自动机（DFA）或下推自动机，在 LLM 生成时同步推进自动机状态</li>
+          </ul>
+          <strong>主要框架对比：</strong>
+          <ul>
+            <li><strong>Outlines（dottxt-ai 2023）</strong>：将正则表达式编译为交错有限自动机（Interleaved NFA），与 BPE Tokenizer 的 Token 边界对齐，实现 Token 级别的 Logit Masking；支持 JSON Schema / Regex / CFG；是 vLLM 和 SGLang 的主要后端</li>
+            <li><strong>XGrammar（TVM 团队 2024）</strong>：将上下文无关文法预编译为自适应 Token Mask Cache，Mask 计算移至 GPU，解码开销接近零（相比 Outlines 在 GPU 批处理场景下快 10×+）；已集成进 MLC-LLM 和 SGLang</li>
+            <li><strong>LMQL（ETH 2023）</strong>：查询语言，将约束直接写入提示模板（类 SQL 语法）；支持软约束（偏好）和硬约束（必须满足）；适合复杂交互式约束场景</li>
+          </ul>
+          <strong>与 Function Calling 的区别：</strong>
+          <ul>
+            <li>Function Calling（OpenAI API）：LLM 在训练时学习在特定场景输出特定格式（如 <code>{"tool":"weather","args":{"city":"北京"}}</code>），属于 SFT 层面的能力，不是解码时的硬约束；输出仍有小概率格式错误</li>
+            <li>约束解码：解码时强制保证语法正确性，与模型是否在 Function Calling 数据上微调无关；两者可叠加（Function Calling 定义格式 + 约束解码保证合规性）</li>
+          </ul>
+          <strong>生产可靠性工程策略：</strong>
+          <ul>
+            <li>① 优先用约束解码（Outlines/XGrammar）+ 严格 Schema 验证（Pydantic）双重保证；② 设计最小化 Schema（减少可选字段），降低格式复杂度；③ 重试机制：解析失败时携带错误信息重新请求（self-repair prompt）；④ 监控结构化输出成功率作为质量指标</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心原理：</strong>约束解码 = 在每个解码步骤做 Logit Masking，把不符合文法的 Token 概率压为 0；XGrammar = GPU 加速的 CFG → Token Mask，近零开销；与 Function Calling 区别：FC 是训练层约束（SFT），约束解码是推理层强制（100% 格式正确）。两者叠加是生产 Agent 的最佳实践。</div>
       </div>
     </div>
 
