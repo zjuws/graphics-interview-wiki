@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">230+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">250+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -696,6 +696,117 @@
           <strong>收益量化：</strong>Draw Call 从 O(场景物体数) 降低到 O(材质批次数)，百万物体场景 GPU 利用率可从 40% 提升到 90% 以上。
         </div>
         <div class="tip-box">💡 <strong>工程细节：</strong>GPU Driven 需要场景所有物体的数据（变换矩阵、AABB、LOD 信息）提前上传到 GPU Buffer，并按材质/管线状态分组（以减少 PSO 切换），这是引擎级别的架构改造，而非简单的 API 调用优化。</div>
+      </div>
+    </div>
+
+    <!-- Q161 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q161</div>
+        <div style="flex:1">
+          <div class="q-title">Virtual Shadow Map（VSM）原理：UE5 如何用 16K 虚拟阴影图集为 Nanite 场景生成高质量软阴影？与传统 Cascaded Shadow Map 的差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VSM 核心设计：</strong>Virtual Shadow Map 是 UE5 为配合 Nanite 高密度几何引入的阴影方案，采用虚拟纹理思路实现"按需分辨率"：
+          <ul>
+            <li><strong>虚拟 16K 图集</strong>：逻辑上每个光源拥有一张 16384×16384 的阴影贴图，实际只分配被视图可见区域的物理 Page（128×128 像素/Page），大幅降低显存消耗</li>
+            <li><strong>Page Table 管理</strong>：每帧分析哪些 Shadow Page 可见（基于屏幕投影），仅渲染并保留这些 Page 的深度数据；未使用的 Page 不分配物理显存</li>
+            <li><strong>缓存机制（Cache）</strong>：静态几何的 Shadow Page 可跨帧复用（Cached Pages），仅在几何/光源变化时失效重绘，动态物体则每帧更新</li>
+            <li><strong>SMRT 软阴影</strong>：使用 Shadow Map Ray Tracing（SMRT）在 Shadow Page 上沿光方向采样多点，模拟半影区域产生软阴影效果</li>
+          </ul>
+          <strong>与 Cascaded Shadow Map（CSM）的关键差异：</strong>
+          <ul>
+            <li><strong>分辨率均匀性</strong>：CSM 分多级梯形投影，远处分辨率低；VSM 虚拟纹理可在任意距离保持"屏幕像素:Shadow 纹素"约 1:1 映射，消除近/远景质量断层</li>
+            <li><strong>光源数量</strong>：CSM 通常只支持一个方向光；VSM 支持多个动态点光/聚光灯，每个灯独立维护 Page 集合</li>
+            <li><strong>显存可扩展性</strong>：CSM 固定分配 N 级×分辨率²；VSM 按实际可见 Page 动态分配，场景规模无关</li>
+            <li><strong>Nanite 集成</strong>：VSM 的 Page 渲染直接触发 Nanite 的 Software Rasterize 路径，亿级三角形无额外 CPU 开销</li>
+          </ul>
+          <strong>工程代价：</strong>Page 管理、虚拟地址转换的 GPU 计算开销较 CSM 高；对 GPU 内存带宽要求较高；需要 Shader 支持 Indirection Table 查找。
+        </div>
+        <div class="tip-box">💡 <strong>核心思路：</strong>VSM = 虚拟纹理技术应用于 Shadow Map——逻辑大图集 + 物理 Page 按需分配 + 跨帧缓存静态 Page。关键优势：全距离均匀分辨率 + Nanite 深度集成 + 多光源扩展。与 CSM 最大区别是"按视图需求分配分辨率"而非"按距离分级"。</div>
+      </div>
+    </div>
+
+    <!-- Q160 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q160</div>
+        <div style="flex:1">
+          <div class="q-title">GPU Work Graphs（GPU 工作图）是什么？DX12 Ultimate 的 Work Graphs 如何实现 GPU 自主调度工作，摆脱 CPU 的 Draw/Dispatch 依赖？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">前沿</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>传统渲染管线中，GPU 的每一轮工作（Draw/Dispatch）都由 CPU 提交，CPU 必须知道"GPU 上一轮干了什么"才能决定下一步。这在 GPU Driven Rendering 中仍存在：即使是 Indirect Draw，Draw/Dispatch 之间的 Barrier 和参数准备仍需 CPU 参与编排。
+          <br/><br/>
+          <strong>Work Graphs 核心思想（DX12 Ultimate，2023–2024）：</strong>将 GPU 工作组织为有向无环图（DAG），每个 Node 是一个可独立执行的 GPU Kernel。Node 之间通过 GPU 本地信号传递，无需 CPU 介入；GPU 自主根据前驱 Node 的输出（Record 数量）决定后续 Node 的执行。
+          <ul>
+            <li><strong>Record</strong>：Node 之间传递的最小工作单元，每个 Record 包含该次执行的参数（类似 Indirect Draw 的参数），由前驱 Node 在 GPU 端写入</li>
+            <li><strong>Node 类型</strong>：Broadcasting Node（一对多扇出）、Thread Node（普通 Compute）、Coalescing Node（多对一收拢）</li>
+            <li><strong>GPU 自主调度</strong>：GPU 的 Work Graph Scheduler 自动管理 Node 间的依赖、数据流和资源 Barrier，CPU 只提交一次 <code>DispatchGraph</code></li>
+          </ul>
+          <strong>典型应用场景：</strong>
+          <ul>
+            <li><strong>程序化生成</strong>：GPU 自主从粗粒度地形数据细分生成高精度几何，中间层级由 Work Graph Node 链接，无需 CPU 反复提交 Dispatch</li>
+            <li><strong>Material Shading Pipeline</strong>：Classify → Shade → Filter 三阶段在 GPU 内闭环，每阶段的 Shading Rate / 复杂度可动态调节</li>
+            <li><strong>GPU Particle System</strong>：Simulate Node → Cull Node → Compact Node → Draw Node，全链路 GPU 自主完成</li>
+          </ul>
+          <strong>与 ExecuteIndirect 的区别：</strong>ExecuteIndirect 仍需 CPU 预先安排所有 Dispatch（即使参数在 GPU Buffer 中），本质上 CPU 仍知道"会有 N 个 Dispatch"；Work Graphs 的 Dispatch 数量、调度的拓扑结构完全在 GPU 端动态决定，CPU 完全不知情，真正实现"零 CPU 参与"的多轮 GPU 工作流。
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>Work Graphs = GPU 端的"DAG Scheduler"，让 GPU Node 之间直接通过 Record 传递参数和触发执行，彻底摆脱 CPU 对多轮 GPU 工作的编排依赖。面试关键词："Record = GPU 端的工作包"、"Node DAG 取代 CPU 端 Command List"、"DispatchGraph 是唯一的 CPU 入口"。</div>
+      </div>
+    </div>
+
+    <!-- Q161 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q161</div>
+        <div style="flex:1">
+          <div class="q-title">Nanite Cluster 裁剪的完整流程是什么？贡献裁剪（Contribution Culling）/ 背面裁剪 / 小三角形剔除如何在 GPU 上协同工作？软件光栅化的优势是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Nanite Cluster 裁剪流程（全 GPU Compute Shader 实现）：</strong>
+          <ul>
+            <li><strong>① Instance Culling（实例裁剪）</strong>：检查整个 Nanite 实例（如一个建筑）的包围盒是否在视锥体内，快速排除远距离/不可见实例</li>
+            <li><strong>② Cluster LOD 选择</strong>：在 Cluster DAG 上遍历，根据屏幕空间投影误差选择合适 LOD 的 Cluster 组（剪切面），目标：每个 Cluster ≈ 128 三角形，屏幕误差 &lt; 1 像素</li>
+            <li><strong>③ 视锥体裁剪（Frustum Culling）</strong>：对选中的每个 Cluster，用其包围盒（AABB）做视锥体六面测试，快速排除视野外 Cluster</li>
+            <li><strong>④ HZB 遮挡裁剪（Occlusion Culling）</strong>：使用上一帧的 Hierarchical Z-Buffer（HZB），对每个 Cluster 的屏幕空间投影做层级深度测试；如果 Cluster 的最小深度大于 HZB 对应层级的最大深度，则被遮挡，丢弃</li>
+            <li><strong>⑤ 贡献裁剪（Contribution Culling）</strong>：对于投影到屏幕后面积小于 1 像素的 Cluster，跳过；或对完全在屏幕外的 Cluster 排除</li>
+            <li><strong>⑥ 背面裁剪（Backface Culling）</strong>：对 Cluster 内所有三角形计算法线方向，如果全部背向相机则丢弃整个 Cluster</li>
+          </ul>
+          <strong>软件光栅化（Software Rasterization）的核心优势：</strong>
+          <ul>
+            <li><strong>问题</strong>：硬件光栅器在处理亚像素级小三角形时效率极低——三角形面积 &lt; 2 像素时，硬件 ROP 的 2×2 Quad 利用率接近 0%（大量线程空转），且 Overdraw 成本不成比例</li>
+            <li><strong>Nanite 方案</strong>：用 Compute Shader 实现软件光栅化，直接按像素做逐点三角形覆盖测试（Edge Function），对小三角形效率远超硬件；大三角形（&gt; 约 16 像素）仍走硬件光栅化路径</li>
+            <li><strong>两路并行</strong>：同一帧内，Cluster 按三角形大小被分派到 Hardware Raster 路径或 Software Raster 路径，两个 Path 的输出都写入 VisBuffer（Visibility Buffer）</li>
+          </ul>
+          <strong>工程关键：</strong>Nanite 的裁剪不是"先全裁再做 LOD"，而是先 LOD 再裁——错误的 LOD 选择会导致过多或过少的 Cluster 进入裁剪流水线，影响性能。LOD 剪切面的选择依赖上一帧的裁剪结果（Temporal Feedback），实现闭环自适应。
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>Nanite 裁剪 = 实例剔除 → LOD 选择 → 视锥体 → HZB 遮挡 → 贡献 → 背面；软件光栅化解决"亚像素三角形硬件利用率极低"的问题，这是 Nanite 区别于传统 LOD 方案的工程亮点。HZB 裁剪是关键性能加速点（能消除 50%+ 的 Cluster），面试中要强调。</div>
       </div>
     </div>
 
@@ -1432,6 +1543,47 @@
       </div>
     </div>
 
+    <!-- Q160 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q160</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS 3 Frame Generation 原理：光流网络如何插帧？与 DLSS 2 超分辨率有何本质区别？在 Motion Blur / UI 渲染中的工程陷阱？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DLSS 3 与 DLSS 2 核心区别：</strong>
+          <ul>
+            <li><strong>DLSS 2（Super Resolution）</strong>：输入低分辨率当前帧 + 历史帧 + Motion Vector，输出高分辨率单帧；提升分辨率但不增加帧率</li>
+            <li><strong>DLSS 3（Frame Generation）</strong>：在两个真实渲染帧之间插入一帧 AI 生成帧，理论上使帧率翻倍；依赖 Ada Lovelace 架构的 Optical Flow Accelerator（光流加速器）</li>
+          </ul>
+          <strong>Frame Generation 工作原理：</strong>
+          <ol>
+            <li><strong>光流估计</strong>：Optical Flow Accelerator 分析相邻两帧的像素位移，生成稠密光流场（Dense Optical Flow Field）</li>
+            <li><strong>双向扭曲（Bidirectional Warping）</strong>：将前帧和后帧分别沿光流方向扭曲到插帧时刻 t+0.5，混合两次扭曲结果</li>
+            <li><strong>修补网络（Inpainting Network）</strong>：对扭曲产生的空洞（Occlusion、运动边界处）使用小型卷积网络进行修补，保证视觉质量</li>
+            <li><strong>DLSS 超分合并</strong>：生成帧最后也经过 DLSS SR 上采样到目标分辨率</li>
+          </ol>
+          <strong>关键工程陷阱：</strong>
+          <ul>
+            <li><strong>UI/HUD 问题</strong>：UI 元素不参与 Motion Vector，光流无法正确估计其运动；解决方案：将 UI 渲染到单独 Pass，在插帧后叠加（Compositor Layer），而非混入 3D 场景帧</li>
+            <li><strong>运动模糊双倍</strong>：若 Motion Blur 在插帧前已经叠加，插帧网络会将模糊结果再次扭曲，产生异常重影；建议 Motion Blur 在 Frame Generation 之后的 Reflex/Present 阶段施加</li>
+            <li><strong>输入延迟增加</strong>：插入帧本质是预测未来状态，NVIDIA Reflex 配套使用可将延迟控制在可接受范围</li>
+            <li><strong>快速运动伪影</strong>：光流估计在极速旋转/闪烁场景误差大，生成帧可能出现扭曲；需在帧生成置信度低时降权或跳过插帧</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心区分：</strong>DLSS 2 = 空间超分（低分辨率→高分辨率）；DLSS 3 = 时序插帧（真实帧间插 AI 帧）。Frame Generation 的本质是「光流扭曲 + 修补网络」，不是凭空生成内容。工程要点：UI 必须单独合成、Motion Blur 后置、搭配 Reflex 降延迟。</div>
+      </div>
+    </div>
+
     <!-- Q151 -->
     <div class="q-card" onclick="toggle(this)">
       <div class="q-header">
@@ -1477,6 +1629,98 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>关键记忆：</strong>TAA Ghosting 根源 = 历史像素重投影位置错误（Velocity 不准）或内容过时；Neighborhood Clamping 是主要防线但在薄细节/高频纹理处失效；Disocclusion 用 Depth 差异检测并降权历史贡献。TSR 在 UE5 通过精确 Per-Object Velocity + Rejection 机制大幅改善。</div>
+      </div>
+    </div>
+
+    <!-- Q162 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q162</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Lumen 进阶：Radiance Cache 的更新策略是什么？Screen Probe Gather 与 Surface Cache 如何协同工作？Lumen 在室内场景和镜面反射中的局限？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Lumen 的三大组件协同：</strong>
+          <ul>
+            <li><strong>Surface Cache（表面缓存）</strong>：将场景几何的材质属性（Albedo、Normal、Emissive）以 Card 投影或 Mesh Distance Field 方式缓存到低分辨率 Atlas 纹理中；每帧增量更新（只更新脏区域），作为光照计算的输入数据源</li>
+            <li><strong>Radiance Cache（辐射度缓存）</strong>：在世界空间中稀疏采样的 3D Probe Grid，每个 Probe 存储球谐（SH）系数，编码该位置入射 Radiance 的方向分布；解决"Surface Cache 上做 GI 需要大量 Ray Marching 成本高"的问题</li>
+            <li><strong>Screen Probe Gather（屏幕探针收集）</strong>：对屏幕像素做 16×16 的 Tile 分组，每个 Tile 的中心点作为 Screen Probe；对每个 Probe 做半球面采样 Trace（Software/Hardware Ray Tracing），累积到 Probe 的 SH 系数中；相邻 Probe 间做空间降噪 + 时域累积</li>
+          </ul>
+          <strong>Radiance Cache 更新策略：</strong>
+          <ul>
+            <li>采用 Clipmap（环形 Mipmap）结构组织 Probe Grid，相机近处的 Probe 密度高（精细），远处密度低（粗糙）</li>
+            <li>每帧从最精细层开始更新，逐层向外展开（Fine→Coarse）；利用上一帧的粗粒度 Probe 插值初始化新 Probe，加速收敛</li>
+            <li>对静止光照区域（静态场景），Probe 持续累积多帧结果（Persistent Cache），噪声逐渐降低；对动态区域（移动光源/物体），Probe 标记为 Dirty 并优先更新</li>
+          </ul>
+          <strong>Surface Cache → Screen Probe 的工作流：</strong>
+          <ol>
+            <li>Surface Cache 捕获场景的材质外观（Card/Mesh Cards 投影到 Atlas）</li>
+            <li>Radiance Cache（Probe Grid）在世界空间预计算间接光的空间分布（SH 系数）</li>
+            <li>Screen Probe Gather 阶段：对每个屏幕像素，从最近的 Probe Grid 层级中三线性插值 SH 系数 → 根据 Surface Cache 的材质信息计算最终辐照度 → 与直接光照相加</li>
+          </ol>
+          <strong>主要局限：</strong>
+          <ul>
+            <li><strong>室内场景收敛慢</strong>：Lumen 依赖多次光线反弹传播光照能量，室内（如只有一扇小窗的房间）需要大量 Probe 迭代才能收敛，初始帧明显偏暗</li>
+            <li><strong>镜面反射质量低</strong>：Lumen 的 GI 本质上只处理漫反射/低粗糙度间接光，镜面反射/光滑反射（Specular）仍依赖 SSR 或 HW RT Reflection（作为 Lumen Reflections 的补充）</li>
+            <li><strong>半透明物体不支持</strong>：Lumen 的 Card 系统无法正确捕获半透明/粒子类物体的光照贡献</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Lumen = Surface Cache（材质源）+ Radiance Cache（3D Probe SH 缓存）+ Screen Probe Gather（逐像素收集）；关键理解：Lumen 不是物理正确的路径追踪，是"多层级缓存 + 近似"的实时 GI 方案。说清 Probe 更新策略（Clipmap + Fine→Coarse + Persistent Cache）是深度分的关键。</div>
+      </div>
+    </div>
+
+
+    <!-- Q165 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q165</div>
+        <div style="flex:1">
+          <div class="q-title">3D Gaussian Splatting（3DGS）原理：如何从多视角照片重建可实时渲染的辐射场？与传统 NeRF 和 Mesh 渲染的本质区别？在游戏引擎中的集成方案？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">前沿</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>3DGS 核心原理（Kerbl et al., SIGGRAPH 2023）：</strong>用大量各向异性 3D 高斯椭球体（Anisotropic 3D Gaussians，即 Splat）作为场景表示基元，每个高斯包含位置 μ、协方差矩阵 Σ（编码为缩放 S + 旋转 R）、颜色 c（球谐系数编码视角相关颜色）、不透明度 α。渲染时将所有高斯投影到屏幕并做 α-Blending。
+          <br/><br/>
+          <strong>完整管线：</strong>
+          <ol>
+            <li><strong>SfM 初始化</strong>：用 COLMAP 等 Structure-from-Motion 从多视角照片中恢复稀疏点云和相机位姿，作为高斯的初始位置</li>
+            <li><strong>可微光栅化（Differentiable Rasterizer）</strong>：将 3D 高斯投影到各视角，做 α-Blending（类似点云渲染 + 透明度混合），与 GT 照片比较 → 反向传播梯度</li>
+            <li><strong>自适应密度控制（Adaptive Density Control）</strong>：对梯度大但高斯覆盖不足的区域做 Clone/Split 增加高斯数量，对低 α 或过大高斯做 Prune 移除</li>
+            <li><strong>迭代优化</strong>：联合优化高斯参数（位置、协方差、颜色、α），通常 30K 迭代达到高质量</li>
+          </ol>
+          <strong>与 NeRF 对比：</strong>
+          <ul>
+            <li><strong>表示方式</strong>：NeRF = MLP 隐式表示（查询 (x,y,z,θ,ϕ) → (σ,c)）；3DGS = 显式点云+高斯参数</li>
+            <li><strong>渲染速度</strong>：NeRF 每像素需数百次 MLP 查询（~1fps）；3DGS 用 CUDA 光栅化直接混合高斯（>100fps），速度相差 2 个数量级</li>
+            <li><strong>训练速度</strong>：NeRF 需数小时到天级；3DGS 通常 10-30 分钟达到同等质量</li>
+            <li><strong>编辑性</strong>：3DGS 的显式点云便于编辑/删除/变形；NeRF 需额外解耦工作</li>
+          </ul>
+          <strong>游戏引擎集成方案与局限：</strong>
+          <ul>
+            <li><strong>轻量级方案</strong>：将 3DGS 烘焙为 Mesh + 多视角纹理（Mesh Extraction），利用现有渲染管线</li>
+            <li><strong>原生方案</strong>：在引擎 Compute Shader 中实现高斯 Splatting 光栅化（UE5 已有社区插件），但与传统 PBR 管线冲突（无 Normal/材质属性，不支持光照交互）</li>
+            <li><strong>混合管线</strong>：3DGS 用于远景/静态背景 + 传统 PBR 用于可交互近景，分层合成</li>
+            <li><strong>主要局限</strong>：动态物体/变形场景效果差；半透明/反射等效果不如 NeRF；显存占用大（百万级高斯 ≈ 数百 MB）；与游戏引擎物理光照系统不兼容</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>3DGS 三要素：各向异性高斯基元 + 可微光栅化 + 自适应密度控制。与 NeRF 最大区别是"显式 vs 隐式"——3DGS 用可微光栅化替代 MLP 光线积分，速度提升 100×+。游戏引擎落地关键是 "Mesh 烘焙"或"分层管线混合"。</div>
       </div>
     </div>
 
@@ -1995,6 +2239,51 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
       </div>
     </div>
 
+
+    <!-- Q163 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q163</div>
+        <div style="flex:1">
+          <div class="q-title">UE5.5+ MegaLights 随机直接光照技术原理：如何用固定光线预算支持大量动态阴影光源？与传统延迟渲染光照的本质区别是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">前沿</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MegaLights 核心原理（UE 5.5 引入，5.7 正式文档化）：</strong>MegaLights 是一种随机直接光照技术（Stochastic Direct Lighting），核心思路是用固定逐像素光线预算替代逐光源计算，将"光源数量→性能线性增长"翻转为"性能恒定、质量自适应"。
+          <br/><br/>
+          <strong>工作流程：</strong>
+          <ol>
+            <li><strong>重要性采样（Importance Sampling）</strong>：对场景中所有光源做重要性采样，每个像素发射固定数量光线（如 4-8 条）</li>
+            <li><strong>光线引导（Light Guiding）</strong>：向重要光源（对像素贡献大/未被遮挡）发送更多样本，向次要光源（被遮挡/距离远）发送更少样本；定期对被遮挡光源做探测性采样，检测遮挡状态变化</li>
+            <li><strong>贡献累加</strong>：光线击中某光源后，将该光源的 BRDF × Radiance 贡献累加到像素</li>
+            <li><strong>降噪器（Denoiser）</strong>：对随机采样的噪声结果做时空降噪，输出高质量直接光照</li>
+          </ol>
+          <strong>与传统延迟渲染光照的核心区别：</strong>
+          <ul>
+            <li><strong>性能模型反转</strong>：传统延迟渲染 = 恒定光照质量 + 可变性能（光源越多 GPU 开销越大）；MegaLights = 恒定性能开销 + 可变质量（光源越复杂，降噪器压力越大，可能出现模糊/重影）</li>
+            <li><strong>阴影处理</strong>：传统方案每个光源独立产生阴影开销（Shadow Map 渲染）；MegaLights 统一用光线追踪采样，有阴影和无阴影光源开销接近，因此可为所有光源启用阴影</li>
+            <li><strong>取代的功能</strong>：MegaLights 取代了延迟着色 BRDF 求值、阴影贴图距离场阴影、光线追踪阴影、体积雾光源评估等多项传统 Pass</li>
+          </ul>
+          <strong>工程实践要点：</strong>
+          <ul>
+            <li>避免放置影响整个场景的大边界光源（Light Guide 仍需定期探测被遮挡光源）</li>
+            <li>将小光源合并为大面积光源（减少降噪器压力，提高采样效率）</li>
+            <li>定向光源默认禁用，适合月光等柔和光源，不适合尖锐太阳阴影</li>
+            <li>目前仅支持 PS5 / Xbox Series X|S / RTX PC，不支持移动端和上代主机</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>MegaLights = "固定光线预算 + 重要性采样 + 时空降噪"三大支柱，把延迟渲染"逐光源计算→性能爆炸"的瓶颈翻转为"恒定性能→质量自适应"。面试关键词："Stochastic Direct Lighting"、"Light Guiding 光线引导"、"性能恒定质量可变"、"取代多项传统光照 Pass"。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 4. PBR ══ -->
@@ -2279,6 +2568,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <strong>与各向异性 / Clearcoat 的配合：</strong>甲虫翅膀 = 薄膜干涉（颜色虹彩）+ 各向异性（反光方向）+ Clearcoat（光滑表面反光）三者叠加。
         </div>
         <div class="tip-box">💡 <strong>记忆要点：</strong>薄膜干涉 = 极薄透明层上下表面两束反射光的波叠加，颜色随角度/厚度变化。实时渲染核心是"光程差→波长→RGB"这张 LUT，把复杂的波动光学压缩为一次纹理查找。</div>
+      </div>
+    </div>
+
+
+    <!-- Q164 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q164</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Substrate 材质系统原理：如何用可组合的材质图（Material Slab）替代传统固定着色模型？与 Disney Principled BSDF 的本质差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">前沿</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Substrate 核心思想（UE5 实验性功能 → 5.5+ 逐步稳定）：</strong>将传统的"固定着色模型"（如 Default Lit = Lambertian Diffuse + GGX Specular）替换为"可组合的材质图"——Material Slab（材质板），允许在同一材质中混合多种 BSDF 模型，实现物理上更精确的多层材质。
+          <br/><br/>
+          <strong>与传统 Fixed Shading Model 对比：</strong>
+          <ul>
+            <li><strong>传统（Default Lit）</strong>：每种材质类型绑定一个着色模型（SM_DefaultLit / SM_ClearCoat / SM_Subsurface / SM_Hair），切换需要编译不同 Shader 变体；多层材质（如车漆 = 金属基层 + 清漆层 + 灰尘层）需要多层叠加的材质图</li>
+            <li><strong>Substrate</strong>：材质本身由多个 Slab 组成，每个 Slab 定义一种 BSDF 行为（漫反射/镜面反射/透射/体积散射），Slab 之间可按权重混合、按厚度叠加；最终 Shader 将 Slab 图编译为统一的 BSDF 闭包（Closure），在光照计算时统一求值</li>
+          </ul>
+          <strong>Material Slab 的核心概念：</strong>
+          <ul>
+            <li><strong>Slab = BSDF 闭包</strong>：每个 Slab 编码一组光学属性（Albedo、Roughness、F0、Anisotropy、Scattering 等），等价于"一个小型着色模型"</li>
+            <li><strong>Slab 操作</strong>：支持 Layering（垂直叠加，如清漆层盖在金属层上）、Mixing（水平混合，如锈蚀金属 70%+30% 干净金属）、Weighting（动态权重混合，如湿润/干燥渐变）</li>
+            <li><strong>编译时求值（Closure Compilation）</strong>：材质编译阶段将 Slab 图编译为高效 BSDF Closure，运行时无额外分支或动态调度开销</li>
+          </ul>
+          <strong>与 Disney Principled BSDF 的本质差异：</strong>
+          <ul>
+            <li>Disney BSDF：将多种 BSDF 的参数空间收敛为有限参数（Metallic / Roughness / Specular / Sheen / Clearcoat），"一个公式覆盖所有材质"——简洁但无法表达复杂多层光学行为</li>
+            <li>Substrate：不预设"一个公式"，而是让艺术家用 Slab 组合构建所需的光学行为——灵活但需更多美术投入；本质是"可编程 BSDF"</li>
+          </ul>
+          <strong>工程影响：</strong>Substrate 减少了 Shader 变体数量（不需要每种着色模型编译一个变体），但单 Shader 更复杂；Closure 编译增加了材质编译时间；G-Buffer 格式需更新（存储 Slab ID 和混合权重）。
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>Substrate = 材质系统的"可编程化"——从预置着色模型的开关切换，转变为 Material Slab 的可组合图。关键词："Slab = BSDF Closure 闭包"、"Layering/Mixing/Weighting 三种组合方式"、"编译时求值零运行时开销"、"减少 Shader 变体但单 Shader 更复杂"。</div>
       </div>
     </div>
 
@@ -3092,6 +3422,53 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q167 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q167</div>
+        <div style="flex:1">
+          <div class="q-title">Visibility Buffer 渲染架构：与 Deferred Shading / Forward+ 的本质区别？如何在 GPU 端实现材质求值的 Indirection？对移动端 TBDR 架构的优势？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Visibility Buffer 核心思想（最早 Intel 2013 提出，UE5 Nanite 广泛采用）：</strong>Visibility Buffer（VisBuffer）是 G-Buffer 的极简替代方案，仅存储三角形身份信息（Triangle ID + Barycentrics 重心坐标），在后续 Material Pass 中按需从 GPU Buffer 中提取顶点属性计算材质，实现"延迟材质求值"。
+          <br/><br/>
+          <strong>与传统 G-Buffer 对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd;text-align:left">维度</th><th style="padding:8px;border:1px solid #ddd;text-align:left">G-Buffer（传统延迟渲染）</th><th style="padding:8px;border:1px solid #ddd;text-align:left">Visibility Buffer</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">存储内容</td><td style="padding:8px;border:1px solid #ddd">预计算材质属性（BaseColor, Normal, Roughness, Metallic 等）→ 5-8 张 RT</td><td style="padding:8px;border:1px solid #ddd">仅 TriangleID（32bit）+ Barycentrics（2×16bit）= 64bit/像素</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">带宽</td><td style="padding:8px;border:1px solid #ddd">极高（数十到上百字节/像素）</td><td style="padding:8px;border:1px solid #ddd">极低（8 字节/像素），适合移动端和高分辨率</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质求值</td><td style="padding:8px;border:1px solid #ddd">Lighting Pass 使用预计算值，只做 BRDF 积分</td><td style="padding:8px;border:1px solid #ddd">Material Pass 从 TriangleID 反查顶点数据 → 完整计算材质 → 输出至 Material Buffer → Lighting Pass 消费</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质变体</td><td style="padding:8px;border:1px solid #ddd">每种材质组合需要不同 G-Buffer 编码（Shader 变体爆炸）</td><td style="padding:8px;border:1px solid #ddd">统一 VisBuffer 格式，材质逻辑在 Material Pass 中按需执行（极大减少变体）</td></tr>
+          </table>
+          <strong>GPU 端材质 Indirection 流程：</strong>
+          <ol>
+            <li><strong>Visibility Pass</strong>：光栅化所有几何体，输出 64bit VisBuffer（TriangleID + Barycentrics），不做任何材质/纹理采样</li>
+            <li><strong>Classify Pass（可选）</strong>：按材质类型对像素分组，生成 Tile 级别的材质分类表，后续 Pass 按材质批处理处理</li>
+            <li><strong>Material Pass</strong>：对每像素用 TriangleID 索引 Vertex Buffer → 用 Barycentrics 插值得到 UV/Normal 等 → 按材质逻辑采样纹理/计算 → 输出 Material Buffer（BaseColor, Normal, Roughness 等），此时才真正做材质求值</li>
+            <li><strong>Lighting Pass</strong>：消费 Material Buffer，计算光照（与延迟渲染相同）</li>
+          </ol>
+          <strong>对移动端 TBDR 的优势：</strong>
+          <ul>
+            <li><strong>带宽节省</strong>：VisBuffer 仅 8 字节/像素 vs G-Buffer 数十字节，大幅减少 Tile Memory 到主存的回写带宽</li>
+            <li><strong>Overdraw 无害化</strong>：Visibility Pass 只写 TriangleID，着色器极简（无纹理采样），Overdraw 成本极低</li>
+            <li><strong>天然 MSAA 兼容</strong>：VisBuffer 不需要 MRT（多渲染目标），MSAA 开销可控</li>
+          </ul>
+          <strong>工程代价：</strong>Material Pass 的 Indirect 顶点数据访问（从 TriangleID → Vertex Buffer）引入随机访问延迟；需要 Vertex Buffer 常驻 GPU；材质分类/批处理增加了引擎复杂度。
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>VisBuffer = 把材质求值从光栅化阶段推迟到后处理阶段，"以 64bit 换取极低带宽"。关键优势：极简 G-Buffer + 统一格式减少 Shader 变体 + 低 Overdraw 成本。对 TBDR 架构天然友好。Nanite 的 VisBuffer 是本架构的工业级标杆实现。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -3465,6 +3842,50 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>核心价值：</strong>Frame Graph = 声明式渲染架构，三大收益：① 自动 Pass 裁剪（无用 Pass 不执行）；② 自动 Barrier 推导（省掉手写同步的最大坑）；③ Transient Resource Aliasing（VRAM 峰值显著下降）。UE5 RDG 是工业界最成熟实现之一，面试提到它加分。</div>
+      </div>
+    </div>
+
+
+    <!-- Q166 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q166</div>
+        <div style="flex:1">
+          <div class="q-title">Bindless Rendering 无绑定渲染架构：如何用 Descriptor Indexing 消除材质切换时的状态绑定开销？与 GPU Driven Rendering 的协同关系？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">进阶</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>传统渲染架构中，每次 Draw Call 前需将当前材质所需的纹理/Sampler/Buffer 绑定到固定数量的 Shader Resource Slot（如 D3D11 的 t0-t127），切换材质 = 重新绑定 → 大量 CPU 和 GPU 状态切换开销，是 Draw Call 数量爆炸的根源之一。
+          <br/><br/>
+          <strong>Bindless 核心原理：</strong>
+          <ul>
+            <li>将所有纹理、Buffer、Sampler 预上传到一个全局 Descriptor Heap（描述符堆），Shader 通过 32-bit Index（Descriptor Index）直接索引任意资源，不需要运行时绑定/解绑</li>
+            <li>GPU 硬件支持：DX12 Resource Binding Tier 3（Bindless）、Vulkan <code>VK_EXT_descriptor_indexing</code>（2018 年 Vulkan 1.2 核心特性）</li>
+            <li>关键机制：<code>DescriptorIndexing</code> 允许 Shader 用动态 Index 访问任意描述符，例如：<code>Texture2D tex = Textures[materialID * 4 + slotOffset];</code></li>
+          </ul>
+          <strong>与 GPU Driven Rendering 的协同：</strong>
+          <ul>
+            <li><strong>材质切换零开销</strong>：GPU Driven 的 Indirect Draw / Mesh Shader 可在 GPU 端直接携带材质 ID，Shader 内用 ID × Stride 索引正确的纹理集，无需 CPU 预知材质并设置 Descriptor Table</li>
+            <li><strong>Multi-Draw Indirect 真正释放威力</strong>：传统方案 Multi-Draw 受限于"所有 Draw 必须同一 PSO + 同一 Descriptor Set"，Bindless 统一了资源视图 → 不同材质的 Draw 可合并为单次 ExecuteIndirect</li>
+            <li><strong>VisBuffer + Bindless</strong>：Visibility Pass 输出 TriangleID → Material Pass 用 TriangleID 查表获取 MaterialIndex → 用 MaterialIndex 索引 Bindless 纹理数组，全流程无需 CPU 干预</li>
+          </ul>
+          <strong>工程实践要点：</strong>
+          <ul>
+            <li><strong>纹理常驻显存</strong>：所有纹理需预上传到全局 Heap，不适合流式加载（需额外管理 Heap 内部分配/释放）</li>
+            <li><strong>Indirect 访问成本</strong>：Bindless 索引在 Shader 中是动态的（运行时决定 Index），GPU L1 缓存预取困难，连续 Index 访问更友好</li>
+            <li><strong>安全风险</strong>：Shader 内的 Index 越界可能导致 GPU 崩溃或读取无关资源；需在引擎层做严格的 Index 范围验证</li>
+            <li><strong>适用场景</strong>：大量不同材质的小物体（Nanite 场景、粒子系统、UI 渲染）、GPU Driven 管线；不适用于"材质种类少但每材质巨大纹理"的场景</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>Bindless = 全局 Descriptor Heap + 动态 Index 访问 → 消除 CPU 端资源绑定，使 GPU 可自主选择材质纹理。最大价值是与 GPU Driven Rendering 协同：Indirect Draw 内含 MaterialID → Shader 用 Index 直接取纹理 → 全链路零 CPU 资源管理。面试关键词："Descriptor Indexing"、"全局 Heap"、"GPU Driven + Bindless 合并 Draw Call"。</div>
       </div>
     </div>
 
@@ -6807,9 +7228,236 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
-  </section>
 
-</main>
+    <!-- Q168 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q168</div>
+        <div style="flex:1">
+          <div class="q-title">MCP（Model Context Protocol）协议原理：如何标准化 LLM 与外部工具的交互？MCP Server/Client 架构、Transport 机制、与 Function Calling 和 A2A 协议的核心区别？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MCP 核心设计（Anthropic 2024 年底开源，2025-2026 成为 Agent 标准）：</strong>Model Context Protocol 是 LLM 应用与外部工具/数据源之间的标准化通信协议，核心目标是解耦"上下文/工具的提供"与"LLM 的消费"，类比 USB-C 协议统一外设连接。
+          <br/><br/>
+          <strong>三大核心原语（Primitives）：</strong>
+          <ul>
+            <li><strong>Tools（工具）</strong>：MCP Server 暴露的可调用函数，LLM 通过 Tool Call 触发；每个 Tool 有 JSON Schema 定义的参数规格；Server 端执行并返回结构化结果</li>
+            <li><strong>Resources（资源）</strong>：MCP Server 暴露的只读数据源（文件、数据库记录、API 响应等），Client 可订阅资源变更通知（类似文件系统 Watch）</li>
+            <li><strong>Prompts（提示模板）</strong>：Server 预定义的提示模板，支持参数化和多轮对话模板，Client 可发现和调用</li>
+          </ul>
+          <strong>架构模式：</strong>
+          <ul>
+            <li><strong>MCP Host</strong>：LLM 应用本身（如 Claude Desktop、WorkBuddy、VS Code 插件），发起连接请求</li>
+            <li><strong>MCP Client</strong>：Host 内部的协议客户端，管理与 Server 的连接和协议消息</li>
+            <li><strong>MCP Server</strong>：独立进程，实现 Tools/Resources/Prompts，通过 Transport 与 Client 通信</li>
+          </ul>
+          <strong>Transport 机制：</strong>
+          <ul>
+            <li><strong>stdio Transport</strong>：Client 以子进程方式启动 Server，通过 stdin/stdout 传递 JSON-RPC 消息；最简单、适合本地工具</li>
+            <li><strong>HTTP + SSE Transport</strong>：Server 独立运行 HTTP 服务，Client 通过 HTTP POST 发请求，通过 SSE（Server-Sent Events）接收流式响应；支持远程部署和水平扩展</li>
+          </ul>
+          <strong>与 Function Calling 的核心区别：</strong>
+          <ul>
+            <li><strong>Function Calling（OpenAI/Anthropic API 内置）</strong>：LLM 自身的工具调用能力（SFT 训练获得），工具定义嵌入 API 请求的 tools 参数中，每次调用需重新传递工具列表；工具与 LLM 实现绑定在同一进程</li>
+            <li><strong>MCP</strong>：协议层标准化——工具定义与 LLM 解耦，Server 独立部署和管理；Client 启动时自动发现（Discovery）可用工具；支持 Server 端资源订阅和推送通知；解决的是"工具如何标准化注册、发现、调用"的工程问题，与 FC 是互补关系</li>
+          </ul>
+          <strong>MCP vs A2A（Agent-to-Agent Protocol，Google 2025）：</strong>
+          <ul>
+            <li>MCP：解决"LLM ↔ 工具/数据"的连接标准（垂直集成）</li>
+            <li>A2A：解决"Agent ↔ Agent"的通信标准（水平协作），定义 Agent Card（能力描述）、Task（异步任务状态机）、多 Agent 编排；类似 REST API vs gRPC 的关系</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键词：</strong>MCP 三大原语（Tools/Resources/Prompts）→ 与 Function Calling "互补非替代" → Transport 决定部署模式（stdio 本地 / SSE 远程）→ A2A 专注 Agent 间协作。一句话："MCP 是 LLM 的 USB-C 协议，标准化工具连接"。深度分关键：说清 "Discovery 发现机制"和"Resource 订阅推送"。</div>
+      </div>
+    </div>
+
+    <!-- Q169 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q169</div>
+        <div style="flex:1">
+          <div class="q-title">Speculative Decoding（投机解码）原理：如何用小模型加速大模型自回归生成？Draft Model 选择策略、接受率分析、与 Medusa / Eagle 等多头投机方案的对比？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：</strong>大模型自回归生成（Decode 阶段）天然串行——每次只生成一个 Token，依赖前一个 Token 的输出。即使 GPU 算力过剩，Decode 阶段仍是 Memory-Bound（受限于从 HBM 读取权重的带宽），无法通过增加计算并行度加速。
+          <br/><br/>
+          <strong>Speculative Decoding 核心原理（Leviathan et al., ICML 2023 / Chen et al., 2023）：</strong>
+          <ol>
+            <li><strong>Draft 阶段</strong>：用小模型（Draft Model，通常为大模型的 1/10-1/100 参数量）快速自回归生成 K 个候选 Token（通常 K=3-8）</li>
+            <li><strong>Verify 阶段</strong>：大模型（Target Model）一次性并行验证这 K 个 Token——计算 P_target(token_i | prefix_{0:i-1}) 并与 P_draft 对比</li>
+            <li><strong>Accept/Reject</strong>：如果 P_target(token_i) >= P_draft(token_i)，接受该 Token；否则以概率 P_target/P_draft 接受，并重新采样——后续所有未被接受的 Token 丢弃</li>
+            <li><strong>保证输出分布</strong>：Accept/Reject 的采样策略确保最终输出 Token 的分布严格等于大模型自身的分布（无偏差加速）</li>
+          </ol>
+          <strong>Draft Model 选择策略：</strong>
+          <ul>
+            <li><strong>独立小模型</strong>：如用 Llama-68M 草拟 Llama-70B，需要额外显存存放小模型权重；两次模型切换有开销</li>
+            <li><strong>自投机（Self-Speculative）</strong>：大模型自身跳过部分层（Early Exit）作为 Draft Model，无需额外模型，但接受率略低</li>
+            <li><strong>Medusa（多头投机）</strong>：在大模型最后一层加多个独立预测头（Medusa Heads），每个 Head 预测下一个不同位置的 Token，一次前向生成多个候选 → 并行验证；不需要 Draft Model</li>
+            <li><strong>Eagle / Eagle-2</strong>：在大模型顶层加一个轻量自回归解码器，用 Feature-Level 信息（非 Token-Level）预测后续 Token，接受率更高（通常 0.7-0.85）</li>
+          </ul>
+          <strong>接受率与加速比：</strong>
+          <ul>
+            <li>理论加速比 = (1 + α·K) / (γ + 1)，其中 α 为平均接受率，K 为草拟长度，γ 为 Draft Model 相对大模型的计算开销比</li>
+            <li>实际典型值：Draft Model 接受率 0.7-0.8，K=5，加速 2-3×；Eagle-2 可达到 4×</li>
+            <li>局限：Draft 和 Target 分布差距越大 → 接受率越低 → 加速越小；不适合创意写作等高熵任务</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Speculative Decoding = Draft → Verify → Accept/Reject 三步，保证无损加速（输出分布等价于大模型）。关键区分：独立 Draft Model（额外显存）、Self-Speculative（无额外模型）、Medusa/Eagle（多头预测）。接受率取决于两个模型输出分布的 KL 散度。典型加速 2-4×。</div>
+      </div>
+    </div>
+
+    <!-- Q170 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q170</div>
+        <div style="flex:1">
+          <div class="q-title">Continuous Batching（连续批处理）原理：如何解决传统静态批处理 GPU 利用率低的问题？与 PagedAttention 的协同机制？在 vLLM/TensorRT-LLM 中的实现差异？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统静态批处理的问题：</strong>
+          <ul>
+            <li>等所有请求凑满一个 Batch 再一起推理（"等人发车"模式），新请求需等待当前 Batch 全部完成</li>
+            <li>请求生成长度差异大：短请求（如"是/否"）提前完成，但 GPU 必须等待同 Batch 内最长请求（如生成长文）也完成才能释放——GPU 大量空闲周期</li>
+            <li>显存碎片化：KV Cache 按最长序列预分配，短请求的未用空间浪费</li>
+          </ul>
+          <strong>Continuous Batching 原理（Orca / vLLM 2022-2023）：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：类比地铁到站上下客——每轮 Decode 后，完成的请求"下车"（释放 KV Cache），新请求"上车"（插入 Batch），GPU 保持满载</li>
+            <li><strong>Iteration-Level Scheduling</strong>：调度粒度从"请求级"降为"迭代级"，每个 Decode Step 后检查是否有完成的请求并及时替换</li>
+            <li><strong>与 PagedAttention 协同</strong>：KV Cache 分页管理（PagedAttention）是 Continuous Batching 的基础——页式 KV Cache 允许动态分配/释放物理页，消除碎片；完成的请求立即释放物理页，新请求无缝复用</li>
+            <li><strong>Chunked Prefill</strong>：长序列的 Prefill（首次全量计算）拆分为多个 Chunk，与 Decode 请求交错调度，避免单个长 Prefill 阻塞所有 Decode</li>
+          </ul>
+          <strong>vLLM vs TensorRT-LLM 实现差异：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd;text-align:left">维度</th><th style="padding:8px;border:1px solid #ddd;text-align:left">vLLM</th><th style="padding:8px;border:1px solid #ddd;text-align:left">TensorRT-LLM</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">核心技术</td><td style="padding:8px;border:1px solid #ddd">PagedAttention + Continuous Batching + Prefix Cache</td><td style="padding:8px;border:1px solid #ddd">In-flight Batching（IFB）+ 量化 + CUDA Graph + 并行策略</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">调度粒度</td><td style="padding:8px;border:1px solid #ddd">Python/CPP 调度器，较灵活但开销略高</td><td style="padding:8px;border:1px solid #ddd">C++ Runtime + CUDA Graph 固化执行路径，开销极低</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">易用性</td><td style="padding:8px;border:1px solid #ddd">OpenAI 兼容 API，pip install 即用</td><td style="padding:8px;border:1px solid #ddd">需模型转换（Build Engine）、C++ API，工程复杂度高</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">性能</td><td style="padding:8px;border:1px solid #ddd">通用场景优秀，灵活性和性能平衡好</td><td style="padding:8px;border:1px solid #ddd">极致 GPU 利用率，NVIDIA 硬件最优性能</td></tr>
+          </table>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键词：</strong>Continuous Batching = "请求级→迭代级调度" + "随到随走"。核心依赖 PagedAttention 的页式 KV Cache 管理消除碎片。说清 Chunked Prefill（长 Prefill 分块与 Decode 交错）是关键深度。vLLM "开箱即用" vs TensorRT-LLM "极致性能但复杂"——按场景选型。</div>
+      </div>
+    </div>
+
+    <!-- Q171 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q171</div>
+        <div style="flex:1">
+          <div class="q-title">大模型量化全攻略：GPTQ / AWQ / SmoothQuant 的核心原理与差异？KV Cache 量化的必要性？生产环境如何选择量化策略并评估精度损失？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>量化的本质：</strong>将模型权重从高精度（FP16/BF16）降至低精度（INT8/INT4），减少显存占用和内存带宽压力。大模型 Decode 阶段是 Memory-Bound（每次前向主要时间花在从显存读取权重），权重精度减半 → 带宽需求减半 → 理论加速 2×。
+          <br/><br/>
+          <strong>主流量化方法对比：</strong>
+          <ul>
+            <li><strong>GPTQ（Frantar et al., 2022）</strong>：离线后训练量化（Post-Training Quantization），逐列量化权重矩阵，用 Optimal Brain Quantization（OBQ）算法补偿每一列的量化误差到未量化列；需要校准数据集（128-1024 样本）；支持 INT4/INT8；精度保持较好，是目前最广泛使用的权重量化方案</li>
+            <li><strong>AWQ（Lin et al., 2023）</strong>：激活感知权重量化（Activation-Aware），核心观察：权重矩阵中仅 ~1% 的通道承载了大部分激活值（Salient Channels），保护这些重要通道不变，其他通道激进量化；无需反向传播，速度比 GPTQ 快；INT4 下精度接近 FP16</li>
+            <li><strong>SmoothQuant（Xiao et al., 2023）</strong>：权重+激活联合量化（W8A8），解决激活值难量化的核心问题——激活值中有系统性离群值（Outlier），通过数学等价变换将量化难度从激活侧平滑迁移到权重侧：激活 × 权重 = (激活 × diag(s)) × (diag(s⁻¹) × 权重)；平滑因子 s 通过校准数据自动计算；支持 INT8 权重 + INT8 激活，适合需要同时量化权重和激活的场景</li>
+          </ul>
+          <strong>KV Cache 量化：</strong>
+          <ul>
+            <li><strong>必要性</strong>：长上下文推理中 KV Cache 增长极快——128K 上下文 + 高并发 → KV Cache 可达数百 GB，超过模型权重占用的显存；KV Cache 量化（INT8/FP8）可将 KV Cache 显存减半</li>
+            <li><strong>实现</strong>：对每层/每 Head 的 K 和 V 分别做 Per-Channel/Per-Token 量化，Key 对量化更敏感（影响 Attention Score 精度）</li>
+            <li><strong>典型方案</strong>：vLLM 的 FP8 KV Cache（需 H100 等支持 FP8 的 GPU）、KIVI（Key-Value 独立量化策略）</li>
+          </ul>
+          <strong>生产环境选型策略：</strong>
+          <ul>
+            <li><strong>严肃生产（准确率优先）</strong>：FP16/BF16 或 INT8 权重量化（W8A16），精度损失 < 0.5%</li>
+            <li><strong>部署成本敏感</strong>：INT4 权重量化（AWQ/GPTQ）+ FP16 KV Cache，精度损失 2-5%，推理吞吐提升 2-3×</li>
+            <li><strong>长上下文+高并发</strong>：优先 KV Cache 量化（FP8/INT8），其次考虑权重量化</li>
+            <li><strong>评估方法</strong>：用业务数据集做端到端评测（不能只看 Perplexity 下降，必须看下游任务指标）；代码/数学/长上下文场景量化损失最明显</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心区分：</strong>GPTQ = 逐列补偿误差（慢但稳）；AWQ = 保护重要通道（快且精度高）；SmoothQuant = 激活-权重联合量化（解决激活离群值）。生产选型口诀："严肃场景 W8A16、成本敏感 INT4 AWQ、长上下文专攻 KV Cache 量化"。量化必须做业务评测，不能只看 Perplexity。</div>
+      </div>
+    </div>
+
+    <!-- Q172 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q172</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 推理框架选型：vLLM / TensorRT-LLM / SGLang / TGI / LMDeploy 的核心定位与适用场景？如何根据瓶颈（吞吐/延迟/显存/成本）选择优化方案？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>五大主流推理框架定位：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd;text-align:left">框架</th><th style="padding:8px;border:1px solid #ddd;text-align:left">核心定位</th><th style="padding:8px;border:1px solid #ddd;text-align:left">核心技术</th><th style="padding:8px;border:1px solid #ddd;text-align:left">最适合场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>vLLM</strong></td><td style="padding:8px;border:1px solid #ddd">通用高吞吐在线推理服务</td><td style="padding:8px;border:1px solid #ddd">PagedAttention、Continuous Batching、Prefix Cache、OpenAI 兼容 API</td><td style="padding:8px;border:1px solid #ddd">在线 API 服务、多模型部署、快速原型到生产</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>TensorRT-LLM</strong></td><td style="padding:8px;border:1px solid #ddd">极致 NVIDIA GPU 性能</td><td style="padding:8px;border:1px solid #ddd">In-flight Batching、INT4/INT8/FP8 量化、Tensor Parallelism/Pipeline Parallelism、CUDA Graph</td><td style="padding:8px;border:1px solid #ddd">高并发在线服务、延迟敏感场景、NVIDIA 生态深度优化</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>SGLang</strong></td><td style="padding:8px;border:1px solid #ddd">结构化生成与复杂 Agent 场景</td><td style="padding:8px;border:1px solid #ddd">RadixAttention（Radix Tree Prefix Cache）、Constrained Decoding、SGLang DSL（结构化生成语言）</td><td style="padding:8px;border:1px solid #ddd">Agent 多轮推理、JSON Schema 生成、多模态 LLM</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>TGI</strong></td><td style="padding:8px;border:1px solid #ddd">Hugging Face 生态集成</td><td style="padding:8px;border:1px solid #ddd">Continuous Batching、Flash/Paged Attention、Watermarking、监控与分布式追踪</td><td style="padding:8px;border:1px solid #ddd">HuggingFace 模型直接部署、研究和实验环境</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>LMDeploy</strong></td><td style="padding:8px;border:1px solid #ddd">国产模型与信创环境</td><td style="padding:8px;border:1px solid #ddd">TurboMind 推理引擎、INT4 W4A16 量化、持久化批处理、国产 GPU 适配（昇腾/寒武纪）</td><td style="padding:8px;border:1px solid #ddd">Qwen/InternLM 等国产模型、信创环境部署</td></tr>
+          </table>
+          <strong>根据瓶颈选择优化方案的决策树：</strong>
+          <ul>
+            <li><strong>模型单卡放不下</strong> → 量化（INT8/INT4 权重 + FP8 KV Cache）/ 张量并行（Tensor Parallelism）/ 流水线并行（Pipeline Parallelism）/ Offload（CPU/SSD）</li>
+            <li><strong>模型能放下但吞吐不够</strong> → Continuous Batching / 数据并行（多卡多实例）/ Prefix Cache / Chunked Prefill</li>
+            <li><strong>单请求延迟太高（TTFT 首 Token 慢）</strong> → Chunked Prefill / Prefix Cache / FlashAttention / Speculative Decoding</li>
+            <li><strong>单请求延迟太高（TPOT 后续 Token 慢）</strong> → KV Cache 优化 / 量化 / Tensor Parallelism / Speculative Decoding</li>
+            <li><strong>显存不够（OOM）</strong> → 权重量化 + KV Cache 量化 / PagedAttention / Offload / 多卡张量并行</li>
+            <li><strong>成本太高</strong> → 小模型路由（用弱模型过滤简单请求）/ 蒸馏 / 业务降级（减少上下文、降低生成长度）</li>
+          </ul>
+          <strong>评估指标（不能只看平均延迟）：</strong>
+          <ul>
+            <li><strong>TTFT</strong>（Time to First Token）：首 Token 延迟，影响用户体验的"响应感"</li>
+            <li><strong>TPOT</strong>（Time per Output Token）：后续 Token 平均生成时间，影响"生成速度感"</li>
+            <li><strong>P50/P95/P99 尾延迟</strong>：长尾请求是线上体验的主要痛点</li>
+            <li><strong>吞吐量</strong>（Tokens/s）、<strong>显存利用率</strong>、<strong>失败率</strong>、<strong>每千 Token 成本</strong></li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试框架（30 秒回答模板）：</strong>"大模型加速我先拆瓶颈 → Prefill 慢（首 Token）：减少上下文/Prefix Cache/Chunked Prefill/FlashAttention；Decode 慢（生成速度）：KV Cache 管理/PagedAttention/量化/Speculative Decoding；显存不够：INT8/INT4 量化+KV Cache 量化/Offload/多 GPU 并行；吞吐不够：Continuous Batching/数据并行。生产要同时看 TTFT、TPOT、吞吐、P95/P99、显存和成本。"</div>
+      </div>
+    </div>
+
+  </section>
 
 <script>
   function toggle(card) {
