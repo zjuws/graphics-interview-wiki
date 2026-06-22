@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">250+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">260+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -807,6 +807,54 @@
           <strong>工程关键：</strong>Nanite 的裁剪不是"先全裁再做 LOD"，而是先 LOD 再裁——错误的 LOD 选择会导致过多或过少的 Cluster 进入裁剪流水线，影响性能。LOD 剪切面的选择依赖上一帧的裁剪结果（Temporal Feedback），实现闭环自适应。
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>Nanite 裁剪 = 实例剔除 → LOD 选择 → 视锥体 → HZB 遮挡 → 贡献 → 背面；软件光栅化解决"亚像素三角形硬件利用率极低"的问题，这是 Nanite 区别于传统 LOD 方案的工程亮点。HZB 裁剪是关键性能加速点（能消除 50%+ 的 Cluster），面试中要强调。</div>
+      </div>
+    </div>
+
+    <!-- Q173 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q173</div>
+        <div style="flex:1">
+          <div class="q-title">GPU Occupancy / Wavefront 利用率与延迟隐藏策略：为什么 Compute Shader 的线程组大小（Thread Group Size）影响性能？如何计算理论 Occupancy？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心概念：</strong>
+          <ul>
+            <li><strong>Warp / Wavefront</strong>：GPU 的最小调度单元。NVIDIA 一个 Warp = 32 线程，AMD 一个 Wavefront = 64 线程（GCN/RDNA）或 32 线程（RDNA3 双发射模式下视为 Wave32）</li>
+            <li><strong>Occupancy（占用率）</strong>：SM/CU 上活跃 Warp 数 ÷ 最大可支持 Warp 数。高 Occupancy 意味着 GPU 有更多可切换执行的 Warp，更容易隐藏内存延迟</li>
+            <li><strong>延迟隐藏（Latency Hiding）</strong>：当一个 Warp 等待内存读取（通常 200-800 周期），GPU 调度器立即切换到另一个就绪的 Warp 继续执行。Occupancy 越高，可供切换的 Warp 越多，隐藏延迟能力越强</li>
+          </ul>
+          <strong>线程组大小如何影响 Occupancy：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">因素</th><th style="padding:8px;border:1px solid #ddd">影响机制</th><th style="padding:8px;border:1px solid #ddd">典型问题</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>寄存器（VGPR）</strong></td><td style="padding:8px;border:1px solid #ddd">每个线程使用的寄存器数 × 线程组大小 ÷ 波前大小 = 每 Warp 寄存器数。SM 的寄存器文件（Register File）大小有限</td><td style="padding:8px;border:1px solid #ddd">寄存器用量过大会限制同时驻留的 Warp 数，降低 Occupancy（寄存器压力 / Register Pressure）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>共享内存（LDS / Shared Memory）</strong></td><td style="padding:8px;border:1px solid #ddd">每个线程组的 Shared Memory 分配量被所有线程共享</td><td style="padding:8px;border:1px solid #ddd">Shared Memory 用量过大会限制 SM 上同时驻留的线程组数</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Wave 粒度</strong></td><td style="padding:8px;border:1px solid #ddd">线程组必须能被划分为整数个 Wave。NVIDIA 建议线程组大小 ≥ 128（至少 4 个 Warp）</td><td style="padding:8px;border:1px solid #ddd">线程组太小（如 32 = 单 Warp）浪费了 Warp 级别的切换机会</td></tr>
+          </table>
+          <strong>Occupancy 计算公式（NVIDIA）：</strong>
+          <ul>
+            <li><code>Occupancy = Active Warps per SM / Max Warps per SM</code></li>
+            <li>Active Warps = min(Warps limited by registers, Warps limited by shared memory, Warps limited by thread block slots) × thread blocks per SM</li>
+            <li><strong>实践：用 NVIDIA Nsight Compute / AMD RGP 查看 Occupancy</strong>，低于 50% 需分析是否触发寄存器或 Shared Memory 瓶颈</li>
+          </ul>
+          <strong>关键权衡（Occupancy vs Latency Hiding）：</strong>
+          <ul>
+            <li><strong>高 Occupancy ≠ 最高性能</strong>：每个 Warp 分配的寄存器减少，可能导致更多 spill（溢出到显存），反而降低性能</li>
+            <li><strong>Memory-Bound 任务</strong>：优先提高 Occupancy 以隐藏延迟</li>
+            <li><strong>Compute-Bound 任务</strong>：Occupancy 中等即可（如 50%），优先保证每个线程有足够寄存器做计算</li>
+            <li><strong>最佳实践</strong>：线程组大小优先选 128 或 256（NVIDIA），或 64（AMD）；在 Nsight Compute 中同时看 Occupancy 和 Stall Reasons（Long Scoreboard / LG Throttle 等）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>说清楚三要素——寄存器（VGPR）、共享内存（LDS）、线程组大小（Thread Group Size）如何共同影响 Occupancy。加上 "Memory-Bound 提 Occupancy，Compute-Bound 提寄存器" 的判断，面试官知道你真调过 Compute Shader 性能。</div>
       </div>
     </div>
 
@@ -1721,6 +1769,55 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>3DGS 三要素：各向异性高斯基元 + 可微光栅化 + 自适应密度控制。与 NeRF 最大区别是"显式 vs 隐式"——3DGS 用可微光栅化替代 MLP 光线积分，速度提升 100×+。游戏引擎落地关键是 "Mesh 烘焙"或"分层管线混合"。</div>
+      </div>
+    </div>
+
+    <!-- Q174 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q174</div>
+        <div style="flex:1">
+          <div class="q-title">Shader Execution Reordering（SER）原理：NVIDIA Ada Lovelace 架构如何通过线程重排序解决光线追踪中的线程发散（Divergence）问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>线程发散（Thread Divergence）问题：</strong>
+          <ul>
+            <li>GPU 以 Warp（32 线程）为单位执行，同一 Warp 内的线程共享指令指针（SIMT 模型）</li>
+            <li>当 Warp 内线程走不同分支（如光线击中不同材质），GPU 必须串行执行每个分支，未走该分支的线程被屏蔽（masked out），称为 Divergence</li>
+            <li>在光线追踪中尤其严重：同一 Warp 的光线可能击中金属/玻璃/漫反射材质，触发的着色器完全不同，分支发散度极高</li>
+          </ul>
+          <strong>SER（Shader Execution Reordering）核心原理：</strong>
+          <ul>
+            <li><strong>硬件级重新调度</strong>：在 Hit Shader 执行之前，SER 硬件单元将所有活跃光线按命中材质/着色器类型重新分组到新的 Warp 中</li>
+            <li><strong>分组键（Sorting Key）</strong>：开发者通过 DXR 1.1 API 指定分组维度，如 <code>HitGroupShaderIndex</code>（材质类型）、<code>InstanceIndex</code>（几何体）</li>
+            <li><strong>重排序发生在 TraceRay 调用点</strong>：光线发射后、Hit Shader 执行前，SER 硬件缓冲一批光线调用，重新分组后再提交执行</li>
+            <li><strong>与 CPU 上的 Coherent Ray Tracing 不同</strong>：CPU 方案是先排序光线方向以提升缓存局部性；SER 是排序着色阶段，目标是减少线程发散</li>
+          </ul>
+          <strong>SER 的性能收益：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">场景类型</th><th style="padding:8px;border:1px solid #ddd">SER 关闭</th><th style="padding:8px;border:1px solid #ddd">SER 开启</th><th style="padding:8px;border:1px solid #ddd">加速比</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">简单场景（单一材质）</td><td style="padding:8px;border:1px solid #ddd">基准</td><td style="padding:8px;border:1px solid #ddd">±0%</td><td style="padding:8px;border:1px solid #ddd">无收益（本身就一致）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">典型游戏场景</td><td style="padding:8px;border:1px solid #ddd">基准</td><td style="padding:8px;border:1px solid #ddd">+20-30%</td><td style="padding:8px;border:1px solid #ddd">中等收益</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">极端发散场景（Incoherent rays）</td><td style="padding:8px;border:1px solid #ddd">基准</td><td style="padding:8px;border:1px solid #ddd">+2-3×</td><td style="padding:8px;border:1px solid #ddd">大幅提升</td></tr>
+          </table>
+          <strong>工程实践要点：</strong>
+          <ul>
+            <li><strong>API 使用</strong>：在 DXR 1.1 的 <code>TraceRayInline</code>（Inline Ray Tracing）或 <code>TraceRay</code> + <code>ShaderRecord</code> 中通过 <code>NVAPI</code> 扩展启用 SER</li>
+            <li><strong>排序键选择</strong>：最佳实践是按 <code>HitGroupIndex</code>（材质/着色器种类）排序；按几何体或实例排序也能减少资源访问发散</li>
+            <li><strong>代价</strong>：SER 本身有缓冲和排序的硬件开销，简单场景反而可能轻微负收益</li>
+            <li><strong>仅 Ada Lovelace+（RTX 40 系列）支持</strong>，Ampere（RTX 30）不支持 SER 硬件单元</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键词：</strong>SER 解决了光线追踪着色阶段线程发散的根本瓶颈。核心理解："Warp 内光线跟不同材质走到不同 Shader → 串行执行浪费 GPU 算力 → SER 硬件在着色前重新分组相似光线 → 同材质光线聚合到同一 Warp → 大幅减少分支发散"。</div>
       </div>
     </div>
 
@@ -2974,6 +3071,55 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q175 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q175</div>
+        <div style="flex:1">
+          <div class="q-title">Distance Field Soft Shadow 与 Contact Shadow 的原理和适用场景？如何与传统 Shadow Map 混合使用？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Distance Field Soft Shadow（SDF 距离场软阴影）：</strong>
+          <ul>
+            <li><strong>原理</strong>：对场景中每个位置预计算到最近几何表面的 Signed Distance Field（有符号距离场），光线步进（Ray Marching）时利用 SDF 值作为安全步长，同时记录光线到场景的最短距离</li>
+            <li><strong>半影计算</strong>：在光线步进过程中，维护一个最小 "锥体半影比"（Cone Penumbra Ratio）——光线到遮挡物的最近距离 ÷ 光线到光源方向行进的步长，R 越小阴影越硬</li>
+            <li><strong>优势</strong>：不依赖 Shadow Map 分辨率，任意距离都能保持柔和过渡；适合大范围环境光遮蔽和方向光软阴影</li>
+            <li><strong>劣势</strong>：SDF 构建有内存和预处理成本（通常用稀疏体素或 Clipmap）；薄几何体和尖锐特征会被 SDF 平滑掉</li>
+          </ul>
+          <strong>Contact Shadow（接触阴影）：</strong>
+          <ul>
+            <li><strong>原理</strong>：在屏幕空间对每个像素沿光源方向做短距离光线追踪（Screen-Space Ray Tracing），检测像素附近是否有遮挡物</li>
+            <li><strong>关键参数</strong>：追踪距离通常很短（0.1-1 米世界空间），只补充 Shadow Map 缺失的近场细节</li>
+            <li><strong>优势</strong>：零预处理成本，自动捕获所有几何细节（包括动态物体、粒子），解决 Shadow Map 分辨率不足导致的近场阴影缺失（Peter Panning 和 Shadow Acne）</li>
+            <li><strong>劣势</strong>：屏幕空间限制——看不到屏幕外的遮挡物；光线采样有噪声，需时域滤波</li>
+          </ul>
+          <strong>混合策略（UE5 Lumen Shadow 设计）：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">距离</th><th style="padding:8px;border:1px solid #ddd">使用技术</th><th style="padding:8px;border:1px solid #ddd">解决什么问题</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>近场（&lt; 0.5m）</strong></td><td style="padding:8px;border:1px solid #ddd">Screen-Space Contact Shadow</td><td style="padding:8px;border:1px solid #ddd">Shadow Map 分辨率不足导致的自遮挡缺失、小几何体阴影消失</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>中距离（0.5m-50m）</strong></td><td style="padding:8px;border:1px solid #ddd">Virtual Shadow Map（VSM）+ 高分辨率页面</td><td style="padding:8px;border:1px solid #ddd">核心阴影质量，高分辨率 Shadow Map 页面随相机动态分配</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>远场（50m+）</strong></td><td style="padding:8px;border:1px solid #ddd">SDF 距离场阴影 / Far Field Cached Shadow</td><td style="padding:8px;border:1px solid #ddd">远距离 VSM 页面分辨率不足，SDF 提供恒定质量的柔和阴影</td></tr>
+          </table>
+          <strong>工程实践要点：</strong>
+          <ul>
+            <li><strong>Contact Shadow 性能</strong>：每像素 4-8 步屏幕空间光线追踪，在 PS5/XSX 上约 0.3-0.5ms；步长自适应（离相机越远步长越大）</li>
+            <li><strong>SDF 存储</strong>：UE5 使用全局 SDF（稀疏 Clipmap 体素 + Mesh Distance Field），分辨率和精度随距离衰减</li>
+            <li><strong>组合阴影</strong>：最终阴影 = min(Shadow Map, Contact Shadow, SDF Shadow)，取最暗值</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键词：</strong>"近场 Contact Shadow 补细节、中场 VSM 担主力、远场 SDF 保稳定"——三级阴影混合策略是 UE5 的标准方案。能讲出三种技术各自的适用距离和性能特征，面试官就知道你理解了现代游戏引擎阴影系统设计。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -3225,6 +3371,56 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q176 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q176</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS Ray Reconstruction（RR）与传统降噪器（NRD）的本质区别是什么？为何光线追踪需要专门的 AI 降噪方案？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>光线追踪降噪的核心挑战：</strong>
+          <ul>
+            <li>实时光线追踪每像素仅发射 1-4 条光线（Path Tracing 需要数百条），结果充满噪声</li>
+            <li>传统时域降噪器（NRD/NRD ReLAX 等）基于启发式规则处理：时域累积 → 空间滤波 → 信号保留判断</li>
+            <li>启发式方法在复杂场景中容易过度模糊纹理细节或残留噪声——因为判断 "什么是噪声、什么是细节" 是病态问题</li>
+          </ul>
+          <strong>DLSS Ray Reconstruction 核心原理：</strong>
+          <ul>
+            <li><strong>端到端神经网络</strong>：输入是含噪的原始光线追踪输出（反射/GI/阴影）+ G-Buffer（Normal、Albedo、Depth）+ 时域信息（Motion Vector），输出是直接可用的高质量光照结果</li>
+            <li><strong>超分辨+降噪融合</strong>：RR 不只是降噪——它同时做超分辨（类似 DLSS SR）和光照重建。在 Ada Lovelace+ GPU 上，RR 与 DLSS Super Resolution 共享 CNN/Transformer 网络权重的训练阶段</li>
+            <li><strong>训练数据</strong>：用离线 Path Tracing 渲染的 Ground Truth 监督（相当于每像素数千条光线的结果），让网络学习 "从 1spp 噪声推断真实光照分布" 的映射</li>
+            <li><strong>与传统降噪器对比</strong>：传统方法是 "规则驱动的去噪"（基于像素邻域和时域的统计），RR 是 "数据驱动的重建"（基于大量训练学到的光照模式）</li>
+          </ul>
+          <strong>Ray Reconstruction vs NRD 差异：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">传统降噪器（NRD）</th><th style="padding:8px;border:1px solid #ddd">DLSS Ray Reconstruction</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">方法</td><td style="padding:8px;border:1px solid #ddd">启发式算法（时域累积+空间滤波+信号分析）</td><td style="padding:8px;border:1px solid #ddd">端到端神经网络（CNN/Transformer）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">细节保留</td><td style="padding:8px;border:1px solid #ddd">高频纹理易被模糊（Normal/Depth 判断信号真伪）</td><td style="padding:8px;border:1px solid #ddd">能重建被噪声掩盖的纹理细节（从训练中学会了纹理模式）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">鬼影（Ghosting）</td><td style="padding:8px;border:1px solid #ddd">依赖于 Disocclusion 检测和时域信任度（Clamping），运动剧烈时仍有鬼影</td><td style="padding:8px;border:1px solid #ddd">网络自身学习时域关联，鬼影显著减少</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">性能</td><td style="padding:8px;border:1px solid #ddd">纯 Compute Shader，约 1-2ms</td><td style="padding:8px;border:1px solid #ddd">需 Tensor Core，约 1-2ms（与超分共享部分计算）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">硬件要求</td><td style="padding:8px;border:1px solid #ddd">所有支持 Compute Shader 的 GPU</td><td style="padding:8px;border:1px solid #ddd">NVIDIA RTX 20+（需 Tensor Core），DLSS 3.5+</td></tr>
+          </table>
+          <strong>工程实践：</strong>
+          <ul>
+            <li>RR 在《赛博朋克 2077》《心灵杀手 2》中已应用，反射和全局光照质量显著提升</li>
+            <li>输入信号包括：Diffuse Albedo、Specular Albedo、Normal、Depth、Motion Vector、含噪光照</li>
+            <li>RR 输出直接替代整个后处理光照通道，无需再跑传统降噪器</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>"传统降噪用规则，RR 用学习"——前者在复杂情况下分不清噪声和细节，后者从海量训练数据中学会了光照分布模式。关键词："端到端重建而非去噪"、"超分+降噪融合"、"Tensor Core 加速"。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -3469,6 +3665,64 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q177 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q177</div>
+        <div style="flex:1">
+          <div class="q-title">Visibility Buffer vs Deferred Shading 在材质复杂度爆炸场景下的性能对比：为什么说 Visibility Buffer 更适合现代 Nanite 风格管线？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Deferred Shading 在材质爆炸时代的困境：</strong>
+          <ul>
+            <li>传统 G-Buffer 存储 <code>BaseColor / Normal / Roughness / Metallic</code> 等完整材质参数，每个像素固定 G-Buffer 布局（如 GBufferA=BaseColor+Metallic, GBufferB=Normal+Roughness）</li>
+            <li>当材质种类急剧增加（UE5 Nanite 场景可能单帧数千种材质），G-Buffer 布局成为瓶颈：所有材质被迫使用最大公约数的 G-Buffer 通道组合，清洁材质浪费金属/粗糙度通道，各向异性材质又不够用</li>
+            <li>Deferred Shading 的 Light Pass 需读取所有 G-Buffer 纹理，材质越多带宽浪费越严重</li>
+          </ul>
+          <strong>Visibility Buffer（可见性缓冲区）核心原理：</strong>
+          <ul>
+            <li>G-Buffer 只存最少信息：<strong>TriangleID + PrimitiveID + InstanceID + Barycentric Coordinates</strong>（约 128 bits/pixel）</li>
+            <li>材质求值推迟到光源着色阶段：Light Pass 时通过 Visibility Buffer 中存储的 ID 查表获取三角形和材质数据，在 GPU 端通过间接索引（Indirection）获取Vertex Buffer → Material Parameters → Textures</li>
+            <li>每个像素按需加载自己材质需要的参数，不受 G-Buffer 固定布局限制</li>
+            <li>与 Nanite 天然协同：Nanite 的 Cluster Based Rendering 天然拥有 TriangleID 和材质映射，Visibility Buffer 直接利用这些信息</li>
+          </ul>
+          <strong>对比表格：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Deferred Shading（G-Buffer）</th><th style="padding:8px;border:1px solid #ddd">Visibility Buffer</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">G-Buffer 大小</td><td style="padding:8px;border:1px solid #ddd">~160-256 bits/pixel（4-6 RT）</td><td style="padding:8px;border:1px solid #ddd">~96-128 bits/pixel（2-3 RT + 深度）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">带宽（单帧 G-Buffer 读取）</td><td style="padding:8px;border:1px solid #ddd">全屏 × 160 bits → 高带宽压力</td><td style="padding:8px;border:1px solid #ddd">全屏 × 128 bits → 减少约 20-40%</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质灵活性</td><td style="padding:8px;border:1px solid #ddd">固定通道布局，材质参数受限</td><td style="padding:8px;border:1px solid #ddd">任意材质参数按需查询，无布局限制</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Light Pass 开销</td><td style="padding:8px;border:1px solid #ddd">每次读取全部 G-Buffer 通道</td><td style="padding:8px;border:1px solid #ddd">额外一次 Vertex Buffer 查询（Indirection 开销）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">移动端 TBDR</td><td style="padding:8px;border:1px solid #ddd">Tile Memory 友好（G-Buffer 在 Tile 内）</td><td style="padding:8px;border:1px solid #ddd">Indirection 读主内存，Tile Memory 优势减弱</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">透明/半透明</td><td style="padding:8px;border:1px solid #ddd">需要额外 Pass（Forward Pass）</td><td style="padding:8px;border:1px solid #ddd">同样需要 Forward Pass，无天然优势</td></tr>
+          </table>
+          <strong>Visibility Buffer 的实际应用：</strong>
+          <ul>
+            <li><strong>UE5 Nanite 渲染管线</strong>：Nanite 的软件光栅化阶段产出 Visibility Buffer（TriangleID + Depth），材质着色推迟到 Material Pass 逐 Tile 处理</li>
+            <li><strong>AMD FidelityFX Visibility Buffer</strong>：开源实现，提供完整的 VB 管线参考</li>
+            <li><strong>Frostbite 引擎</strong>：早在 2019 年就采用类 Visibility Buffer 方案</li>
+          </ul>
+          <strong>何时选择哪种方案：</strong>
+          <ul>
+            <li>材质种类多（100 种以上）、G-Buffer 通道无法统一 → Visibility Buffer</li>
+            <li>材质种类少（10 种以内）、G-Buffer 通道够用 → Deferred Shading（无需 Indirection 开销）</li>
+            <li>移动端 → Deferred Shading（TBDR Tile Memory 友好）</li>
+            <li>桌面/Nanite 场景 → Visibility Buffer（带宽优势 + 材质灵活性）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试关键词：</strong>Visibility Buffer = "存 ID 不存材质，按需索取"。与传统 G-Buffer 的核心区别是：将材质求值从 G-Buffer 填充阶段推迟到光源着色阶段，按像素的材质类型动态查询所需参数——在材质爆炸的 Nanite 场景下带宽和灵活性双赢。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -3565,6 +3819,58 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         </div>
       </div>
     </div>
+    <!-- Q178 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q178</div>
+        <div style="flex:1">
+          <div class="q-title">Variable Rate Shading（VRS）可变速率着色：Tier 1 与 Tier 2 的区别？如何在实际项目中决定着色率（Shading Rate）分配？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>VRS 核心思想：</strong>
+          <ul>
+            <li>传统渲染每个像素执行一次片元着色器；VRS 允许以不同频率着色——平坦区域 4 个像素共用 1 次着色（2×2 Shading Rate），高频区域保持 1×1</li>
+            <li>原理：人眼对高对比度/高频区域敏感，对低对比度/平坦区域不敏感——VRS 将 GPU 算力集中在人眼真正关心的区域</li>
+            <li>性能收益：典型场景 10-30% 性能提升（单帧 Pixel Shader 时间减少），质量损失几乎不可见</li>
+          </ul>
+          <strong>Tier 1 vs Tier 2：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Tier 1</th><th style="padding:8px;border:1px solid #ddd">Tier 2</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>着色率粒度</strong></td><td style="padding:8px;border:1px solid #ddd">Per-Draw Call（整个 Draw Call 同一着色率）</td><td style="padding:8px;border:1px solid #ddd">Per-Draw Call + 屏幕空间图像（Screen-Space Image）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>着色率变化</strong></td><td style="padding:8px;border:1px solid #ddd">只能在 Draw Call 间不同，同一 Draw 内均匀</td><td style="padding:8px;border:1px solid #ddd">同一 Draw Call 内可随屏幕位置变化（2×2 区域内变化）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>控制方式</strong></td><td style="padding:8px;border:1px solid #ddd">每 Draw Call 设置一个 Shading Rate</td><td style="padding:8px;border:1px solid #ddd">Shading Rate Image（着色率图）+ Per-Draw 组合器（Combiners）+ Per-Primitive VRS</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>适用场景</strong></td><td style="padding:8px;border:1px solid #ddd">VR 固定注视点渲染（Foveated Rendering）</td><td style="padding:8px;border:1px solid #ddd">全场景画面质量自适应（内容感知 + 注视点）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>硬件要求</strong></td><td style="padding:8px;border:1px solid #ddd">较广泛（部分移动 GPU 也支持）</td><td style="padding:8px;border:1px solid #ddd">DX12 Ultimate / Vulkan VRS 扩展（RTX 20+ / RDNA2+）</td></tr>
+          </table>
+          <strong>Tier 2 着色率图（Shading Rate Image）生成策略：</strong>
+          <ul>
+            <li><strong>运动/速度感知</strong>：高速运动区域降低着色率（Motion Blur 会天然掩盖细节），低速区域保持 1×1</li>
+            <li><strong>对比度/亮度感知</strong>：低对比度/暗区域降低着色率，高对比度/亮区域保持高着色率</li>
+            <li><strong>注视点（Foveated Rendering）</strong>：VR 中用眼动追踪确定注视中心，中心区域 1×1，边缘逐渐降到 2×2 甚至 4×4</li>
+            <li><strong>材质复杂度</strong>：简单材质（纯色）可降着色率，复杂材质（多层 PBR + 各向异性）保持高着色率</li>
+            <li><strong>边缘/轮廓保持</strong>：Normal 或 Depth 梯度大的区域（几何边缘）保持 1×1</li>
+          </ul>
+          <strong>工程陷阱：</strong>
+          <ul>
+            <li><strong>LOD 切换闪烁</strong>：着色率变化与 LOD 切换叠加，可能产生可见的 Pop 效果</li>
+            <li><strong>半透明/Alpha Test 物体</strong>：降低着色率后 Alpha Test 结果采样率不足，可能产生锯齿边缘</li>
+            <li><strong>UI/文字</strong>：绝对不能降着色率，必须 1×1</li>
+            <li><strong>调试困难</strong>：着色率差异在最终画面上难以发现，需借助 GPU 调试工具的可视化模式（如 PIX 的 VRS Overlay）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>"Tier 1 管 Draw Call（粗粒度），Tier 2 管屏幕像素（细粒度，随空间变化）"。实际应用中 VRS = 运动/边缘/对比度 三重感知自动生成着色率图，VR 场景加注视点。能说出"哪些区域降着色率（平坦/运动/暗），哪些不能降（UI/Alpha Test/边缘）"比背概念更有说服力。</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 9. OpenGL/Vulkan ══ -->
@@ -7454,6 +7760,289 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试框架（30 秒回答模板）：</strong>"大模型加速我先拆瓶颈 → Prefill 慢（首 Token）：减少上下文/Prefix Cache/Chunked Prefill/FlashAttention；Decode 慢（生成速度）：KV Cache 管理/PagedAttention/量化/Speculative Decoding；显存不够：INT8/INT4 量化+KV Cache 量化/Offload/多 GPU 并行；吞吐不够：Continuous Batching/数据并行。生产要同时看 TTFT、TPOT、吞吐、P95/P99、显存和成本。"</div>
+      </div>
+    </div>
+
+    <!-- Q179 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q179</div>
+        <div style="flex:1">
+          <div class="q-title">Agent Harness Engineering 是什么？Prompt Engineering → Context Engineering → Harness Engineering 的三层治理演进如何理解？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Agent = Model + Harness 的核心等式：</strong>
+          <ul>
+            <li><strong>Model</strong>：提供推理与生成能力的大脑（LLM），但模型本身不可靠、有幻觉、会漂移</li>
+            <li><strong>Harness</strong>：围绕模型构建的工程约束系统——包括工具调用规则、权限边界、输出校验、安全兜底、成本控制、监控告警等所有非模型层的治理能力</li>
+            <li>等式的含义：没有 Harness 的 Agent 只是带 Function Calling 的 LLM，不是可生产的 Agent 系统</li>
+          </ul>
+          <strong>三层治理演进：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">层级</th><th style="padding:8px;border:1px solid #ddd">控制什么</th><th style="padding:8px;border:1px solid #ddd">典型手段</th><th style="padding:8px;border:1px solid #ddd">局限性</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Prompt Engineering</strong></td><td style="padding:8px;border:1px solid #ddd">模型的行为倾向</td><td style="padding:8px;border:1px solid #ddd">System Prompt、Few-Shot、思维链引导</td><td style="padding:8px;border:1px solid #ddd">模型不一定遵循指令，幻觉和偏好漂移无法靠 Prompt 根本解决</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Context Engineering</strong></td><td style="padding:8px;border:1px solid #ddd">模型的输入信息</td><td style="padding:8px;border:1px solid #ddd">RAG 检索、上下文压缩、记忆管理、信息过滤</td><td style="padding:8px;border:1px solid #ddd">只控制"喂什么"，不控制"产出什么"和"做什么"</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Harness Engineering</strong></td><td style="padding:8px;border:1px solid #ddd">模型的行动边界</td><td style="padding:8px;border:1px solid #ddd">工具调用校验、权限控制、执行回滚、成本预算、SLA 监控、幻觉检测、Human-in-the-Loop</td><td style="padding:8px;border:1px solid #ddd">过度约束会削弱 Agent 的灵活性，需平衡自由度与安全性</td></tr>
+          </table>
+          <strong>Harness 的核心模块：</strong>
+          <ul>
+            <li><strong>工具安全层</strong>：参数校验（类型/范围/权限）、调用频率限制、危险操作二次确认（删除/发送/付款等需 HITL）</li>
+            <li><strong>执行控制层</strong>：最大步数限制、死循环检测、超时控制、回滚机制</li>
+            <li><strong>输出校验层</strong>：结构化输出格式验证（JSON Schema）、事实性检查（引用对齐）、敏感信息过滤</li>
+            <li><strong>可观测性层</strong>：全链路 Trace（每步推理→工具调用→结果）、Token 消耗仪表盘、任务成功率监控</li>
+            <li><strong>成本控制层</strong>：单任务 Token 上限、模型路由（简单→小模型、复杂→大模型）、缓存复用</li>
+          </ul>
+          <strong>面试怎么答：</strong>"Harness Engineering 不是替代 Prompt Engineering，而是补充它做不到的事——Prompt 只能建议模型做什么，Harness 能阻止模型做不该做的事。三层是递进关系：Prompt 定基调 → Context 给信息 → Harness 划红线。"</div>
+        <div class="tip-box">💡 <strong>关键理解：</strong>Harness = 把 Agent 从"会聊天的 LLM"升级为"可生产的软件系统"的工程层。面试中能讲出 "Prompt/Context/Harness 三层递进而不是替代" + "具体模块（校验/回滚/监控/HITL）" 就说明你做过生产 Agent。</div>
+      </div>
+    </div>
+
+    <!-- Q180 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q180</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 生产落地的三座大山——文档预处理、召回质量、生成忠实度分别怎么解决？如何建立 RAG 评估体系？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RAG 落地三大难点（级联放大效应）：</strong>
+          <ul>
+            <li><strong>第一座山：文档预处理</strong>——PDF 表格提取错误、图片 OCR 失败、文档结构丢失，这些错误在后续每一步被级联放大：切分错 → Embedding 偏 → 检索歪 → 生成幻觉。实践中 60% 以上的 RAG 问题根因在预处理</li>
+            <li><strong>第二座山：召回质量</strong>——纯向量检索在精确匹配（产品编号、API 名称）、专业术语、专有名词上召回差。混合检索（向量 + BM25）+ Rerank 是标配</li>
+            <li><strong>第三座山：生成忠实度</strong>——检索到了正确信息，LLM 也可能编造（内在幻觉：数据篡改；外在幻觉：无中生有）。需要输出校验、引用标注、温度控制等多策略组合</li>
+          </ul>
+          <strong>各阶段优化策略：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">阶段</th><th style="padding:8px;border:1px solid #ddd">核心问题</th><th style="padding:8px;border:1px solid #ddd">解决方案</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>文档预处理</strong></td><td style="padding:8px;border:1px solid #ddd">PDF 表格/图片/复杂排版提取质量</td><td style="padding:8px;border:1px solid #ddd">按文档类型分别处理（Markdown 按标题层级切、FAQ 按 QA 对切、PDF 先解析表格再切段落）；OCR + 布局分析（LayoutLM）；保留元数据（章节层级、页码）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Chunk 切分</strong></td><td style="padding:8px;border:1px solid #ddd">切太大信息稀释，切太小上下文丢失</td><td style="padding:8px;border:1px solid #ddd">递归切分（RecursiveCharacterTextSplitter），500-800 token + 10-20% overlap；Parent-Child 检索（小 chunk 检索、大 chunk 回传）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>检索层</strong></td><td style="padding:8px;border:1px solid #ddd">精确匹配差、专业术语召回低</td><td style="padding:8px;border:1px solid #ddd">混合检索 + RRF 合并；Query 改写（LLM 扩展模糊问题）；Rerank（BGE-Reranker/Cohere Rerank）；HyDE（假设文档生成）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>生成层</strong></td><td style="padding:8px;border:1px solid #ddd">LLM 不忠实于检索结果、编造内容</td><td style="padding:8px;border:1px solid #ddd">Prompt 约束（"只基于检索结果回答"）；输出自校验（LLM 检查回答与检索的对齐度）；引用标注（每条信息标注来源 chunk）；温度设 0.1-0.3；兜底回答</td></tr>
+          </table>
+          <strong>RAG 评估体系：</strong>
+          <ul>
+            <li><strong>检索质量指标</strong>：Recall@K（Top-K 召回率）、MRR（平均倒数排名）、NDCG（归一化折损累积增益）</li>
+            <li><strong>生成质量指标</strong>：Faithfulness（忠实度——回答内容是否都在检索结果中有依据）、Answer Relevance（答案相关性）、Context Relevance（检索上下文与问题的相关性）</li>
+            <li><strong>端到端指标</strong>：幻觉率、用户满意度、人工接管率、平均解决时间</li>
+            <li><strong>评测框架</strong>：RAGAS（开源 RAG 评估框架）、LangSmith、DeepEval</li>
+            <li><strong>实践建议</strong>：必须有业务数据集的 Ground Truth 评测集，不能只看 LLM-as-Judge 打分；每个 RAG 改动（Chunk 大小、检索策略、Prompt）必须过回归评测</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>RAG 落地的本质是"三级级联问题"——预处理错 1% → 检索偏 10% → 生成幻觉 50%。修 RAG 要从上游往下游排查。能说出"一半以上问题在预处理"+"评估必须闭环（检索端 + 生成端 + 业务端）"比背概念强得多。</div>
+      </div>
+    </div>
+
+    <!-- Q181 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q181</div>
+        <div style="flex:1">
+          <div class="q-title">DPO / RLHF / SFT 的选择决策树？基模越来越强的情况下，微调还需要做吗？什么场景不建议微调？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心判断框架：基模变强后，微调的价值从"补能力"转向"控行为、控偏好、控成本、控风险"。</strong>
+          <strong>决策树——先判断层级：</strong>
+          <ol>
+            <li><strong>能靠 Prompt 解决吗？</strong> 如果只是格式、语气、结构的调整，先试 Prompt。Prompt 能稳定解决的绝不训练——训练有数据/成本/版本/回滚四大债务</li>
+            <li><strong>是动态知识吗？</strong> 产品规则、政策条款、价格等易变知识 → 优先 RAG 或工具查询，不要硬塞进模型权重（知识更新后模型里有残留旧知识）</li>
+            <li><strong>是行为稳定性问题吗？</strong> 模型知道规则但输出不稳定（今天按格式、明天乱输出）→ 考虑 SFT（学示范，固定输出范式）</li>
+            <li><strong>是多答案偏好问题吗？</strong> 多个答案都对，但业务有偏好（客服先安抚还是先解释规则）→ 考虑 DPO/RLHF（学偏好，对齐业务口径）</li>
+            <li><strong>有可验证 reward 吗？</strong> 代码单测通过率、工具调用成功率、数学答案正确率 → 考虑 RL（学决策，优化可量化目标）</li>
+          </ol>
+          <strong>什么场景不建议微调：</strong>
+          <ul>
+            <li><strong>没评测集</strong>——不知道提升在哪里，"感觉好了"不是工程结论</li>
+            <li><strong>数据质量差</strong>——脏数据训出"垂类问题集合"而不是"垂类模型"，SFT 数据质量远大于数量（数据清洗比训练本身更花时间）</li>
+            <li><strong>业务变化快</strong>——每周都在改流程和话术，用 Prompt/配置/RAG 更灵活</li>
+            <li><strong>低壁垒补知识</strong>——用几千条 QA 补通用知识，下一代基模一发布就被碾压（没有护城河）</li>
+          </ul>
+          <strong>基模变强后微调的真正价值：</strong>
+          <ul>
+            <li><strong>固定输出格式</strong>：JSON Schema 稳定输出（SFT → 学习格式模式，比 Prompt 更稳定）</li>
+            <li><strong>行业话术和品牌口径</strong>：金融/医疗/政务的措辞要求（SFT/DPO → 对齐品牌调性）</li>
+            <li><strong>小模型降本</strong>：用大模型生成高质量示范数据，SFT 小模型承接 80% 流量，复杂问题路由到大模型</li>
+            <li><strong>Agent 多步决策</strong>：工具选择、参数填写、任务完成率的 RL 优化</li>
+            <li><strong>安全合规</strong>：拒答边界、风险兜底的偏好对齐（DPO/RLHF → 固化安全行为）</li>
+          </ul>
+          <strong>DPO vs RLHF 工程取舍：</strong>
+          <ul>
+            <li>DPO 优势：流程简单（直接偏好对训练，无需 Reward Model + PPO）、训练稳定、落地门槛低</li>
+            <li>DPO 局限：依赖高质量偏好数据，不适合需要与环境多轮交互的任务</li>
+            <li>RLHF 优势：能处理复杂偏好（Reward Model 泛化），适合需要多轮反馈的任务</li>
+            <li>RLHF 代价：流程重（SFT→RM→PPO）、工程复杂、需大量人类标注偏好的成本</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试回答模板：</strong>"基模越强，微调越不是补知识，而是控行为。我先按决策树判断：Prompt 能解决不训练、知识变化快用 RAG、行为不稳定才考虑 SFT、偏好问题考虑 DPO、有可验证 reward 才上 RL。微调必须配合评测集和线上指标，否则只是玄学。"</div>
+      </div>
+    </div>
+
+    <!-- Q182 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q182</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 推理成本优化：如何通过模型路由（Model Routing）、缓存策略和分级服务降低生产环境的 Token 成本？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>LLM 推理成本模型（拆解 Token 账单）：</strong>
+          <ul>
+            <li><strong>Prefill Token</strong>（输入）：System Prompt + 上下文 + 用户问题，按 Token 数 × Prefill 单价计费</li>
+            <li><strong>Decode Token</strong>（输出）：模型生成的每个 Token，按 Token 数 × Decode 单价计费（通常是 Prefill 单价的 2-5 倍）</li>
+            <li><strong>成本敏感点</strong>：上下文窗口越大成本越高（Attention 的 O(n²) 计算），长对话历史是隐形成本黑洞</li>
+          </ul>
+          <strong>五大成本优化策略：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">策略</th><th style="padding:8px;border:1px solid #ddd">原理</th><th style="padding:8px;border:1px solid #ddd">成本节省</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>模型路由（Router）</strong></td><td style="padding:8px;border:1px solid #ddd">用分类器判断任务复杂度：简单问题（FAQ/问候/分类）→ 小模型；复杂问题（推理/代码/长文本）→ 大模型</td><td style="padding:8px;border:1px solid #ddd">30-70%</td><td style="padding:8px;border:1px solid #ddd">流量有长尾分布的场景（80% 简单 + 20% 复杂）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>语义缓存（Semantic Cache）</strong></td><td style="padding:8px;border:1px solid #ddd">相似问题的回答缓存在向量数据库，新问题先查缓存命中则直接返回（无需 LLM 推理）</td><td style="padding:8px;border:1px solid #ddd">20-50%</td><td style="padding:8px;border:1px solid #ddd">高频重复问题（客服/知识库问答）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Prompt 压缩</strong></td><td style="padding:8px;border:1px solid #ddd">用 LLM 将检索到的长文档压缩为关键信息摘要，再送入主 LLM</td><td style="padding:8px;border:1px solid #ddd">30-60%（输入侧）</td><td style="padding:8px;border:1px solid #ddd">RAG 场景（减少检索结果 Token 数）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>上下文窗口管理</strong></td><td style="padding:8px;border:1px solid #ddd">不传完整对话历史，用摘要代替早期对话，超过 Token 预算自动截断旧内容</td><td style="padding:8px;border:1px solid #ddd">20-40%（输入侧）</td><td style="padding:8px;border:1px solid #ddd">长对话场景</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>分级服务（Tiered Service）</strong></td><td style="padding:8px;border:1px solid #ddd">免费用户 → 小模型+短上下文；付费用户 → 中模型+标准上下文；VIP → 大模型+长上下文</td><td style="padding:8px;border:1px solid #ddd">40-60%（总体）</td><td style="padding:8px;border:1px solid #ddd">有用户分层的 SaaS 产品</td></tr>
+          </table>
+          <strong>模型路由实现细节：</strong>
+          <ul>
+            <li><strong>规则路由</strong>：关键词/意图分类（"写代码" → 大模型，"你好" → 小模型），简单但覆盖面有限</li>
+            <li><strong>分类器路由</strong>：训练轻量分类模型判断任务复杂度，根据置信度路由；可离线训练非 LLM 分类器（如基于 BERT 的意图识别），推理开销极低</li>
+            <li><strong>级联路由（Cascade）</strong>：先让小模型回答 → 用大模型评估质量 → 不合格才转大模型重新生成，适合对质量要求严格的场景</li>
+            <li><strong>关键指标</strong>：路由准确率（小模型处理的任务中真正不该用大模型的比例）、成本节省率、质量下降容忍度</li>
+          </ul>
+          <strong>语义缓存注意事项：</strong>
+          <ul>
+            <li>相似度阈值设太高（如 >0.95）→ 命中率低、成本节省少；设太低（如 <0.80）→ 不匹配问题被相同回答敷衍</li>
+            <li>时效性问题不缓存：天气、股价、新闻等 TTL 短的任务不能依赖语义缓存</li>
+            <li>缓存键设计：query 向量 + 用户 ID 前缀（不同用户看到不同结果） + 缓存时间戳</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试框架（30 秒回答）：</strong>"推理成本优化我看四个维度：一是路由——80% 简单问题用小模型省钱；二是缓存——高频相似问题不重复推理；三是压缩——减少上下文 Token 数（O(n²) 乘数效应）；四是分级——按用户付费意愿匹配服务质量。关键是不能为了省钱牺牲核心体验，级联路由是一个好方案——先小模型出结果→大模型审质量→不达标再重做。"</div>
+      </div>
+    </div>
+
+    <!-- Q183 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q183</div>
+        <div style="flex:1">
+          <div class="q-title">Agent 多步推理中的漂移（Drift）与幻觉（Hallucination）如何控制？生产环境 Agent 踩过哪五大坑？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Agent 漂移（Task Drift）精确定义：</strong>
+          <ul>
+            <li><strong>现象</strong>：Agent 执行多步任务过程中逐渐偏离原始目标——从"分析竞品定价"滑向"研究竞品公司历史"，每步推理微微偏一点，累积多步后完全跑偏</li>
+            <li><strong>根因</strong>：LLM 的生成式本质（每一步可能产出与前步微幅不同的方向）+ 上下文窗口膨胀（中间推理填充窗口，挤压原始目标）</li>
+            <li><strong>为什么比幻觉更难对付</strong>：幻觉是明显错误（可置信度检查），漂移是"每一步看起来都合理但方向渐行渐远"，更隐蔽</li>
+          </ul>
+          <strong>幻觉的三层防御体系：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">防线</th><th style="padding:8px;border:1px solid #ddd">位置</th><th style="padding:8px;border:1px solid #ddd">具体手段</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>第一层：Prompt 约束</strong></td><td style="padding:8px;border:1px solid #ddd">输入阶段</td><td style="padding:8px;border:1px solid #ddd">结构化 Prompt 明确边界（"只能使用已检索到的信息""不确定请明确说明"）；温度设 0.1-0.3 减少随机性</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>第二层：工具证据链</strong></td><td style="padding:8px;border:1px solid #ddd">执行阶段</td><td style="padding:8px;border:1px solid #ddd">每次工具调用记录证据来源和置信度；强制引用（LLM 输出必须带检索源 ID）；工具调用结果必须校验类型和格式</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>第三层：输出校验</strong></td><td style="padding:8px;border:1px solid #ddd">输出阶段</td><td style="padding:8px;border:1px solid #ddd">LLM 自校验（生成的每一条是否能在证据中找到依据）；规则校验（JSON 格式、数值范围、枚举合法性）；高风险输出强制 Human-in-the-Loop 确认</td></tr>
+          </table>
+          <strong>生产环境五大常见坑：</strong>
+          <ol>
+            <li><strong>死循环</strong>：Agent 在 ReAct 循环中反复执行相同/相似动作而不收敛 → 最大步数限制（15 步）+ 重复动作检测（连续 3 次相同动作退出）+ 超时控制</li>
+            <li><strong>幻觉工具调用</strong>：LLM 编造不存在的工具名或参数 → 严格校验工具名白名单 + 参数 Schema 验证 + 调用前校验（非白名单工具拒绝执行）</li>
+            <li><strong>上下文污染</strong>：多轮执行产生的中间结果挤满上下文窗口，早期指令被稀释 → 定期紧凑上下文（摘要旧步骤）+ 任务目标在每步 Prompt 中重复强调</li>
+            <li><strong>Token 爆炸</strong>：工具返回超大数据（全文网页/整个数据库表）超出上下文预算 → 工具输出截断（设置输出 Token 上限）+ 分页机制 + 提前过滤</li>
+            <li><strong>Prompt Injection</strong>：用户输入或检索文档包含恶意指令劫持 Agent 行为 → 数据与指令分离（用户输入用特殊标记包装）+ 输入过滤 + Prompt 模板隔离</li>
+          </ol>
+          <strong>漂移控制的工程策略：</strong>
+          <ul>
+            <li><strong>目标锚定</strong>：每步推理前将原始目标重新注入 Prompt（"你的当前目标是：分析竞品定价策略，请围绕此目标行动"）</li>
+            <li><strong>漂移检测</strong>：每 3-5 步用小型模型或规则判断当前推理方向是否与原始目标的相关度降低，低于阈值触发重置</li>
+            <li><strong>Checkpoint 回滚</strong>：保存每步状态快照，检测到漂移后回滚到最近正常点重新规划</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"幻觉我分三层防——Prompt 约束 + 工具证据链 + 输出校验；漂移我用三招控——目标锚定（每步重复原始目标）+ 漂移检测（相关性监控）+ Checkpoint 回滚。五大坑（死循环/幻觉工具/上下文污染/Token爆炸/Prompt Injection）我每个都有具体应对策略。"</div>
+      </div>
+    </div>
+
+    <!-- Q184 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q184</div>
+        <div style="flex:1">
+          <div class="q-title">AI 编程（Vibe Coding）工程化：AI 时代的工程师核心竞争力是什么？如何把 AI 辅助编程从"碰运气"提升为可控的工程交付？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>AI 编程时代面试官的真正问题：</strong>面试官问 "你用 AI 写代码吗？" 其实想问的是："AI 都能写代码了，你作为工程师的不可替代价值是什么？"——这个问题考的不是你会不会用 Cursor，而是你有没有工程思维。</p>
+          <strong>Vibe Coding（氛围编程）的定义与边界：</strong>
+          <ul>
+            <li><strong>Vibe Coding</strong>：用自然语言描述需求，AI 生成代码，人只负责跑起来看效果——"感觉对了就过，不对就换个说法再试"</li>
+            <li><strong>适用场景</strong>：原型验证、一次性脚本、个人工具——对正确性/可维护性/安全性无要求的场景</li>
+            <li><strong>致命缺陷</strong>：没有规范约束（生成的代码不可控）、没有测试保障（AI 可能引入隐蔽 Bug）、没有架构设计（堆积功能导致技术债）</li>
+          </ul>
+          <strong>AI 时代的工程师核心竞争力（从 Vibe Coding → Engineering）：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">能力维度</th><th style="padding:8px;border:1px solid #ddd">Vibe Coding（弱）</th><th style="padding:8px;border:1px solid #ddd">AI Engineer（强）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>需求拆解</strong></td><td style="padding:8px;border:1px solid #ddd">一句话提需求，AI 全权代劳</td><td style="padding:8px;border:1px solid #ddd">将模糊需求拆解为可验证的子任务，定义清晰的输入/输出契约</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>上下文构建</strong></td><td style="padding:8px;border:1px solid #ddd">把所有相关文件一股脑塞给 AI</td><td style="padding:8px;border:1px solid #ddd">精准选择相关文件、接口定义、数据 Schema，排除噪声，控制 Token 成本</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>代码审查</strong></td><td style="padding:8px;border:1px solid #ddd">跑通了就过，不深入理解</td><td style="padding:8px;border:1px solid #ddd">理解 AI 生成代码的逻辑正确性、边界条件、安全漏洞，做深度 Code Review</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>测试验证</strong></td><td style="padding:8px;border:1px solid #ddd">靠"感觉"验收</td><td style="padding:8px;border:1px solid #ddd">写测试用例（单测 + 集成测试），用 AI 生成测试但自己定义验收标准</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>架构决策</strong></td><td style="padding:8px;border:1px solid #ddd">AI 帮你决定技术方案</td><td style="padding:8px;border:1px solid #ddd">自己主导架构选型，AI 辅助实现而非替代决策——架构判断力是 AI 最弱的环节</td></tr>
+          </table>
+          <strong>AI 辅助开发的工程化实践（OpenSpec/Superpowers/gstack 思想）：</strong>
+          <ul>
+            <li><strong>OpenSpec（开放规范驱动）</strong>：先写好 Spec（接口定义、数据结构、行为契约）→ AI 按 Spec 生成代码 → 验证生成的代码是否符合 Spec。Spec 是人和 AI 的"合同"</li>
+            <li><strong>迭代式交付</strong>：不要求 AI 一次性生成完整功能，而是分步交付：接口 → 实现 → 测试 → 重构，每步人工审查</li>
+            <li><strong>AI 测试先行</strong>：先让 AI 写测试用例（描述期望行为），再让 AI 写实现让测试通过（Test-Driven AI Development）</li>
+            <li><strong>技术债管理</strong>：AI 生成的代码更容易积累技术债（冗余逻辑、不一致风格、重复代码），需要定期重构和架构审查</li>
+          </ul>
+          <strong>面试如何答：</strong>"AI 替我写代码，但我决定写什么、怎么写、怎么验证。我的不可替代价值在三个地方：① 把模糊需求变成可验证的工程任务（需求工程）；② 为 AI 构建高质量上下文（信息架构）；③ 审查和验证 AI 产出（质量保障）。AI 是放大器，不是替代——它放大你的工程判断力，也放大你的设计缺陷。"</div>
+        <div class="tip-box">💡 <strong>核心理解：</strong>AI 编程面试不是考 "你会不会用 AI 工具"，而是考 "你有没有工程思维让 AI 产出可控"。能讲出 "Spec 驱动 → 分步交付 → 代码审查 → 技术债管理" 四步工程化路线，面试官就知道你不是 "只会调 API 的 Vibe Coder"。</div>
       </div>
     </div>
 
