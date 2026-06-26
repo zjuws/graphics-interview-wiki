@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">260+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">272+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -855,6 +855,98 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>说清楚三要素——寄存器（VGPR）、共享内存（LDS）、线程组大小（Thread Group Size）如何共同影响 Occupancy。加上 "Memory-Bound 提 Occupancy，Compute-Bound 提寄存器" 的判断，面试官知道你真调过 Compute Shader 性能。</div>
+      </div>
+    </div>
+
+    <!-- Q185 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q185</div>
+        <div style="flex:1">
+          <div class="q-title">Nanite 虚拟化微多边形几何体（Virtualized Micropolygon Geometry）的核心原理是什么？它是如何实现"10 亿三角形剔除到 2000 万"的？与传统 LOD + Mesh 管线有何本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Nanite 的核心目标：</strong>让美术直接使用影视级高模（亿级面数），无需手动 LOD / 法线贴图烘焙 / 多边形预算管理——引擎自动完成"每个屏幕像素对应一个三角形"的渲染精度。</p>
+          <strong>Nanite 三大核心机制：</strong>
+          <ul>
+            <li><strong>Cluster 分组</strong>：将模型按 128 个三角形为一组切分为 Cluster，每个 Cluster 有独立 LOD 和包围盒。Cluster 是 Nanite 最小渲染/剔除单位——类似 Mesh Shader 的 Meshlet，但 Nanite 用 Compute Shader 实现（Mesh Shader Optional）</li>
+            <li><strong>LOD 拓扑链</strong>：每个 Cluster 有一条 LOD 链（从最高精度到最低精度），LOD 切换不是"替换模型"而是"替换 Cluster 级别的三角形组"。误差阈值基于屏幕空间投影面积计算（screen-space error），保证 LOD 切换无视觉跳变</li>
+            <li><strong>GPU-Driven Culling</strong>：三级 GPU 剔除——<br>
+              ① <strong>Instance Culling</strong>（视锥 + 遮挡查询，整实例剔除）<br>
+              ② <strong>Cluster Culling</strong>（视锥 + 遮挡 + 误差阈值，剔除不可见/低贡献 Cluster）<br>
+              ③ <strong>Triangle Culling</strong>（背面剔除 + 小面剔除 +退化三角形剔除，像素级精度）</li>
+          </ul>
+          <strong>"10 亿→2000 万"的实现逻辑：</strong>
+          <ul>
+            <li>Instance Culling 剔除视野外和被遮挡的整个物体（去掉大部分）</li>
+            <li>Cluster Culling 剔除不可见 Cluster 和屏幕误差低于阈值的 Cluster（远距离物体用低 LOD，三角形数极少）</li>
+            <li>Triangle Culling 剔除背面和小三角形——只渲染"每个像素一个三角形"级别的精度</li>
+            <li>最终只有 ~1 屏幕像素×1三角形 的数量被实际渲染，远距离物体用极低 LOD（甚至退化到几个三角形）</li>
+          </ul>
+          <strong>与传统 LOD 管线的本质区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">传统 LOD</th><th style="padding:8px;border:1px solid #ddd">Nanite</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>LOD 单位</strong></td><td style="padding:8px;border:1px solid #ddd">整模型（手动制作 3-5 个 LOD）</td><td style="padding:8px;border:1px solid #ddd">Cluster（128 三角形组，自动生成 LOD 链）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>LOD 切换</strong></td><td style="padding:8px;border:1px solid #ddd">距离阈值 → 整模型替换 → 可见跳变</td><td style="padding:8px;border:1px solid #ddd">屏幕误差 → Cluster 级替换 → 无跳变</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>剔除层级</strong></td><td style="padding:8px;border:1px solid #ddd">CPU Instance + GPU 背面剔除</td><td style="padding:8px;border:1px solid #ddd">GPU 三级（Instance/Cluster/Triangle）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>美术流程</strong></td><td style="padding:8px;border:1px solid #ddd">高模→烘焙法线贴图→手动 LOD→低模渲染</td><td style="padding:8px;border:1px solid #ddd">直接导入高模→引擎自动处理一切</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>管线基础</strong></td><td style="padding:8px;border:1px solid #ddd">传统 IA-VS-Raster-FS 管线</td><td style="padding:8px;border:1px solid #ddd">Compute Shader Culling + Indirect Draw / Mesh Shader（可选）</td></tr>
+          </table>
+          <strong>局限性：</strong>Nanite 不支持变形动画（骨骼动画需传统管线 fallback）、不支持透明材质、不支持双面材质的单面剔除优化。这些场景仍需传统 Mesh 管线渲染。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Nanite 核心不是'智能 LOD'而是'GPU-Driven Cluster 级精细控制'——128 三角形为一组，每组有独立 LOD 链，三级 GPU 剔除（Instance→Cluster→Triangle）保证只渲染像素级精度。与传统 LOD 的本质区别是'Cluster 级无跳变替换'而非'整模型硬切换'。"</div>
+      </div>
+    </div>
+
+    <!-- Q186 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q186</div>
+        <div style="flex:1">
+          <div class="q-title">GPU Workgraph（D3D12 Work Graphs）是什么？它与传统的 Multi-Indirect Dispatch 有何本质区别？对 GPU-Driven Rendering Pipeline 的影响是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPU Workgraph 的核心问题：</strong>传统 GPU-Driven Pipeline 用 Multi-Indirect Dispatch（ExecuteIndirect + Count Buffer）实现 GPU 自主决策，但存在两个关键缺陷：<br>
+          ① <strong>Pass 间依赖必须回 CPU</strong>：GPU 完成一个 Pass 后，必须回读 Count Buffer 到 CPU，再提交下一个 ExecuteIndirect——GPU 和 CPU 之间来回切换，形成"乒乓"模式，延迟浪费<br>
+          ② <strong>无法表达动态 DAG</strong>：不同帧/不同分支可能需要不同的 Pass 执行顺序，但 CPU 端无法提前预知 GPU 的决策结果</p>
+          <strong>Workgraph 的核心创新：</strong>
+          <ul>
+            <li><strong>GPU 端自主 DAG</strong>：Workgraph 允许 GPU 在完成一个 Node 后，直接决定下一个要执行哪些 Node——不需要回 CPU。Node 之间的连接（Edge）在 GPU 端运行时动态决定</li>
+            <li><strong>Node + Edge 模型</strong>：每个 Node 是一个 Compute Shader（或 Amplification Shader + Mesh Shader 组合）；Node 的输出记录（Output Record）通过 Edge 传递给下游 Node，触发下游执行</li>
+            <li><strong>Broadcast / Fork 模式</strong>：一个 Node 的输出可以广播给多个下游 Node（DAG 分叉）；下游 Node 可以等待多个上游输入后合并执行</li>
+            <li><strong>GPU 端调度器</strong>：D3D12 Runtime 在 GPU 端维护一个调度队列，Node 完成后自动将下游 Node 推入队列——整个 DAG 执行全在 GPU 端完成，无 CPU 干扰</li>
+          </ul>
+          <strong>与传统 Multi-Indirect Dispatch 的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Multi-Indirect Dispatch</th><th style="padding:8px;border:1px solid #ddd">GPU Workgraph</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Pass 间调度</strong></td><td style="padding:8px;border:1px solid #ddd">CPU 回读 → 提交下一个 Dispatch</td><td style="padding:8px;border:1px solid #ddd">GPU 端自动 DAG 调度，无需回 CPU</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>延迟</strong></td><td style="padding:8px;border:1px solid #ddd">每 Pass +1 帧 CPU-GPU 同步</td><td style="padding:8px;border:1px solid #ddd">GPU 端连续执行，0 CPU 同步开销</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>动态分支</strong></td><td style="padding:8px;border:1px solid #ddd">需要 CPU 预判或回读后分叉</td><td style="padding:8px;border:1px solid #ddd">GPU 运行时动态决定 DAG 路径</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>适用场景</strong></td><td style="padding:8px;border:1px solid #ddd">固定流程的 GPU-Driven 管线</td><td style="padding:8px;border:1px solid #ddd">复杂 DAG / 动态分支 / 自适应 Pass 选择</td></tr>
+          </table>
+          <strong>对 GPU-Driven Rendering 的影响：</strong>
+          <ul>
+            <li><strong>消灭 CPU 乒乓</strong>：Culling → LOD → Sort → Draw 全部在 GPU 端 DAG 内完成，彻底消除 CPU-GPU 同步延迟</li>
+            <li><strong>支持自适应管线</strong>：不同材质/不同光照条件可以走不同的渲染路径（如透明走 Forward、opaque 走 Deferred），GPU 端动态决定</li>
+            <li><strong>更高效的 Ray Tracing 集成</strong>：Ray Tracing 请求可以在 Workgraph Node 内直接发起，不需要回 CPU 提交 TraceRays</li>
+          </ul>
+          <strong>当前状态：</strong>D3D12 Work Graphs 已在 Agility SDK 1.7+ 中可用（2024+），Vulkan 对应提案 VK_KHR_workgraph 正在推进中。</div>
+        <div class="tip-box">💡 <strong>面试核心：</strong>"Workgraph 解决的是 GPU-Driven Pipeline 的最后一块拼图——Pass 间依赖不再需要回 CPU。传统 Multi-Indirect 是'GPU 做 CPU 定好的事'，Workgraph 是'GPU 自己决定下一步做什么'。关键词：Node+Edge DAG、GPU 端调度器、消灭 CPU 乒乓。"</div>
       </div>
     </div>
 
@@ -2709,6 +2801,56 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q188 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q188</div>
+        <div style="flex:1">
+          <div class="q-title">Shader Graph / 节点式可视化着色器编辑器的原理是什么？如何从节点图生成可执行 Shader 代码？与传统手写 Shader 相比有何优劣？生产环境如何避免"Shader Graph 陷阱"？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag common">通用</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Shader Graph 的核心架构：</strong>
+          <ul>
+            <li><strong>节点图（Node Graph）</strong>：用户通过拖拽节点 + 连接线构建着色逻辑，每个节点封装一个 Shader 运算（如 Multiply、Lerp、Texture Sample、Math Function）</li>
+            <li><strong>Pin / Port 系统</strong>：节点有输入 Pin 和输出 Pin，连接线表示数据流方向——本质上是一个<strong>有向无环图（DAG）</strong></li>
+            <li><strong>编译管线</strong>：节点图 → <strong>中间表示（IR）</strong> → <strong>优化 Pass</strong>（死代码消除、常量折叠、类型推导）→ <strong>目标后端代码生成</strong>（HLSL / GLSL / Metal SL / SPIR-V）</li>
+          </ul>
+          <strong>从节点图到 Shader 代码的流程：</strong>
+          <ul>
+            <li><strong>1. DAG 拓扑排序</strong>：从输出节点（如 Base Color / Metallic / Roughness Pin）反向遍历，确定每个节点的执行顺序</li>
+            <li><strong>2. 变量分配</strong>：每个节点的输出 Pin 分配一个局部变量名（如 `Local0`, `Local1`），类型根据输入推导</li>
+            <li><strong>3. 代码生成</strong>：按拓扑顺序依次生成每个节点的函数调用代码，写入 Shader 函数体</li>
+            <li><strong>4. 优化</strong>：编译器执行常量折叠（Const Fold）、死代码消除（DCE）、公共子表达式消除（CSE）——比如一个没连接任何输出的节点会被 DCE 删除</li>
+            <li><strong>5. 后端生成</strong>：根据目标平台（DX11/DX12/Vulkan/Metal）生成对应的 Shader 代码</li>
+          </ul>
+          <strong>与手写 Shader 的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Shader Graph</th><th style="padding:8px;border:1px solid #ddd">手写 Shader</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>门槛</strong></td><td style="padding:8px;border:1px solid #ddd">低——可视化操作，非程序员可使用</td><td style="padding:8px;border:1px solid #ddd">高——需掌握 HLSL/GLSL + 图形学原理</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>迭代速度</strong></td><td style="padding:8px;border:1px solid #ddd">快——实时预览，拖拽即调</td><td style="padding:8px;border:1px solid #ddd">慢——修改→编译→预览循环</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>代码质量</strong></td><td style="padding:8px;border:1px solid #ddd">冗余——节点级生成，可能有大量无用变量和临时计算</td><td style="padding:8px;border:1px solid #ddd">精简——开发者精确控制每行代码</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>变体管理</strong></td><td style="padding:8px;border:1px solid #ddd">自动——Static Switch 节点自动生成变体</td><td style="padding:8px;border:1px solid #ddd">手动——#ifdef / #ifndef 自己管理</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>高级特性</strong></td><td style="padding:8px;border:1px solid #ddd">受限——Custom Node 可以写 HLSL 但破坏可移植性</td><td style="padding:8px;border:1px solid #ddd">自由——可以实现任何算法</td></tr>
+          </table>
+          <strong>"Shader Graph 陷阱"与生产级规避策略：</strong>
+          <ul>
+            <li><strong>陷阱 1：变体爆炸</strong>——每个 Static Switch 节点 × 每种材质组合 = 变体数指数增长。规避：使用 Shader Permutation Reduction（UE5 的 Shader Complexity View 统计变体数）、合并相似 Static Switch、默认值裁剪</li>
+            <li><strong>陷阱 2：编译时间</strong>——复杂节点图 + 大量变体 → Shader 编译时间可达分钟级。规避：使用 Shader Pipeline Cache（预编译热门变体）、简化节点图、避免不必要的分支</li>
+            <li><strong>陷阱 3：性能盲区</strong>——Graph 生成的代码可能有冗余计算，开发者无法直接看到最终 HLSL。规避：使用 Shader Complexity View（UE5）查看指令数/纹理采样数，定期 Review 生成的 HLSL</li>
+            <li><strong>陷阱 4：自定义节点破坏可移植性</strong>——Custom Node 内写的 HLSL 无法自动转换为 GLSL/Metal SL。规避：尽量用标准节点，必要时写多后端 Custom Node</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Shader Graph = 可视化 DAG → 拓扑排序 → 变量分配 → 代码生成 → 优化 → 后端输出。优势是低门槛+快迭代，劣势是代码冗余+变体爆炸+性能盲区。生产级规避：用 Complexity View 监控指令数、控制 Static Switch 数量、Pipeline Cache 预编译、定期 Review 生成的 HLSL。"</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 5. 阴影 ══ -->
@@ -3120,6 +3262,58 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q187 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q187</div>
+        <div style="flex:1">
+          <div class="q-title">Shadow Volume（阴影体积）与 Carmack's Reverse 的实现原理是什么？与 Shadow Map 相比有何优劣？为什么现代引擎几乎不再使用 Shadow Volume？</div>
+          <div class="q-tags">
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag common">通用</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Shadow Volume 的核心思想：</strong>从光源出发，沿遮挡物轮廓边（Silhouette Edge）向外延伸构成一个"阴影体积"（几何封闭体），任何位于阴影体积内部的点即处于阴影中。检测方法使用 Stencil Buffer 计数。</p>
+          <strong>Stencil Shadow Volume 算法步骤：</strong>
+          <ul>
+            <li><strong>Step 1</strong>：渲染整个场景到 Depth Buffer（只写深度，不写颜色）</li>
+            <li><strong>Step 2</strong>：渲染阴影体积的前面（Z-pass）——对 Stencil Buffer 增加计数（进入阴影体积 +1）</li>
+            <li><strong>Step 3</strong>：渲染阴影体积的后面——对 Stencil Buffer 减少计数（离开阴影体积 -1）</li>
+            <li><strong>Step 4</strong>：Stencil 值 ≠ 0 的像素处于阴影中，= 0 的像素在光照中</li>
+          </ul>
+          <strong>Carmack's Reverse（Z-fail 方法）：</strong>
+          <ul>
+            <li><strong>问题</strong>：Z-pass 方法在相机位于阴影体积内部时会出错（只看到后面，看不到前面，计数永远为负）</li>
+            <li><strong>解决</strong>：John Carmack 提出的 Reverse 方法——从阴影体积的<strong>背面</strong>开始计数（离开阴影体积 -1），从<strong>前面</strong>反向计数（进入阴影体积 +1），但只在深度测试<strong>失败</strong>时操作 Stencil——即从远平面方向计数</li>
+            <li><strong>关键优势</strong>：无论相机是否在阴影体积内部，Z-fail 方法都正确工作</li>
+            <li><strong>代价</strong>：需要封闭阴影体积（添加 Cap 面），几何量更大</li>
+          </ul>
+          <strong>与 Shadow Map 的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Shadow Volume</th><th style="padding:8px solid #ddd">Shadow Map</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>精度</strong></td><td style="padding:8px;border:1px solid #ddd">像素级精确，无分辨率限制</td><td style="padding:8px;border:1px solid #ddd">受纹理分辨率限制，有透视锯齿/走样</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>性能</strong></td><td style="padding:8px;border:1px solid #ddd">填充率杀手——阴影体积覆盖大量像素，Stencil 操作两遍渲染</td><td style="padding:8px;border:1px solid #ddd">一次渲染深度图，开销可控</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>复杂场景</strong></td><td style="padding:8px;border:1px solid #ddd">多光源 × 多遮挡物 = 阴影体积爆炸</td><td style="padding:8px;border:1px solid #ddd">多光源只需多张 Shadow Map，可级联/分组</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>软阴影</strong></td><td style="padding:8px;border:1px solid #ddd">几乎不可能（硬阴影二值判断）</td><td style="padding:8px;border:1px solid #ddd">PCF/PCSS/VSM 可实现柔和过渡</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>动态物体</strong></td><td style="padding:8px;border:1px solid #ddd">每帧需提取轮廓边+构建体积，CPU 开销大</td><td style="padding:8px;border:1px solid #ddd">每帧渲染深度图，GPU 端完成</td></tr>
+          </table>
+          <strong>为什么现代引擎几乎不再使用 Shadow Volume：</strong>
+          <ul>
+            <li><strong>填充率问题</strong>：Stencil 操作需要在整个阴影体积范围内操作，一个巨大遮挡物的阴影体积可能覆盖整个屏幕——GPU 填充率浪费严重</li>
+            <li><strong>无法做软阴影</strong>：现代游戏追求软阴影质量，Shadow Volume 只能做硬阴影</li>
+            <li><strong>CPU 开销</strong>：轮廓边提取、体积构建、Cap 面计算都在 CPU 端，难以并行</li>
+            <li><strong>Shadow Map 成熟替代</strong>：CSM/PCSS/VSM/Virtual Shadow Map 等方案已完全成熟，质量/性能/可扩展性全面优于 Shadow Volume</li>
+          </ul>
+          <strong>面试加分点：</strong>ID Software 在 Doom 3 中使用 Carmack's Reverse 实现了当时业界最精确的阴影效果，但代价是严重的填充率瓶颈。现代引擎用 Shadow Map + PCSS/VSM 替代，唯一保留 Shadow Volume 思想的场景是 SDF Ray-Marched Shadow（用 SDF 体积替代几何体积）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Shadow Volume 用 Stencil 计数判断像素是否在阴影几何体内——像素级精确但填充率杀手。Carmack's Reverse 解决相机在阴影体积内部的问题（Z-fail 替代 Z-pass）。现代引擎弃用 Shadow Volume 的原因：填充率浪费 + 无法软阴影 + CPU 轮廓提取开销 + Shadow Map 系方案已全面成熟。"</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -3418,6 +3612,52 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>"传统降噪用规则，RR 用学习"——前者在复杂情况下分不清噪声和细节，后者从海量训练数据中学会了光照分布模式。关键词："端到端重建而非去噪"、"超分+降噪融合"、"Tensor Core 加速"。</div>
+      </div>
+    </div>
+
+    <!-- Q189 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q189</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS 4.5 的 Dynamic Multi-Frame Generation（6X 模式）和第二代 Transformer AI 模型的原理是什么？多帧生成如何保证时序一致性？运动矢量补偿如何解决高速运动下的画面模糊？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DLSS 4.5 的两大核心升级：</strong></p>
+          <strong>1. Dynamic Multi-Frame Generation（动态多帧生成 6X）：</strong>
+          <ul>
+            <li><strong>原理</strong>：在每一帧渲染的实时画面基础上，AI 模型<strong>动态生成最多 5 个中间帧</strong>，加上原始渲染帧 = 6 帧输出（6X 模式）。不同于 DLSS 4 的固定 3X/4X 比率，DLSS 4.5 的 6X 模式根据实时负载<strong>动态调整生成帧数</strong>——负载低时生成更多中间帧（最高 6X），负载高时减少生成帧数（自动降级到 3X/4X）</li>
+            <li><strong>与 DLSS 4 的区别</strong>：DLSS 4 固定每渲染帧生成 1-3 个中间帧（3X/4X）；DLSS 4.5 6X 模式最多生成 5 个中间帧，吞吐量翻倍</li>
+            <li><strong>时序一致性保障</strong>：每帧生成时使用<strong>运动矢量（Motion Vector）</strong>+ <strong>深度缓冲</strong>+ <strong>历史帧缓冲</strong>作为输入——AI 模型学习"从历史帧推断中间帧的运动轨迹"，确保生成的中间帧与前后真实渲染帧在运动方向和物体位置上连续</li>
+          </ul>
+          <strong>2. 第二代 Transformer AI 模型（替代 CNN）：</strong>
+          <ul>
+            <li><strong>从 CNN → Transformer</strong>：DLSS 4.5 将超分辨率和帧生成的 AI 模型从 CNN（卷积神经网络）升级为 <strong>Transformer 架构</strong>——Transformer 的全局注意力机制可以更好地捕捉<strong>长距离依赖</strong>和<strong>时序上下文</strong></li>
+            <li><strong>优势</strong>：CNN 的感受野有限（局部卷积），难以处理快速运动/大位移；Transformer 的注意力可以同时参考多个历史帧的全局信息，在高速运动场景下<strong>减少模糊和伪影</strong></li>
+            <li><strong>代价</strong>：Transformer 计算量更大，需要 Tensor Core 加速；但 DLSS 4.5 通过架构优化（如 FlashAttention + 稀疏注意力）将推理延迟控制在帧预算内</li>
+          </ul>
+          <strong>高速运动下的运动矢量补偿：</strong>
+          <ul>
+            <li><strong>问题</strong>：物体高速运动时，相邻帧间位移量大，运动矢量可能超出有效范围——如果仅依赖线性插值，中间帧会模糊</li>
+            <li><strong>补偿策略</strong>：
+              <ul>
+                <li><strong>多帧参考</strong>：不只是参考前一帧，Transformer 同时参考多帧历史（3-5帧），学习非线性运动模式</li>
+                <li><strong>光流估计（Optical Flow）</strong>：结合 GPU 硬件光流加速器（NVIDIA Optical Flow SDK），获得像素级精确运动矢量，而非仅依赖 3D Motion Vector（3D MV 只反映物体整体移动，无法捕捉像素级局部运动）</li>
+                <li><strong>遮挡处理</strong>：物体遮挡/出现时（前后帧运动矢量不一致），Transformer 的注意力机制可以识别遮挡区域并用历史帧信息重建</li>
+                <li><strong>Dynamic 模式自适应</strong>：运动剧烈时减少生成帧数（从 6X 降到 4X/3X），降低中间帧间距，减少模糊风险</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>面试加分点：</strong>DLSS 4.5 的 Dynamic 模式本质上是一个<strong>实时性能-质量自适应系统</strong>——每帧根据 GPU 负载和运动强度动态决定生成帧数。这是 DLSS 从"固定配置"到"自适应配置"的范式转变，和游戏引擎的 Dynamic Resolution Scaling 思想一致。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"DLSS 4.5 两大升级：① Dynamic 6X 多帧生成——每帧动态决定生成多少中间帧，负载低→6X，负载高→降级；② Transformer 替代 CNN——全局注意力解决长距离依赖和高速运动模糊。时序一致性靠多帧参考+光流+遮挡处理+Dynamic 自适应四重保障。"</div>
       </div>
     </div>
 
@@ -3723,6 +3963,55 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q190 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q190</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR GI（Reservoir-based Spatiotemporal Importance Resampling for Global Illumination）的原理是什么？与传统 RTGI 降噪方案相比有何优势？为什么说 ReSTIR 将光线追踪全局光照从"离线质量"拉到了"实时可用"？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ReSTIR GI 的核心问题：</strong>全局光照（GI）是光线追踪最难实时化的部分——单像素需要数百甚至数千条光线才能收敛到无噪声结果，而实时渲染每帧只有 0.5-2 条 GI 光线可用。传统降噪（TAA/Filter-based）用时域累积+空域滤波来弥补采样不足，但在复杂场景（多光源、动态光照、高频几何）下仍然噪声严重或过度模糊。</p>
+          <strong>ReSTIR GI 的核心思想：</strong>
+          <ul>
+            <li><strong>Reservoir Sampling</strong>：用"蓄水池采样"（Reservoir）结构维护一个<strong>候选光线集合</strong>——每帧不需要发射大量光线，而是<strong>复用历史帧和邻近像素已经采样的光线</strong>，通过重要性重采样（Importance Resampling）挑选最优候选</li>
+            <li><strong>三个重采样来源</strong>：
+              <ul>
+                <li><strong>时域重采样（Temporal）</strong>：从上一帧同一像素的 Reservoir 中复用光线——运动矢量补偿后，历史帧的光线仍然有效</li>
+                <li><strong>空域重采样（Spatial）</strong>：从邻近像素的 Reservoir 中复用光线——相似材质/相似光照的像素共享有效采样</li>
+                <li><strong>当前帧采样（Current）</strong>：发射少量新光线补充到 Reservoir 中</li>
+              </ul>
+            </li>
+            <li><strong>W、Wsum、M 三元组</strong>：每个 Reservoir 存储<strong>候选光线</strong> + <strong>权重 W</strong>（该光线的目标分布概率） + <strong>权重总和 Wsum</strong>（所有候选的累积权重） + <strong>样本数 M</strong>——通过 Wsum/M 计算无偏估计</li>
+          </ul>
+          <strong>为什么 ReSTIR GI 比传统降噪更优：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">传统降噪（TAA + Filter）</th><th style="padding:8px;border:1px solid #ddd">ReSTIR GI</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>降噪原理</strong></td><td style="padding:8px;border:1px solid #ddd">时域累积（低采样 → 多帧平均）+ 空域滤波（邻近像素加权混合）</td><td style="padding:8px;border:1px solid #ddd">重要性重采样（从已有候选中挑选最优光线）——是<strong>采样增强</strong>而非<strong>噪声过滤</strong></td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>收敛速度</strong></td><td style="padding:8px;border:1px solid #ddd">数十帧才能收敛（长尾噪声）</td><td style="padding:8px;border:1px solid #ddd">2-3帧即可收敛（Reservoir 快速积累有效采样）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>动态场景</strong></td><td style="padding:8px;border:1px solid #ddd">重置历史 → 噪声重新出现 → 需要数十帧恢复</td><td style="padding:8px;border:1px solid #ddd">Reservoir 可部分保留（不完全重置），空域重采样立即补充</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>高频细节</strong></td><td style="padding:8px;border:1px solid #ddd">空域滤波模糊细节（Glossy 反射/阴影边缘）</td><td style="padding:8px;border:1px solid #ddd">保留细节——重采样挑选高质量光线而非混合低质量光线</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>理论保证</strong></td><td style="padding:8px;border:1px solid #ddd">无偏估计（但收敛慢）</td><td style="padding:8px;border:1px solid #ddd">无偏估计（Wsum/M）+ 更快收敛</td></tr>
+          </table>
+          <strong>ReSTIR GI 的局限性：</strong>
+          <ul>
+            <li><strong>间接光照路径长度受限</strong>：当前 ReSTIR GI 主要用于单次散射（1-bounce GI），多 bounce 需要多级 Reservoir 或结合其他方案</li>
+            <li><strong>内存开销</strong>：每个像素需要存储一个 Reservoir（候选光线+权重），比传统降噪的历史缓冲更大</li>
+            <li><strong>无偏条件限制</strong>：空域重采样时如果邻近像素的目标分布差异过大，无偏性可能受损（需要 MIS 权重修正）</li>
+          </ul>
+          <strong>面试加分：</strong>ReSTIR 系列从 ReSTIR（Direct Lighting, SIGGRAPH 2020）→ ReSTIR GI（Global Illumination, SIGGRAPH 2021）→ ReSTIR PT（Path Tracing, SIGGRAPH 2022），逐步将光线追踪从"每像素数百条光线才能收敛"拉到了"每像素 1-2 条光线即可实时渲染"——这是光线追踪实时化的关键突破。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"ReSTIR GI = Reservoir Sampling + 时域/空域重采样——不是过滤噪声而是增强采样。核心是蓄水池三元组（候选光线+W+Wsum+M），从历史帧和邻近像素的已有采样中挑选最优候选，2-3帧即可收敛。与传统降噪的本质区别：'挑选好光线' vs '混合坏光线'。"</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -3868,6 +4157,53 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试核心：</strong>"Tier 1 管 Draw Call（粗粒度），Tier 2 管屏幕像素（细粒度，随空间变化）"。实际应用中 VRS = 运动/边缘/对比度 三重感知自动生成着色率图，VR 场景加注视点。能说出"哪些区域降着色率（平坦/运动/暗），哪些不能降（UI/Alpha Test/边缘）"比背概念更有说服力。</div>
+      </div>
+    </div>
+
+    <!-- Q191 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q191</div>
+        <div style="flex:1">
+          <div class="q-title">Frame Pacing（帧率平滑）和 VRR（Variable Refresh Rate / 可变刷新率）的原理是什么？如何消除画面撕裂（Tearing）和微卡顿（Stuttering）？为什么"帧率稳定 60fps"比"偶尔 120fps 常常 55fps"体验更好？</div>
+          <div class="q-tags">
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag common">通用</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三个核心概念：</strong></p>
+          <ul>
+            <li><strong>画面撕裂（Tearing）</strong>：GPU 正在渲染当前帧时，显示器已完成上一帧的扫描并开始显示——屏幕上半部分显示旧帧，下半部分显示新帧，出现"撕裂线"</li>
+            <li><strong>微卡顿（Stuttering）</strong>：帧生成时间不均匀——有的帧 8ms，有的帧 18ms，虽然平均帧率够高，但 18ms 的帧会在 60fps 的时间线上多停留一帧，造成感知上的卡顿</li>
+            <li><strong>帧率平滑（Frame Pacing）</strong>：不是追求"最高帧率"，而是追求"每帧间隔稳定"——均匀 16.67ms（60fps）比不稳定 8-18ms（平均 90fps）的视觉体验更好</li>
+          </ul>
+          <strong>VSync（垂直同步）的原理与问题：</strong>
+          <ul>
+            <li><strong>VSync On</strong>：GPU 每帧等待显示器下一个垂直同步信号才提交——<strong>消除撕裂</strong>，但代价是：如果帧渲染时间 > 1 个 VSync 周期（如 18ms > 16.67ms），GPU 必须等下一个周期才能显示——帧率从 60fps 直降 30fps（跳帧）</li>
+            <li><strong>VSync Off</strong>：GPU 渲染完立即提交——<strong>消除延迟</strong>，但出现画面撕裂</li>
+            <li><strong>双重缓冲 / 三重缓冲</strong>：Triple Buffering 在 VSync On 时允许 GPU 预渲染 1 帧——如果当前帧慢 2ms，下一帧可以提前 2ms 补回来，减少跳帧。但仍然无法完全消除 Stuttering</li>
+          </ul>
+          <strong>VRR（Variable Refresh Rate）原理：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：显示器不再固定 60Hz 刷新，而是<strong>跟随 GPU 的帧提交节奏动态调整刷新率</strong>——GPU 8ms 渲染完一帧，显示器立即刷新（75Hz）；GPU 18ms 渲染完，显示器等 18ms 再刷新（~55Hz）</li>
+            <li><strong>技术方案</strong>：AMD FreeSync / NVIDIA G-Sync / VESA Adaptive Sync——本质都是让显示器 VBLANK（垂直消隐）间隔可变</li>
+            <li><strong>消除撕裂 + 消除 Stuttering</strong>：GPU 不需要等 VSync → 无撕裂；显示器跟随帧节奏 → 无跳帧；帧间隔自然平滑 → 无 Stuttering</li>
+            <li><strong>VRR 范围限制</strong>：显示器有最低刷新率（通常 40-48Hz），低于此范围时需要用 LFC（Low Framerate Compensation）——将低帧率帧重复显示，等效维持最低刷新率</li>
+          </ul>
+          <strong>Frame Pacing 的工程实现：</strong>
+          <ul>
+            <li><strong>帧时间目标</strong>：设定目标帧时间（如 16.67ms for 60fps），GPU 渲染完后计算剩余时间 → <strong>精确 Sleep</strong>到下一个帧提交时间点</li>
+            <li><strong>精确 Sleep</strong>：普通 Sleep 精度约 1-2ms（OS 调度粒度），不够精确。高级方案用 <strong>Spin-Wait</strong>（CPU 忙等，精度 <0.1ms）或 <strong>Hybrid Sleep + Spin-Wait</strong>（先 Sleep 到目标-1ms，再 Spin-Wait 剩余时间）</li>
+            <li><strong>引擎级实现</strong>：UE5 的 FFramePacer / Unity 的 Target Frame Rate——都是在渲染完当前帧后精确等待到下一个提交时间点</li>
+            <li><strong>VRR + Frame Pacing 组合</strong>：VRR 消除撕裂，Frame Pacing 消除 Stuttering——两者组合才是完整的帧率平滑方案</li>
+          </ul>
+          <strong>为什么稳定帧率比峰值帧率更重要：</strong>人眼对帧间隔的不一致性感知远强于对绝对帧率高低——心理学研究表明，稳定 60fps 比不稳定 90-55fps 的体验评分更高。这是因为视觉系统会"预期"下一帧到达的时间点，延迟或提前都会打断预期，造成不适感。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"三件事：Tearing = GPU 和显示器节奏不同步 → VSync 消除撕裂但引入跳帧；Stuttering = 帧间隔不均匀 → Frame Pacing 用精确 Sleep 保证每帧间隔一致；VRR = 显示器跟随 GPU 刷新 → 消除撕裂+跳帧。最终答案：VRR + Frame Pacing 组合才是完整方案，稳定 60fps > 不稳定 90fps。"</div>
       </div>
     </div>
 
@@ -4480,6 +4816,52 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- Q192 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q192</div>
+        <div style="flex:1">
+          <div class="q-title">Context Engineering vs Prompt Engineering：在 Agent 场景下，为什么上下文管理比 Prompt 优化更重要？Agent 的上下文窗口通常包含哪些信息？长任务上下文溢出时如何压缩与治理？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心论点：</strong>"Prompt 决定模型收到什么指令，Context 决定模型实际看到什么世界。"——Agent 进入多轮工具调用后，上下文的质量比 Prompt 的措辞更影响最终表现。</p>
+          <strong>Prompt Engineering vs Context Engineering：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Prompt Engineering</th><th style="padding:8px;border:1px solid #ddd">Context Engineering</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>关注点</strong></td><td style="padding:8px;border:1px solid #ddd">指令怎么写清楚（Role/Task/Context/Format 四要素）</td><td style="padding:8px;border:1px solid #ddd">什么信息在什么时机进入模型窗口</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>适用场景</strong></td><td style="padding:8px;border:1px solid #ddd">单轮问答 / Few-Shot / CoT</td><td style="padding:8px;border:1px solid #ddd">多轮 Agent / 工具调用 / 长任务</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>优化手段</strong></td><td style="padding:8px;border:1px solid #ddd">措辞优化 / 格式约束 / 温度调整</td><td style="padding:8px;border:1px solid #ddd">信息筛选 / 时序编排 / 压缩策略 / Sub-agent 分流</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>常见失败</strong></td><td style="padding:8px;border:1px solid #ddd">Prompt 太长 / 约束冲突 / 格式不匹配</td><td style="padding:8px;border:1px solid #ddd">噪声信息淹没关键指令 / 上下文溢出 / 工具结果格式混乱</td></tr>
+          </table>
+          <strong>Agent 上下文窗口的 7 类信息：</strong>
+          <ul>
+            <li><strong>1. 系统规则</strong>（System Prompt）：Agent 的角色定义、行为边界、输出格式要求——通常固定在最前方，不可被后续信息覆盖</li>
+            <li><strong>2. 任务目标</strong>（Goal / Task）：当前任务的具体目标描述——每步迭代时重复锚定，防止 Agent 漂移</li>
+            <li><strong>3. 历史状态</strong>（Conversation History）：已完成步骤的摘要——不是完整对话记录，而是结构化笔记（做了什么→结果是什么→下一步是什么）</li>
+            <li><strong>4. 工具说明</strong>（Tool Descriptions）：可用工具的 name + description + parameters——description 写得好不好直接决定模型能否正确选择工具</li>
+            <li><strong>5. 工具结果</strong>（Tool Outputs）：上一步工具调用的返回值——需要格式化（提取关键信息而非返回整页 HTML）</li>
+            <li><strong>6. 用户偏好 / 记忆</strong>（User Preferences / Memory）：用户长期偏好、团队约定、项目规则——从长期记忆系统注入</li>
+            <li><strong>7. 检索证据</strong>（RAG Evidence）：从知识库检索到的相关文档片段——放在上下文中间位置效果最好（Lost in the Middle 问题）</li>
+          </ul>
+          <strong>长任务上下文溢出的三种治理策略：</strong>
+          <ul>
+            <li><strong>Compaction（上下文压缩）</strong>：当上下文长度接近窗口上限时，自动将历史对话压缩为结构化摘要——保留关键决策点和结果，丢弃过程性对话。Claude Code 的 Auto-Compact 就是这个思路</li>
+            <li><strong>结构化笔记</strong>：每步不保存完整对话，而是将结果写成 Markdown 格式的笔记（如 "## Step 3: Code Review\n- Result: 2 issues found\n- Next: Fix issue #1"），笔记远比对话记录紧凑</li>
+            <li><strong>Sub-agent 分流</strong>：将大任务拆成多个子任务，每个子任务由独立 Sub-agent 执行——Sub-agent 有自己的独立上下文窗口，完成后只返回结果摘要给主 Agent。这是最彻底的溢出治理方案</li>
+          </ul>
+          <strong>面试加分：</strong>上下文工程的核心原则是<strong>"信息分层 + 时序编排 + 按需注入"</strong>——不是把所有信息一股脑塞进窗口，而是像操作系统管理内存一样管理上下文：什么信息常驻（系统规则），什么信息按需加载（工具结果），什么信息及时回收（过期历史）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Prompt Engineering 管'指令怎么写'，Context Engineering 管'模型看到什么世界'——Agent 场景后者更重要。上下文 7 类信息分层管理：系统规则常驻→任务目标锚定→历史状态压缩→工具说明→工具结果→用户记忆→检索证据。溢出治理三招：Compaction 压缩 + 结构化笔记 + Sub-agent 分流。"</div>
+      </div>
+    </div>
+
     <!-- ── 训练 & 微调 ── -->
     <h3 id="llm-train" style="margin:32px 0 16px;color:var(--accent)">🎓 训练 & 微调</h3>
 
@@ -4664,6 +5046,66 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             </li>
           </ul>
         </div>
+      </div>
+    </div>
+
+    <!-- Q193 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q193</div>
+        <div style="flex:1">
+          <div class="q-title">MoE 混合专家模型进阶：DeepSeek-V3 的 fine-grained expert + shared expert + aux-loss-free 路由如何协同？ESFT（Expert-Specialized Fine-Tuning）如何在 MoE 上做高效微调？MoE 推理的显存与带宽矛盾如何理解？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DeepSeek-V3 三大 MoE 创新：</strong></p>
+          <strong>1. Fine-grained Expert（细粒度专家）：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：把传统 N 个大 expert 拆成 mN 个更小的 expert（每个 expert 的 d_ff 缩到 d_ff/m），路由数从 K 提到 mK</li>
+            <li><strong>组合数爆炸</strong>：标准 8 选 2 = 28 种组合；拆细成 64 选 16 ≈ 4.9×10¹⁴ 种组合——每 token 的"专家组合身份"指数级丰富，专精度大幅提升</li>
+            <li><strong>关键约束</strong>：总计算量不变（mK × d_ff/m = K × d_ff），只是分配更精细</li>
+            <li><strong>V3 数据</strong>：256 routed experts + 1 shared expert，top-8 routed + 1 shared = 9 experts per token</li>
+          </ul>
+          <strong>2. Shared Expert（共享专家）：</strong>
+          <ul>
+            <li><strong>原理</strong>：1 个"永远激活、不经 router"的 expert——每 token 都走它，吸收通用知识（语言/常识/基础逻辑）</li>
+            <li><strong>为什么需要</strong>：没有 shared expert 时，每个 routed expert 都要承担"既要专精又要通用"的双重负担——shared expert 把通用知识剥离出来，让 routed expert 专心做 specialization</li>
+            <li><strong>对比</strong>：Mixtral/Switch Transformer 没有 shared expert；DeepSeek-V3 / Llama 4 有</li>
+          </ul>
+          <strong>3. Aux-loss-free Balance（辅助损失无关平衡）：</strong>
+          <ul>
+            <li><strong>传统方案问题</strong>：Switch Transformer 的 aux loss `L_aux = α·N·Σf_i·P_i` 会把 router 梯度往"均匀分布"方向拉——与"任务最优 routing"方向冲突，削弱稀疏激活的表达力</li>
+            <li><strong>V3 方案</strong>：不用 aux loss，而是用一个<strong>外循环 bias</strong> 控制负载均衡：
+              <ul>
+                <li><strong>选择阶段</strong>：`s̃_i(x) = s_i(x) + b_i` —— 用带 bias 的 score 做 top-k 选择</li>
+                <li><strong>权重阶段</strong>：`g_i(x) = σ(s_i(x)) / Σσ(s_j(x))` —— 用原始 score（不含 bias）计算 gating weight</li>
+                <li><strong>bias 更新</strong>：每步 out-of-graph 更新 `b_i ← b_i - u·sign(c_i - c̄_i)`，过载→减小 bias，欠载→增大 bias</li>
+                <li><strong>关键</strong>：bias <strong>不进梯度图、不被 optimizer 更新</strong>——router 梯度信号<strong>只来自语言建模 loss</strong>，平衡目标由外循环 bias 独立控制，两者完全解耦</li>
+              </ul>
+            </li>
+            <li><strong>兜底</strong>：还有极小 sequence-level aux loss 防单序列内部极端不均</li>
+          </ul>
+          <strong>ESFT（Expert-Specialized Fine-Tuning）：</strong>
+          <ul>
+            <li><strong>MoE 上 LoRA 的坑</strong>：加到 attention → 不动 expert；加到所有 expert → N 倍 LoRA 参数，且部分 expert 训不到</li>
+            <li><strong>ESFT 做法</strong>：① 先 forward 统计 router score → ② 找出任务最相关的 top-k expert（per-layer）→ ③ 只训这些"任务专家"，其余冻结 → ④ 性能 ≈ 全参 fine-tune，显存 ↓ 90%、时间 ↓ 30%</li>
+            <li><strong>原理</strong>：MoE 的 expert 本身就有 specialization——下游任务只需要强化相关 expert，不需要训所有</li>
+          </ul>
+          <strong>MoE 推理的显存 vs 带宽矛盾：</strong>
+          <ul>
+            <li><strong>显存按总参数算</strong>：V3 总参 671B FP8 ≈ 671 GB，所有 expert 必须常驻 GPU（下一个 token 可能路由到任意 expert）</li>
+            <li><strong>带宽按激活参数算</strong>：每 token 只读 active 部分权重（~5%），memory bandwidth 大幅减少 → throughput ↑</li>
+            <li><strong>矛盾本质</strong>：MoE 节省的是<strong>memory bandwidth</strong>（推理瓶颈），不节省<strong>memory capacity</strong>（部署门槛）</li>
+            <li><strong>V3 实际部署</strong>：单 H100 80GB 跑不动，需 8×H100 或 8×H200 141GB</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"V3 三大创新协同：① Fine-grained 拆细 expert 组合数爆炸 + ② Shared expert 吸收通用知识释放 routed expert 专精 + ③ Aux-loss-free 用外循环 bias 解耦平衡与表达力。ESFT 只训相关 expert 省 90% 显存。MoE 推理本质：省 bandwidth 不省 capacity。"</div>
       </div>
     </div>
 
@@ -8043,6 +8485,183 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>面试如何答：</strong>"AI 替我写代码，但我决定写什么、怎么写、怎么验证。我的不可替代价值在三个地方：① 把模糊需求变成可验证的工程任务（需求工程）；② 为 AI 构建高质量上下文（信息架构）；③ 审查和验证 AI 产出（质量保障）。AI 是放大器，不是替代——它放大你的工程判断力，也放大你的设计缺陷。"</div>
         <div class="tip-box">💡 <strong>核心理解：</strong>AI 编程面试不是考 "你会不会用 AI 工具"，而是考 "你有没有工程思维让 AI 产出可控"。能讲出 "Spec 驱动 → 分步交付 → 代码审查 → 技术债管理" 四步工程化路线，面试官就知道你不是 "只会调 API 的 Vibe Coder"。</div>
+      </div>
+    </div>
+
+    <!-- Q194 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q194</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 文档处理与 Chunk 策略的工程权衡：为什么召回质量从文档进入系统前就决定了？Chunk 大小 / Overlap / 语义边界如何取舍？表格、代码块、多模态内容进入 RAG 前如何处理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心论点：</strong>"垃圾内容进索引，检索出来的也只是高相似度垃圾。"——很多 RAG 问题的根源不在模型，不在向量库，而在文档处理阶段。</p>
+          <strong>RAG 文档处理管线 8 步：</strong>
+          <ul>
+            <li><strong>1. 解析（Parsing）</strong>：PDF/Word/HTML → 结构化文本。关键挑战：表格解析（Table Extraction）、图片 OCR、公式识别、嵌套结构（标题/段落/脚注）</li>
+            <li><strong>2. 清洗（Cleaning）</strong>：去除页眉页脚、水印、乱码、重复段落、格式标记。保留语义内容，丢弃排版噪声</li>
+            <li><strong>3. 结构化（Structuring）</strong>：识别标题层级（H1/H2/H3）、段落边界、表格结构、代码块范围——为后续 Chunk 切分提供语义边界</li>
+            <li><strong>4. 切分（Chunking）</strong>：将文档切成检索单元——<strong>这是 RAG 效果最关键的步骤</strong></li>
+            <li><strong>5. 元数据补全（Metadata）</strong>：为每个 Chunk 补充来源、标题、页码、更新时间、权限范围、文档版本、业务标签</li>
+            <li><strong>6. Embedding</strong>：文本 → 向量。选择模型要考虑：中文/英文/多语言支持、维度、速度、成本</li>
+            <li><strong>7. 入库（Indexing）</strong>：向量 + 元数据存入向量数据库。注意：元数据过滤能力是生产 RAG 的刚需</li>
+            <li><strong>8. 校验（Verification）</strong>：用评测集验证检索质量——不要凭感觉调参数</li>
+          </ul>
+          <strong>Chunk 策略的三大工程权衡：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">策略</th><th style="padding:8px;border:1px solid #ddd">优点</th><th style="padding:8px;border:1px solid #ddd">缺点</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>固定长度切分</strong></td><td style="padding:8px;border:1px solid #ddd">实现简单、长度可控</td><td style="padding:8px;border:1px solid #ddd">可能切断语义边界（一句话切两半）、表格/代码被切碎</td><td style="padding:8px;border:1px solid #ddd">结构简单的 FAQ / 产品文档</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>语义边界切分</strong></td><td style="padding:8px;border:1px solid #ddd">保留完整段落/章节语义</td><td style="padding:8px;border:1px solid #ddd">长度不均匀，某些 Chunk 可能过长或过短</td><td style="padding:8px;border:1px solid #ddd">有清晰标题层级的技术文档</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>递归切分</strong></td><td style="padding:8px;border:1px solid #ddd">先按大边界切，超过长度再按小边界切</td><td style="padding:8px;border:1px solid #ddd">最灵活但最复杂</td><td style="padding:8px;border:1px solid #ddd">混合类型文档（技术文档+表格+代码）</td></tr>
+          </table>
+          <strong>Chunk 大小的取舍：</strong>
+          <ul>
+            <li><strong>Chunk 太大</strong>（>1000 字）：召回不精准（检索到的 Chunk 包含大量无关内容），上下文成本高（塞进 Prompt 占大量 Token）</li>
+            <li><strong>Chunk 太小</strong>（<200 字）：语义不完整（"它"指向什么？上文语境丢失），容易丢失关键细节</li>
+            <li><strong>推荐范围</strong>：300-500 字为基本范围，根据文档类型和问答粒度调整。FAQ 类可更短（100-200），技术文档可更长（500-800）</li>
+            <li><strong>Overlap</strong>：50-100 字的重叠可缓解边界切断问题，但过大会引入重复内容和检索噪声</li>
+          </ul>
+          <strong>特殊内容的 Chunk 处理：</strong>
+          <ul>
+            <li><strong>表格</strong>：整表作为一个 Chunk，或按行切分 + 保留表头。不要把表格按固定长度切——切碎的表格毫无意义</li>
+            <li><strong>代码块</strong>：按函数/类切分，保留函数签名和注释。不要按行数切——半截函数无法理解</li>
+            <li><strong>图片</strong>：OCR 提取文字 + 图片描述（多模态 Embedding），作为独立 Chunk 或附加到所属段落</li>
+            <li><strong>FAQ</strong>：Q-A 作为一个完整 Chunk，不要拆开问题和答案</li>
+          </ul>
+          <strong>面试加分点：</strong>"不要凭感觉调 Chunk 参数——用检索评测集验证。Chunk 策略变更 = 全量重建索引（所有历史 Chunk 都受影响），这是 RAG 生产运维的重大决策。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"RAG 召回质量从文档进入系统前就决定——垃圾进=垃圾出。Chunk 策略三大权衡：固定长度简单但碎语义、语义边界完整但不均匀、递归切分灵活但复杂。推荐 300-500 字 + 语义边界优先 + 特殊内容特殊处理。关键：用评测集验证，不要凭感觉调。"</div>
+      </div>
+    </div>
+
+    <!-- Q195 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q195</div>
+        <div style="flex:1">
+          <div class="q-title">Agent 记忆系统设计：短期记忆 / 长期记忆 / 向量记忆 / Markdown 记忆四种形态的区别与组合？MemGPT / Mem0 的实现原理是什么？记忆写入为什么不能完全放任模型自动决定？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Agent 记忆系统的核心问题：</strong>"把历史聊天记录一股脑塞回上下文"不是记忆系统——真正的记忆系统需要对信息进行<strong>分层、筛选、压缩、更新和治理</strong>。</p>
+          <strong>四种记忆形态的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">记忆形态</th><th style="padding:8px;border:1px solid #ddd">存储内容</th><th style="padding:8px;border:1px solid #ddd">读取方式</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>短期记忆</strong></td><td style="padding:8px;border:1px solid #ddd">当前任务状态：目标、已完成步骤、中间结果</td><td style="padding:8px;border:1px solid #ddd">直接注入上下文窗口</td><td style="padding:8px;border:1px solid #ddd">单次任务执行期间的上下文</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>长期记忆（向量）</strong></td><td style="padding:8px;border:1px solid #ddd">跨会话知识：用户偏好、历史决策、项目经验</td><td style="padding:8px;border:1px solid #ddd">语义检索 → 按相关性注入</td><td style="padding:8px;border:1px solid #ddd">需要"回忆"过去经验的场景</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>长期记忆（Markdown）</strong></td><td style="padding:8px;border:1px solid #ddd">规则、偏好、项目约定——可读、可审查</td><td style="padding:8px;border:1px solid #ddd">全文注入（作为 System Prompt 的一部分）</td><td style="padding:8px;border:1px solid #ddd">需要模型严格遵守的硬性规则</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>情节记忆（Episodic）</strong></td><td style="padding:8px;border:1px solid #ddd">具体事件记录："上次我做了X，结果是Y"</td><td style="padding:8px;border:1px solid #ddd">检索相关历史情节</td><td style="padding:8px;border:1px solid #ddd">避免重复犯错、复用成功经验</td></tr>
+          </table>
+          <strong>向量记忆 vs Markdown 记忆的核心区别：</strong>
+          <ul>
+            <li><strong>向量记忆</strong>：适合语义检索——"用户之前做过类似的任务吗？"→ 向量检索找到相关历史 → 注入上下文。缺点：不可审查、可能召回错误信息、不可精确匹配</li>
+            <li><strong>Markdown 记忆</strong>：适合硬性规则——"用户偏好中文回答"、"项目必须用 TypeScript"、"不能删除数据库"。优点：可读、可审查、可 Git 版本管理、可 Code Review</li>
+            <li><strong>组合策略</strong>：Markdown 存硬性规则（System Prompt 常驻），向量存软性经验（按需检索注入）</li>
+          </ul>
+          <strong>MemGPT 实现原理：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：借鉴操作系统虚拟内存管理——将 LLM 的上下文窗口类比 CPU 寄存器，将外部存储类比主存</li>
+            <li><strong>两层架构</strong>：主对话上下文（Main Context）= 工作区，只存当前任务状态；外部存储（Archival Memory / Recall Memory）= 长期记忆，通过 search / insert 操作读写</li>
+            <li><strong>关键创新</strong>：LLM 自己决定何时读外部记忆（search）和何时写入记忆（insert）——self-edit 机制</li>
+            <li><strong>局限</strong>：LLM 可能写入错误、过时、重复或敏感信息——需要治理机制</li>
+          </ul>
+          <strong>Mem0 实现原理：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：提取对话中的"事实"（facts）而非整段对话——"用户叫张三"、"用户偏好 Python"、"用户项目用 React"</li>
+            <li><strong>流程</strong>：对话 → LLM 提取 facts → 去重 + 合并 + 过期淘汰 → 存入向量库 → 下次对话时检索相关 facts 注入</li>
+            <li><strong>优势</strong>：比 MemGPT 的 self-edit 更可控——不是让 LLM 自由写入，而是结构化提取 + 自动治理（去重/过期/冲突处理）</li>
+          </ul>
+          <strong>为什么记忆写入不能完全放任模型自动决定：</strong>
+          <ul>
+            <li><strong>错误写入</strong>：模型可能写入错误事实（"用户项目用 Java"但实际用的是 TypeScript）</li>
+            <li><strong>过时写入</strong>：用户偏好已改变但旧记忆仍在（"用户偏好英文"但现在已经改用中文）</li>
+            <li><strong>重复写入</strong>：每次对话都写入同一事实 → 记忆库膨胀 → 检索噪声增加</li>
+            <li><strong>敏感写入</strong>：模型可能把密码/API Key/隐私信息写入记忆库</li>
+            <li><strong>治理策略</strong>：① 写入前过滤（敏感信息检测）② 去重（新事实与旧事实合并而非叠加）③ 过期淘汰（设置 TTL 或置信度衰减）④ 人工审核（团队共享记忆走 Git PR）</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"记忆系统四种形态：短期=任务状态（注入上下文）、向量=语义经验（检索注入）、Markdown=硬性规则（常驻System Prompt）、情节=历史事件（按需检索）。MemGPT=self-edit自主读写（灵活但不可控），Mem0=结构化提取+自动治理（可控但需要提取层）。关键：记忆写入不能放任——过滤+去重+过期+审核。"</div>
+      </div>
+    </div>
+
+    <!-- Q196 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q196</div>
+        <div style="flex:1">
+          <div class="q-title">GraphRAG vs LightRAG vs 传统向量 RAG：为什么标准向量 RAG 在多跳推理和全局性问题上撑不住？GraphRAG 的社区摘要如何回答全局问题？LightRAG 的双层检索与增量插入如何降低 GraphRAG 的成本？什么场景该选哪种？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准向量 RAG 的天花板：</strong></p>
+          <ul>
+            <li><strong>擅长</strong>：局部相似内容召回——"某产品的退货政策是什么？"→ 直接检索到相关段落</li>
+            <li><strong>不擅长</strong>：
+              <ul>
+                <li><strong>多跳推理</strong>："哪些产品既符合环保标准又通过了安全认证？"→ 需要跨文档关联"环保标准"和"安全认证"，向量检索只能找局部相似段落，无法跳转到关联文档</li>
+                <li><strong>全局性问题</strong>："这个行业的整体趋势是什么？"→ 需要综合所有文档的全局信息，单个 Chunk 无法回答</li>
+                <li><strong>Chunk 是信息孤岛</strong>：切分后每个 Chunk 丢失了上下文关联——"A 产品"和"B 产品"的对比信息可能分散在不同 Chunk，向量检索无法一次性找到两者</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>GraphRAG 如何突破向量 RAG 的天花板：</strong>
+          <ul>
+            <li><strong>核心机制</strong>：从文档中抽取<strong>实体</strong>（人物/组织/产品/概念）和<strong>关系</strong>（A 投资了 B、C 研发了 D），构建<strong>知识图谱</strong></li>
+            <li><strong>社区发现</strong>：用 Leiden 算法将图谱中的实体按关系密度分组为<strong>社区</strong>——每个社区代表一个主题领域（如"供应链生态"、"竞争对手关系"）</li>
+            <li><strong>社区摘要</strong>：为每个社区生成 LLM 摘要——这个摘要就是回答全局问题的关键：它可以综合社区内所有实体的关系信息</li>
+            <li><strong>两种查询模式</strong>：
+              <ul>
+                <li><strong>局部检索（Local Search）</strong>：检索相关实体 + 关系 + 关联 Chunk → 回答具体问题</li>
+                <li><strong>全局检索（Global Search）</strong>：检索相关社区摘要 → 综合多个社区的全局信息回答宏观问题</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>GraphRAG 的代价：</strong>
+          <ul>
+            <li><strong>构建成本</strong>：需要 LLM 抽取实体/关系 + 生成社区摘要 → 每次构建的 API Token 成本很高</li>
+            <li><strong>更新成本</strong>：新增文档时需要重新抽取实体、更新图谱、重新做社区发现和摘要 → 增量更新非常贵</li>
+            <li><strong>权限过滤更复杂</strong>：节点、边、邻居、社区摘要都可能泄露信息——比文档级过滤复杂得多</li>
+            <li><strong>摘要偏差</strong>：LLM 生成的社区摘要可能遗漏或歪曲原始信息</li>
+          </ul>
+          <strong>LightRAG 如何降低成本：</strong>
+          <ul>
+            <li><strong>双层检索</strong>：低层检索 = 实体+关系（精确匹配），高层检索 = Chunk（语义匹配）→ 不依赖社区摘要就能回答很多问题</li>
+            <li><strong>增量插入</strong>：新增文档时只需抽取新实体/关系并增量插入图谱 → 不需要全量重建社区摘要</li>
+            <li><strong>去摘要依赖</strong>：很多全局问题可以通过"聚合实体+关系"而非"读取社区摘要"回答 → 降低 LLM 调用成本</li>
+            <li><strong>代价</strong>：LightRAG 在真正的全局总结类问题（"整体趋势是什么"）上不如 GraphRAG 的社区摘要——因为缺乏预计算的全局视角</li>
+          </ul>
+          <strong>三种方案选型决策：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">方案</th><th style="padding:8px;border:1px solid #ddd">擅长</th><th style="padding:8px;border:1px solid #ddd">成本</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>向量 RAG</strong></td><td style="padding:8px;border:1px solid #ddd">局部相似召回、FAQ、产品文档查询</td><td style="padding:8px;border:1px solid #ddd">低（只需 Embedding + 向量库）</td><td style="padding:8px;border:1px solid #ddd">FAQ / 产品文档 / 政策查询</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>GraphRAG</strong></td><td style="padding:8px;border:1px solid #ddd">多跳推理、全局总结、跨文档关联</td><td style="padding:8px;border:1px solid #ddd">高（LLM 抽取+摘要+社区发现）</td><td style="padding:8px;border:1px solid #ddd">组织关系网络 / 竞品分析 / 行业趋势</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>LightRAG</strong></td><td style="padding:8px;border:1px solid #ddd">实体+关系检索、增量更新、中等全局问题</td><td style="padding:8px;border:1px solid #ddd">中等（去摘要依赖，增量插入）</td><td style="padding:8px;border:1px solid #ddd">动态更新频繁的知识库 / 中等复杂度问题</td></tr>
+          </table>
+          <strong>成熟系统的实践：</strong>不是纯 GraphRAG 或纯向量 RAG，而是<strong>混合路由</strong>——简单问题走向量检索，多跳问题走 Graph 检索，全局问题走社区摘要。根据问题类型动态路由到最合适的检索方式。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"向量 RAG 擅长局部但天花板在多跳和全局；GraphRAG 用实体+关系+社区摘要突破天花板但构建/更新成本高；LightRAG 双层检索+增量插入降成本但全局总结不如 GraphRAG。选型：FAQ→向量、组织网络→GraphRAG、动态更新→LightRAG、生产级→混合路由。"</div>
       </div>
     </div>
 
