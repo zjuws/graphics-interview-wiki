@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">272+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">284+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -947,6 +947,165 @@
           </ul>
           <strong>当前状态：</strong>D3D12 Work Graphs 已在 Agility SDK 1.7+ 中可用（2024+），Vulkan 对应提案 VK_KHR_workgraph 正在推进中。</div>
         <div class="tip-box">💡 <strong>面试核心：</strong>"Workgraph 解决的是 GPU-Driven Pipeline 的最后一块拼图——Pass 间依赖不再需要回 CPU。传统 Multi-Indirect 是'GPU 做 CPU 定好的事'，Workgraph 是'GPU 自己决定下一步做什么'。关键词：Node+Edge DAG、GPU 端调度器、消灭 CPU 乒乓。"</div>
+      </div>
+    </div>
+
+    <!-- Q197 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q197</div>
+        <div style="flex:1">
+          <div class="q-title">RTX Mega Geometry Foliage — 分区顶层加速结构（TLAS）如何让数百万动画植被实现路径追踪？与传统 GPU 实例化（Instance Culling）的区别？BVH 构建优化策略？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Mega Geometry Foliage 解决的问题：</strong>
+          <ul>
+            <li><strong>痛点</strong>：大型自然环境（森林、草原）包含数百万独立动画植被元素（草叶随风摆动、树木摇曳），每个元素都需要更新其在光线追踪加速结构中的位置——传统方法每帧重建 BLAS（Bottom-Level AS）的 BVH 结构，成本爆炸，成为路径追踪的最大瓶颈</li>
+            <li><strong>方案</strong>：使用<strong>分区顶层加速结构（Partitioned TLAS）</strong>——将场景按空间区域划分，每个区域独立维护一个 TLAS 分区。每帧只需更新受影响分区内的实例变换矩阵（Instance Transform），而非重建整个 BLAS 或 TLAS</li>
+          </ul>
+          <strong>分区 TLAS 核心机制：</strong>
+          <ul>
+            <li><strong>空间分区</strong>：将场景划分为多个空间区域（通常按八叉树或网格），每个区域对应一个 TLAS 子分区。植被元素注册到所在分区</li>
+            <li><strong>增量更新</strong>：每帧只更新发生动画的分区——静止植被的分区 TLAS 不变，直接复用上一帧的加速结构。这比传统"全量重建"快了 100 倍以上</li>
+            <li><strong>实例复用</strong>：相同植被类型（如 10 万棵同种松树）共享同一个 BLAS，分区 TLAS 中只需存不同的 Instance Transform 矩阵——GPU 显存占用大幅降低</li>
+            <li><strong>LOD 感知分区</strong>：远处分区使用低精度 BLAS（简化几何），近处分区使用高精度 BLAS，动态切换无需重建</li>
+          </ul>
+          <strong>与传统 GPU Instancing 的关键区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">GPU Instancing</th><th style="padding:8px;border:1px solid #ddd">Mega Geometry Foliage</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">渲染方式</td><td style="padding:8px;border:1px solid #ddd">光栅化（Raster）</td><td style="padding:8px;border:1px solid #ddd">路径追踪（Path Tracing）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">加速结构</td><td style="padding:8px;border:1px solid #ddd">无（直接提交 Draw Call）</td><td style="padding:8px;border:1px solid #ddd">分区 TLAS + 共享 BLAS</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">动画开销</td><td style="padding:8px;border:1px solid #ddd">仅更新 Constant Buffer 中的变换矩阵</td><td style="padding:8px;border:1px solid #ddd">更新分区 TLAS 中受影响的 Instance Transform</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">遮挡剔除</td><td style="padding:8px;border:1px solid #ddd">CPU OC/GPU OC</td><td style="padding:8px;border:1px solid #ddd">光线追踪天然 Occlusion Culling</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">阴影/反射</td><td style="padding:8px;border:1px solid #ddd">需额外 Pass（CSM/SSR）</td><td style="padding:8px;border:1px solid #ddd">路径追踪天然处理</td></tr>
+          </table>
+          <strong>BVH 构建优化策略：</strong>
+          <ul>
+            <li><strong>Cluster-based BVH</strong>：Mega Geometry 将几何体压缩为 Clusters（集群），BVH 叶子节点指向 Cluster 而非原始三角形——Cluster 数据量远小于原始几何，BVH 构建和遍历都快得多</li>
+            <li><strong>Temporal Reuse</strong>：连续帧间，未移动的分区直接复用上一帧的 BVH 结构，只重建有变化的部分</li>
+            <li><strong>LOD-Driven Build</strong>：根据 BVH 节点在屏幕空间的投影面积选择构建精度——远处节点用粗粒度 BVH，近处用精粒度</li>
+          </ul>
+          <strong>实际效果参考（Alan Wake 2 + 巫师4）：</strong>
+          <ul>
+            <li>Alan Wake 2：启用 Mega Geometry 后帧率提升 5-20%，VRAM 节省 300 MB</li>
+            <li>巫师4：CD PROJEKT RED 使用该技术实现全路径追踪森林，包含数百万动画植被元素实时渲染</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Mega Geometry Foliage = 分区 TLAS + Cluster 压缩 + 增量更新三大支柱。核心是'只更新变化的、复用不变的'——静止植被分区直接复用上一帧加速结构，动画分区增量更新 Instance Transform，比全量重建快 100 倍。这与传统 GPU Instancing 的本质区别在于面向路径追踪而非光栅化。"</div>
+      </div>
+    </div>
+
+    <!-- Q200 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q200</div>
+        <div style="flex:1">
+          <div class="q-title">RTX Neural Shaders — 神经纹理压缩（NTC）和神经材质（Neural Materials）的工作原理？如何在 Slang/HLSL 中集成神经网络推理？与传统 BCn 纹理压缩的对比？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>神经纹理压缩（NTC — Neural Texture Compression）核心原理：</strong>
+          <ul>
+            <li><strong>传统 BCn 问题</strong>：BC1-BC7 是为 SDR 时代设计的固定比率压缩（BC1=4bpp, BC7=8bpp），对 HDR 材质、16-bit 法线贴图、多通道材质属性压缩效率低下——无法利用纹理内容的统计特性</li>
+            <li><strong>NTC 方案</strong>：训练一个微型神经网络（MLP）来编码纹理内容——网络权值代替像素值存储，推理时网络前向传播重建纹理。压缩比可达 10-20×（相比未压缩）或 4-8×（相比 BC7），同时质量更高</li>
+            <li><strong>训练-推理分离</strong>：离线训练阶段在数据集上学习纹理编码网络（多层感知机），运行时在 GPU Shader 中执行 MLP 推理来解压——利用 Tensor Core 加速矩阵乘法</li>
+          </ul>
+          <strong>神经材质（Neural Materials）工作原理：</strong>
+          <ul>
+            <li><strong>超越纹理查询</strong>：传统材质 = 纹理采样（BaseColor + Normal + Roughness + Metallic + AO），每个像素查询贴图后送入 BRDF。神经材质 = 一个神经网络直接输出 BRDF 结果——输入是(视角方向、光照方向、表面参数编码)，输出是出射辐射度</li>
+            <li><strong>多层材质压缩</strong>：复杂材质（如 Subsurface Scattering、Clear Coat、织物多散射）涉及多张高分辨率贴图和多层 BRDF 计算——神经材质将整个材质行为压缩进一个网络，推理时一次前向传播替代多层贴图采样+多层 BRDF 求值</li>
+            <li><strong>优势</strong>：① 带宽节省（不再传输多张高分辨率贴图）；② 质量提升（MLP 能表达比手工 BRDF 更复杂的材质行为）；③ 统一管线（不同材质只是不同网络权重）</li>
+          </ul>
+          <strong>Slang/HLSL 中集成神经网络推理：</strong>
+          <ul>
+            <li><strong>Cooperative Vectors（DX12）</strong>：D3D12 引入 Cooperative Vector 类型，允许 HLSL Shader 中直接声明矩阵-向量乘法操作并映射到 Tensor Core——这意味着神经网络推理可以内嵌在 Shader 中，无需 GPU-CPU 往返</li>
+            <li><strong>Slang 支持</strong>：NVIDIA 的 Slang 着色语言原生支持 Tensor Core 操作和神经网络推理原语，通过 <code>[TensorCore]</code> 属性和 <code>CooperativeVector</code> 类型实现</li>
+            <li><strong>典型代码结构</strong>：Shader 中加载网络权重（存储在 Structured Buffer 中），输入纹理坐标或材质参数编码，执行一系列矩阵-向量乘法（Tensor Core 加速），输出解压后的纹理值或材质 BRDF 结果</li>
+            <li><strong>延迟开销</strong>：单次 MLP 推理延迟约 0.1-0.5ms（取决于网络规模和 Tensor Core 利用率），需要在材质/纹理质量和推理开销间权衡</li>
+          </ul>
+          <strong>NTC vs BCn 全方位对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">BCn（DXTC/BC1-7）</th><th style="padding:8px;border:1px solid #ddd">NTC（神经纹理压缩）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">压缩比</td><td style="padding:8px;border:1px solid #ddd">固定（BC1=6:1, BC7=3:1）</td><td style="padding:8px;border:1px solid #ddd">可变（10-20× vs 未压缩）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">质量</td><td style="padding:8px;border:1px solid #ddd">BC7 接近无损但 8bpp</td><td style="padding:8px;border:1px solid #ddd">超 BC7 质量 + 高压缩比</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">HDR 支持</td><td style="padding:8px;border:1px solid #ddd">BC6H 专用，固定压缩比</td><td style="padding:8px;border:1px solid #ddd">原生支持，自适应</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">多通道</td><td style="padding:8px;border:1px solid #ddd">每通道独立压缩，浪费带宽</td><td style="padding:8px;border:1px solid #ddd">联合压缩多通道，利用通道相关性</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">解压方式</td><td style="padding:8px;border:1px solid #ddd">固定函数硬件单元（Texture Unit）</td><td style="padding:8px;border:1px solid #ddd">神经网络推理（Tensor Core）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">硬件依赖</td><td style="padding:8px;border:1px solid #ddd">所有 GPU</td><td style="padding:8px;border:1px solid #ddd">RTX 40/50 系列（Tensor Core）</td></tr>
+          </table>
+          <strong>面试加分：</strong>RTX Neural Shaders 是 RTX Kit 2026.2 的核心组件，代表了从"固定函数硬件解压"到"神经网络推理解压"的范式转变。面试可提及 Neural Radiance Cache（NRC）作为神经渲染在光照缓存中的类似应用，说明神经表示在游戏渲染中的泛化趋势。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Neural Shaders 两大应用：① NTC 用微型 MLP 编码纹理→压缩比 10-20× 质量超 BC7；② Neural Materials 用 MLP 替代多层贴图+BRDF→带宽省+质量高+管线统一。Slang/HLSL 通过 Cooperative Vectors + Tensor Core 在 Shader 内执行神经网络推理。这是从固定函数纹理单元到可编程 AI 推理的范式转变。"</div>
+      </div>
+    </div>
+
+    <!-- Q201 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q201</div>
+        <div style="flex:1">
+          <div class="q-title">DirectX Cooperative Vectors + Compute Graph Compiler — NVIDIA 与微软如何将 AI 推理原生集成到图形管线中消除 GPU 上下文切换？与 Vulkan Cooperative Matrices 的区别？对未来实时渲染架构的影响？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景——GPU 上下文切换的代价：</strong>
+          <ul>
+            <li><strong>传统方案</strong>：游戏渲染和 AI 推理运行在不同的 GPU 上下文中——渲染走 Graphics Pipeline，AI 推理走 Compute/CUDA Pipeline。两者之间的切换需要：① 清空渲染管线（Flush）；② 切换 GPU 内部状态机；③ AI 推理完毕后再次切换回渲染。每次上下文切换开销约 0.05-0.2ms</li>
+            <li><strong>累积效应</strong>：一帧内可能需要多次 AI 推理（DLSS 超分 + Frame Generation + 神经材质 + 神经光照缓存...），多次上下文切换累积可达 1-2ms，在 16ms 帧预算中占比显著</li>
+            <li><strong>DirectX 方案</strong>：将 AI 推理能力原生内嵌到 DirectX 图形管线中——AI 推理和光栅化/光线追踪共享同一 GPU 上下文，消除切换开销</li>
+          </ul>
+          <strong>DirectX Cooperative Vectors 核心机制：</strong>
+          <ul>
+            <li><strong>Cooperative Vector 类型</strong>：在 HLSL 中引入新的数据类型 <code>CooperativeVector&lt;T, M, K&gt;</code>，表示 GPU 协作处理的向量。硬件层面映射到 Tensor Core 的矩阵-向量乘法单元</li>
+            <li><strong>内联推理</strong>：Shader 代码中可以直接调用 <code>CooperativeVector::Multiply</code>、<code>CooperativeVector::Activate</code> 等操作——编译器将其转换为 Tensor Core 指令，无需离开图形管线</li>
+            <li><strong>与光栅化协同</strong>：Cooperative Vectors 操作可以穿插在 VS/PS/CS 等标准 Shader Stage 中——例如 Pixel Shader 采样 G-Buffer 后立即用 Cooperative Vectors 执行神经材质推理，然后输出着色结果</li>
+            <li><strong>资源绑定</strong>：神经网络权重存储在 Structured Buffer 或 Constant Buffer 中，通过标准 Descriptor Table 绑定，与图形资源（纹理/Buffer）统一管理</li>
+          </ul>
+          <strong>DirectX Compute Graph Compiler 的作用：</strong>
+          <ul>
+            <li><strong>问题</strong>：AI 推理和图形操作混合后，GPU 调度器需要管理更复杂的工作负载——既有传统的图形 Wave/Warp，又有 Tensor Core 操作</li>
+            <li><strong>方案</strong>：Compute Graph Compiler 是新的 GPU 中间层编译器，将 AI+图形混合工作负载编译为统一的 GPU 执行图（Execution Graph），优化器自动调度 Tensor Core 和 Graphics Pipeline 的时间片分配</li>
+            <li><strong>D3D12 Work Graphs 协同</strong>：Compute Graph Compiler 生成的执行图可以直接嵌入 Work Graphs 的 Node→Edge DAG 中——Node A 是光栅化 Pass，Node B 是 AI 推理 Pass，无需 CPU 干预的 GPU 端全流程</li>
+          </ul>
+          <strong>与 Vulkan Cooperative Matrices 的区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Vulkan Cooperative Matrices</th><th style="padding:8px;border:1px solid #ddd">DirectX Cooperative Vectors</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">定位</td><td style="padding:8px;border:1px solid #ddd">Compute Shader 内的矩阵运算加速</td><td style="padding:8px;border:1px solid #ddd">全管线（Graphics + Compute + RT）内的 AI 推理</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">范围</td><td style="padding:8px;border:1px solid #ddd">仅 Compute Pipeline</td><td style="padding:8px;border:1px solid #ddd">Graphics + Compute + Ray Tracing Pipeline</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">编译器</td><td style="padding:8px;border:1px solid #ddd">标准 SPIR-V 编译链</td><td style="padding:8px;border:1px solid #ddd">Compute Graph Compiler（图级优化）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">上下文切换</td><td style="padding:8px;border:1px solid #ddd">Compute ↔ Graphics 仍需切换</td><td style="padding:8px;border:1px solid #ddd">同一上下文，零切换</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Work Graph 集成</td><td style="padding:8px;border:1px solid #ddd">间接（需 VK_KHR_workgraph）</td><td style="padding:8px;border:1px solid #ddd">直接（编译器生成的图可嵌入 Work Graphs）</td></tr>
+          </table>
+          <strong>对未来实时渲染架构的影响：</strong>
+          <ul>
+            <li><strong>管线融合</strong>：传统渲染管线（VS→PS→ROP）和 AI 推理管线（Load→Inference→Write）将融合为统一的计算图——Developer 只需描述"我要在哪个阶段做 AI 推理"，编译器自动调度</li>
+            <li><strong>消除"AI Tax"</strong>：当前 DLSS/神经渲染方案的"AI 推理开销"主要是因为上下文切换和 Compute/Graphics Pipeline 分离——Cooperative Vectors 将这个开销降到接近零</li>
+            <li><strong>Shader 哲学转变</strong>：从"Shader 做数学"到"Shader 做数学 + AI 推理"——开发者用 HLSL 同时描述传统渲染和神经网络推理，一个 Pass 内完成</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Cooperative Vectors = 在图形管线中内嵌 AI 推理，消除 GPU 上下文切换。Compute Graph Compiler = 图级编译器优化 AI+图形混合负载。对比 Vulkan Cooperative Matrices 仅限 Compute Pipeline。这是 'AI-First Graphics Pipeline' 的底层基础——未来渲染管线中 AI 不是附加功能，而是内建原语。"</div>
       </div>
     </div>
 
@@ -1913,6 +2072,62 @@
       </div>
     </div>
 
+    <!-- Q198 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q198</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR PT — 任意反弹路径复用算法原理？与标准 ReSTIR（Wyman 2021）的核心区别？如何在镜面反射和光泽表面上实现全分辨率路径追踪？路径空间蓄水池的局限性？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">必考</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ReSTIR 系列演进概述：</strong>
+          <ul>
+            <li><strong>ReSTIR（SIGGRAPH 2020，Bitterli/Wyman）</strong>：解决直接光照的蓄水池时空重采样——每像素从数百万光源中高效采样少数重要光源，1-2 spp 即可收敛</li>
+            <li><strong>ReSTIR GI（SIGGRAPH 2021）</strong>：扩展到间接光照（Global Illumination），在采样空间（方向+距离）中进行重采样</li>
+            <li><strong>ReSTIR PT（SIGGRAPH 2022）</strong>：扩展到完整路径追踪——在"路径空间"（整个 light path，而非单个方向）中进行重采样，支持任意反弹次数的路径复用</li>
+          </ul>
+          <strong>ReSTIR PT 核心原理——路径空间蓄水池：</strong>
+          <ul>
+            <li><strong>路径空间定义</strong>：一条完整光路（Light Path）从相机出发，经过若干次反弹到达光源。路径空间是所有可能光路的集合——比传统 ReSTIR 的"方向空间"（半球采样）维度高得多</li>
+            <li><strong>蓄水池扩展</strong>：每个像素维护一个<strong>路径蓄水池</strong>（Path Reservoir），其中候选项是一条完整光路（而非单个方向/交点）。重采样时在"邻居像素+历史帧的完整光路"中选择最优路径</li>
+            <li><strong>路径复用</strong>：关键创新——如果邻居像素的光路（经过 N 次反弹到达光源）在当前像素的位置也"有效"（即光路各段在当前像素的投影可用），则该光路可以复用。这比分别采样直接光照 + 间接光照效率高得多</li>
+            <li><strong>MIS 权重修正</strong>：路径复用涉及不同重要性分布——需要用多重重要性采样（MIS）权重修正，确保无偏性</li>
+          </ul>
+          <strong>与标准 ReSTIR（2020）的核心区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">ReSTIR（2020）</th><th style="padding:8px;border:1px solid #ddd">ReSTIR PT（2022）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">采样域</td><td style="padding:8px;border:1px solid #ddd">光源域（Direct Lighting）</td><td style="padding:8px;border:1px solid #ddd">路径空间（Full Path Tracing）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">重采样对象</td><td style="padding:8px;border:1px solid #ddd">光源采样方向</td><td style="padding:8px;border:1px solid #ddd">完整光路（所有反弹）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">反弹限制</td><td style="padding:8px;border:1px solid #ddd">仅 1-bounce（Direct）</td><td style="padding:8px;border:1px solid #ddd">任意反弹（Multi-bounce）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">路径复用</td><td style="padding:8px;border:1px solid #ddd">不支持（只复用光源选择）</td><td style="padding:8px;border:1px solid #ddd">支持（邻居/历史帧的完整光路）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">MIS</td><td style="padding:8px;border:1px solid #ddd">不需要（单域采样）</td><td style="padding:8px;border:1px solid #ddd">需要（多反弹路径涉及多重重要性）</td></tr>
+          </table>
+          <strong>镜面反射和光泽表面的处理：</strong>
+          <ul>
+            <li><strong>镜面反射特殊性</strong>：镜面（Mirror）反射方向是确定性的（Snell's Law），不存在"采样方向"的概念——传统 ReSTIR 的方向重采样在镜面上无效</li>
+            <li><strong>ReSTIR PT 方案</strong>：路径空间重采样不依赖方向——它直接比较完整光路的贡献（Radiance），镜面光路和漫反射光路在蓄水池中平等竞争。因此 ReSTIR PT 可以同时处理漫反射+镜面反射+光泽反射</li>
+            <li><strong>全分辨率镜面反射</strong>：传统方案中镜面反射需要高 spp 才能消除噪点（因为反射方向确定性→噪声集中在反射对象上）。ReSTIR PT 通过复用邻居像素的镜面光路，1-2 spp 即可产生干净镜面反射</li>
+            <li><strong>RTX Kit 2026.2 实际应用</strong>：NVIDIA 在 RTX Path Tracing SDK 中集成了 ReSTIR PT，实现对光泽表面和镜面反射的全分辨率路径追踪——这是将路径追踪推向实时的重要一步</li>
+          </ul>
+          <strong>路径空间蓄水池的局限性：</strong>
+          <ul>
+            <li><strong>路径复用失效</strong>：当相邻像素的材质/几何差异过大时（如硬边缘、材质边界），复用邻居光路会产生严重偏差——MIS 权重虽可修正但会降低有效样本数</li>
+            <li><strong>内存开销</strong>：路径蓄水池存储完整光路（多反弹、多个交点信息），比方向蓄水池（仅存方向+距离）大得多——高分辨率下 VRAM 压力显著</li>
+            <li><strong>运动/动态场景</strong>：光路在动态场景中快速过期（几何移动导致光路失效），蓄水池需要更多新采样来替换过期的候选项</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"ReSTIR 进化：光源域（2020）→ 半球域（2021）→ 路径域（2022）。ReSTIR PT 的核心突破是在路径空间做蓄水池重采样——复用邻居/历史帧的完整光路而非仅方向，所以能同时处理漫反射+镜面反射+任意反弹。这是路径追踪实时化（1-2 spp 收敛）的关键技术。"</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -2473,6 +2688,57 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
       </div>
     </div>
 
+    <!-- Q199 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q199</div>
+        <div style="flex:1">
+          <div class="q-title">Project Lightspeed 神经全局光照 — 神经网络如何学习场景光照行为实现实时动态 GI？训练-推理分离架构原理？与烘焙 GI / 实时光线追踪 GI（DDGI/RTXGI）的优劣对比？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Project Lightspeed 的核心创新：</strong>
+          <ul>
+            <li><strong>定位</strong>：NVIDIA 在 GDC 2026 发布的实时神经全局光照系统，运行于 RTX 40/50 系列 Tensor Core，被称为"自硬件加速光线追踪以来最重大的渲染进步"</li>
+            <li><strong>核心思想</strong>：用神经网络学习场景光照行为——离线训练阶段网络学习光照如何传播（光反弹、颜色溢出、间接漫反射），运行时紧凑网络在 Tensor Core 上推理，动态生成 GI 结果</li>
+            <li><strong>演示标杆</strong>：室内场景含数十个动态光源（蜡烛、壁炉、移动云层透光），4K 60fps 运行于单块 RTX 5080；吹灭蜡烛后墙面反射光实时消失，角色举火炬进角落天花板实时填充暖色光</li>
+          </ul>
+          <strong>训练-推理分离架构：</strong>
+          <ul>
+            <li><strong>离线训练阶段</strong>：在目标场景中大量采样（随机光源位置+视角+时间），用离线路径追踪（数千 spp）生成 Ground Truth GI 数据，训练神经网络学习从"场景几何+光源配置+视角"到"表面辐照度"的映射</li>
+            <li><strong>运行时推理</strong>：输入当前帧的 G-Buffer（法线+深度+材质）和光源位置，网络在 Tensor Core 上前向传播输出每个像素的间接光照贡献——约 0.5-1.5ms（取决于网络规模和分辨率）</li>
+            <li><strong>场景泛化</strong>：网络需要针对每个场景单独训练（场景相关），但训练数据自动生成，训练时间可控——SDK 预计公开后配套自动化工具链</li>
+            <li><strong>动态光源适应</strong>：网络输入包含光源位置和强度，因此能处理动态光源——无需重新训练（这是区别于烘焙 GI 的关键）</li>
+          </ul>
+          <strong>与三种主流 GI 方案的全面对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">烘焙 GI（Lightmap）</th><th style="padding:8px;border:1px solid #ddd">实时光追 GI（DDGI/RTXGI）</th><th style="padding:8px;border:1px solid #ddd">神经 GI（Lightspeed）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">动态光源</td><td style="padding:8px;border:1px solid #ddd">不支持（静态）</td><td style="padding:8px;border:1px solid #ddd">完全支持</td><td style="padding:8px;border:1px solid #ddd">支持（离线训练后运行时泛化）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">质量</td><td style="padding:8px;border:1px solid #ddd">最高（离线计算无噪声）</td><td style="padding:8px;border:1px solid #ddd">中等（每探针少量采样需降噪）</td><td style="padding:8px;border:1px solid #ddd">高（网络学习到光照统计规律）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">运行时开销</td><td style="padding:8px;border:1px solid #ddd">几乎为零（纹理查询）</td><td style="padding:8px;border:1px solid #ddd">2-4ms（取决于探针密度）</td><td style="padding:8px;border:1px solid #ddd">0.5-1.5ms（神经网络推理）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">场景适应性</td><td style="padding:8px;border:1px solid #ddd">仅静态几何</td><td style="padding:8px;border:1px solid #ddd">完全动态</td><td style="padding:8px;border:1px solid #ddd">训练后支持动态光源+部分几何变化</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">硬件依赖</td><td style="padding:8px;border:1px solid #ddd">无（任何 GPU）</td><td style="padding:8px;border:1px solid #ddd">RT Core（RTX 20+）</td><td style="padding:8px;border:1px solid #ddd">Tensor Core（RTX 40/50）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">训练成本</td><td style="padding:8px;border:1px solid #ddd">烘焙时间（分钟-小时）</td><td style="padding:8px;border:1px solid #ddd">无需训练</td><td style="padding:8px;border:1px solid #ddd">离线训练（每场景）</td></tr>
+          </table>
+          <strong>技术挑战与风险：</strong>
+          <ul>
+            <li><strong>场景过拟合</strong>：网络可能对训练中未见过的几何/材质组合产生不合理结果——需要足够的训练数据覆盖和场景泛化技术</li>
+            <li><strong>概率性行为</strong>：与传统确定性渲染不同，神经 GI 可能产生略微不同的结果（不同硬件/Tensor Core 微架构差异），QA 流程需要新工具</li>
+            <li><strong>几何变化</strong>：当前主要处理动态光源，对于动态几何（可破坏环境、移动遮挡物）的支持仍在发展</li>
+            <li><strong>SDK 状态</strong>：预计 2026 年晚些时候发布公开 SDK，部分主要工作室已获得开发者预览版</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Project Lightspeed = 离线训练神经网络学习场景光照传播 + 运行时 Tensor Core 推理输出 GI。核心优势：动态光源响应 + 接近实时性能 + 质量接近离线。对比烘焙 GI（无动态）和实时光追 GI（有噪声需降噪），神经 GI 是第三条路——用训练换质量，用推理换性能。"</div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ══ 4. PBR ══ -->
@@ -2848,6 +3114,53 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>陷阱 4：自定义节点破坏可移植性</strong>——Custom Node 内写的 HLSL 无法自动转换为 GLSL/Metal SL。规避：尽量用标准节点，必要时写多后端 Custom Node</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Shader Graph = 可视化 DAG → 拓扑排序 → 变量分配 → 代码生成 → 优化 → 后端输出。优势是低门槛+快迭代，劣势是代码冗余+变体爆炸+性能盲区。生产级规避：用 Complexity View 监控指令数、控制 Static Switch 数量、Pipeline Cache 预编译、定期 Review 生成的 HLSL。"</div>
+      </div>
+    </div>
+
+    <!-- Q202 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q202</div>
+        <div style="flex:1">
+          <div class="q-title">Neural Nanite（Epic Games）— 神经网络几何压缩与重建原理？10:1 压缩比如何实现？与传统 Nanite（LOD Cluster 层次）的协同关系？跨平台支持策略？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Neural Nanite 解决的问题：</strong>
+          <ul>
+            <li><strong>Nanite 的成就</strong>：UE5 Nanite 实现了虚拟化微多边形几何——自动 LOD 管理，支持数十亿三角形渲染，消除了手动 LOD 制作和几何 Pop-in</li>
+            <li><strong>Nanite 的代价</strong>：原始高精度几何体需要大量存储/VRAM——数十亿三角形的 Nanite 资产可能占用 8GB+ VRAM，巨大的存储开销限制了开放世界游戏的规模</li>
+            <li><strong>Neural Nanite 方案</strong>：训练紧凑神经表示（Neural Representation）来重建精细表面细节——原本需 8GB VRAM 的资产可压缩至约 800MB 神经表示（~10:1 压缩比），运行时在 GPU 上按需解码为几何</li>
+          </ul>
+          <strong>神经几何压缩原理：</strong>
+          <ul>
+            <li><strong>编码-解码架构</strong>：离线训练阶段，编码器将高分辨率几何体（顶点位置+法线+材质 ID）编码为紧凑的潜变量（Latent Code）+ 解码器网络权重；运行时解码器将潜变量和网络权重"解压"为三角形数据流送 Nanite 管线</li>
+            <li><strong>表面细节作为"信号"</strong>：皮肤毛孔、金属划痕、织物纹理等微观表面细节在传统 Nanite 中是海量三角形——神经表示将其视为可学习的"表面信号"，用低维网络参数隐式编码，解码时生成等效三角形</li>
+            <li><strong>层次化神经表示</strong>：借鉴 Nanite 的多级 LOD 结构，训练多级神经网络——远距离用粗粒度网络（输出少三角形），近距离用精粒度网络（输出精细细节），按需切换</li>
+            <li><strong>与 Nanite 协同</strong>：Neural Nanite 不是替代 Nanite，而是作为 Nanite 管线的<strong>输入压缩层</strong>——Nanite 的视图相关 LOD 选择、软件/硬件光栅化切换、遮挡剔除等全部保留，Neural Nanite 替换的是"从磁盘读取原始几何"这一步</li>
+          </ul>
+          <strong>10:1 压缩比的技术支撑：</strong>
+          <ul>
+            <li><strong>参数共享</strong>：一个神经网络可以表示大量相似的表面细节（如 1000 个树皮面片的雕刻细节），传统方法每个面片独立存储，神经表示共享网络权重</li>
+            <li><strong>潜变量压缩</strong>：每个几何块（Geometry Chunk）的潜变量维度远小于原始顶点数据维度——如 8192 个顶点的原始数据 → 128 维潜变量 + 共享解码器网络</li>
+            <li><strong>量化</strong>：网络权重和潜变量可以进一步量化为 INT8/FP8，在不显著损失质量的情况下再压缩 2-4×</li>
+          </ul>
+          <strong>跨平台支持策略：</strong>
+          <ul>
+            <li><strong>硬件优先级</strong>：RTX Tensor Core（PC 高端）→ 最优性能，神经网络推理硬件加速</li>
+            <li><strong>通用 GPU</strong>：Compute Shader 实现神经网络推理（AMD GPU、PS5 标准版、Xbox Series X），性能略低但仍可用</li>
+            <li><strong>降级路径</strong>：不支持神经网络推理的硬件回退到传统 Nanite（原始几何存储），确保兼容性</li>
+            <li><strong>Epic 官方演示</strong>：在标准 PlayStation 5 上实现演示场景运行，说明神经表示不限于 NVIDIA 硬件</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Neural Nanite = 神经表示压缩 Nanite 几何数据 → 10:1 压缩比，8GB→800MB。不是替代 Nanite，而是作为输入压缩层——Nanite 的 LOD/裁剪/光栅化全部保留，只替换磁盘读取步骤。核心是参数共享 + 潜变量压缩 + 层次化网络。跨平台通过 Compute Shader 回退保证兼容性。"</div>
       </div>
     </div>
 
@@ -5106,6 +5419,54 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>V3 实际部署</strong>：单 H100 80GB 跑不动，需 8×H100 或 8×H200 141GB</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"V3 三大创新协同：① Fine-grained 拆细 expert 组合数爆炸 + ② Shared expert 吸收通用知识释放 routed expert 专精 + ③ Aux-loss-free 用外循环 bias 解耦平衡与表达力。ESFT 只训相关 expert 省 90% 显存。MoE 推理本质：省 bandwidth 不省 capacity。"</div>
+      </div>
+    </div>
+
+    <!-- Q207 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q207</div>
+        <div style="flex:1">
+          <div class="q-title">Prompt Drift 监控体系 — 模型版本漂移/语料漂移/Schema漂移分别是什么？如何在 CI 中验证 Prompt 变更？Prompt 版本管理与回滚机制？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Prompt Drift 的三种形态：</strong>
+          <ul>
+            <li><strong>1. 模型版本漂移（Model Drift）</strong>：底层 LLM 提供方（OpenAI/Anthropic 等）静默更新模型版本——新版本对同一 Prompt 的响应行为发生变化（输出格式/推理深度/偏好偏移）。这是最隐蔽的漂移，因为开发者没改任何东西但系统行为变了</li>
+            <li><strong>2. 语料漂移（Data Drift）</strong>：RAG 场景中知识库文档持续更新——新增/修改/删除的文档改变检索结果分布，导致同样的 Query 得到不同的检索结果，进而改变生成质量。典型场景：产品文档更新、政策法规变更</li>
+            <li><strong>3. Schema 漂移（Schema Drift）</strong>：工具定义（Tool/Function Schema）变更——新增必填参数、修改返回值字段、废弃旧端点的参数名变化，导致 Agent 调用工具时产生格式错误。常见于 MCP Tool 和 API 版本迭代</li>
+          </ul>
+          <strong>CI 中验证 Prompt 变更的工程实践：</strong>
+          <ul>
+            <li><strong>Prompt Unit Test</strong>：为每个 Prompt 编写单元测试——给定固定输入，验证输出满足约束（包含特定关键词、不含敏感内容、格式合规）。测试在 CI Pipeline 中运行，Prompt 变更 → 触发回归测试</li>
+            <li><strong>Golden Dataset 回归</strong>：维护一组"金标准"输入-期望输出对（至少 50-100 条），每次 Prompt 变更后批量运行，计算与期望输出的相似度（BLEU/ROUGE/Semantic Similarity），低于阈值则阻止合并</li>
+            <li><strong>Mock LLM 验证控制流</strong>：用 Fake/Mock LLM（返回固定响应）测试 Agent 的控制流逻辑——验证"工具 A 返回空时→回退到工具 B"这类分支逻辑，不依赖真实 LLM 推理</li>
+            <li><strong>Shadow Testing</strong>：新 Prompt 版本部署到生产但"影子模式"运行——用户实际看到旧版本结果，新版本结果记录到日志用于离线对比。确认质量不退化后再切换</li>
+          </ul>
+          <strong>Prompt 版本管理与回滚：</strong>
+          <ul>
+            <li><strong>版本化存储</strong>：Prompt 和 System Message 存放在 Git 中（而非数据库或环境变量），每次变更有 Commit Message 和 Reviewer。Git Tag 标记生产版本</li>
+            <li><strong>结构化 Prompt 模板</strong>：Prompt 拆分为 Template（结构）+ Variables（变量值），分别版本管理。模板变更走 PR Review，变量值变更可热更新</li>
+            <li><strong>自动回滚机制</strong>：监控关键指标（任务成功率、幻觉率、用户满意度）→ 新 Prompt 上线后指标下降超过阈值 → 自动回滚到上一个 Git Tag 版本 + 告警通知</li>
+            <li><strong>A/B 实验</strong>：同一 Prompt 维护 A/B 两个版本，按用户 ID 哈希分流——持续收集对比数据，统计显著后全量切换</li>
+          </ul>
+          <strong>监控指标体系：</strong>
+          <ul>
+            <li><strong>输出稳定性</strong>：同一输入多次采样的输出方差——漂移时方差增大</li>
+            <li><strong>格式合规率</strong>：输出符合期望格式（JSON Schema/特定模板）的比例</li>
+            <li><strong>Token 消耗分布</strong>：输出 Token 数的均值/方差——漂移可能导致输出变冗长</li>
+            <li><strong>业务指标</strong>：任务完成率、用户重试率、工具调用成功率</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Prompt Drift 三种形态：模型漂移（静默更新→行为变化）、语料漂移（文档更新→检索分布变化）、Schema漂移（工具定义变更→调用失败）。CI 验证靠 Prompt Unit Test + Golden Dataset + Mock LLM + Shadow Testing。版本管理用 Git + Tag + A/B 实验 + 自动回滚。"</div>
       </div>
     </div>
 
@@ -8662,6 +9023,266 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </table>
           <strong>成熟系统的实践：</strong>不是纯 GraphRAG 或纯向量 RAG，而是<strong>混合路由</strong>——简单问题走向量检索，多跳问题走 Graph 检索，全局问题走社区摘要。根据问题类型动态路由到最合适的检索方式。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"向量 RAG 擅长局部但天花板在多跳和全局；GraphRAG 用实体+关系+社区摘要突破天花板但构建/更新成本高；LightRAG 双层检索+增量插入降成本但全局总结不如 GraphRAG。选型：FAQ→向量、组织网络→GraphRAG、动态更新→LightRAG、生产级→混合路由。"</div>
+      </div>
+    </div>
+
+    <!-- Q203 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q203</div>
+        <div style="flex:1">
+          <div class="q-title">Agent Eval 系统 — Trajectory 评估与最终答案评估的区别？Eval-Driven Development（EDD）如何落地？Golden Traces / Shadow Testing / A-B Testing 在 Agent 上线中的角色？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Trajectory 评估 vs 最终答案评估：</strong>
+          <ul>
+            <li><strong>最终答案评估（Answer-Level Eval）</strong>：只看 Agent 最终输出是否正确——等价于传统的 NLP 评估（准确性、相关性、幻觉率），适合确定性答案场景（数学题、代码正确性）</li>
+            <li><strong>轨迹评估（Trajectory-Level Eval）</strong>：评估 Agent 完成任务的<strong>全过程</strong>——每一步的推理（Thought）是否正确、工具调用（Action）是否合理、是否走了弯路、是否产生不必要的 Token 开销。“答案对但过程错”在 Agent 场景中等于差评——因为过程错意味着不可复现、不可信任</li>
+            <li><strong>核心区别</strong>：答案评估是"结果导向"，轨迹评估是"过程导向"——Agent 的工程价值不只在于能不能答对，更在于能否稳定、高效、可控地完成任务</li>
+          </ul>
+          <strong>Eval-Driven Development（EDD）落地实践：</strong>
+          <ul>
+            <li><strong>1. 构建 Eval Dataset</strong>：从三个来源积累——① 手工编写的核心场景（Happy Path + Edge Case）；② 生产事故 Postmortem 转化（每次出问题后把触发 Case 加入 Eval Set）；③ 用户反馈 UGC（用户投诉/低评分的真实 Case）</li>
+            <li><strong>2. 多层次评估体系</strong>：
+              <ul>
+                <li><strong>单元级</strong>：单个 Tool 调用是否正确（参数格式/返回值解析）——用 Mock LLM 验证</li>
+                <li><strong>场景级</strong>：完整任务流程的端到端测试——用真实 LLM + Eval Dataset 跑评</li>
+                <li><strong>回归级</strong>：每次代码/Prompt 变更自动重跑 Eval Dataset，对比分数变化</li>
+              </ul>
+            </li>
+            <li><strong>3. LLM-as-Judge 自动化</strong>：用更强的 LLM（如 GPT-4o/Claude 4）作为评判者，对 Agent 的每次运行输出打分——涵盖正确性、效率、鲁棒性三个维度。需注意 Judge 自身偏差（偏好某种风格/长度）</li>
+            <li><strong>4. CI 集成</strong>：Eval 流程嵌入 CI Pipeline——PR → 触发 Eval → 分数低于阈值 → Block Merge</li>
+          </ul>
+          <strong>Agent 上线三阶段测试策略：</strong>
+          <ul>
+            <li><strong>Golden Traces（金标准轨迹）</strong>：预先录制的"正确轨迹"——已知输入下 Agent 应该走哪几步、调用哪些工具、输出什么结果。每次变更后重放 Golden Trace，验证行为一致性。类似于传统软件的 Regression Test</li>
+            <li><strong>Shadow Testing（影子测试）</strong>：新版本 Agent 在生产环境中"影子模式"运行——接收真实用户请求但结果不返回用户，只记录日志用于对比新旧版本差异。最安全的验证方式，不损伤用户体验</li>
+            <li><strong>A/B Testing</strong>：按用户 ID 哈希分流到新版/旧版 Agent，收集真实业务指标（任务完成率、用户满意度、平均对话轮数），统计显著后全量切换。A/B 测试需要足够的样本量和时间窗口</li>
+          </ul>
+          <strong>关键指标（Agent SLO）：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">指标类别</th><th style="padding:8px;border:1px solid #ddd">具体指标</th><th style="padding:8px;border:1px solid #ddd">衡量维度</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">正确性</td><td style="padding:8px;border:1px solid #ddd">任务完成率、答案准确率、幻觉率</td><td style="padding:8px;border:1px solid #ddd">输出质量</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">效率</td><td style="padding:8px;border:1px solid #ddd">平均工具调用数、平均 Token 消耗、平均 Completion 时间</td><td style="padding:8px;border:1px solid #ddd">成本与延迟</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">鲁棒性</td><td style="padding:8px;border:1px solid #ddd">工具调用成功率、错误恢复率、超时率</td><td style="padding:8px;border:1px solid #ddd">容错能力</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">一致性</td><td style="padding:8px;border:1px solid #ddd">同输入多次运行的轨迹方差、输出稳定性</td><td style="padding:8px;border:1px solid #ddd">非确定性控制</td></tr>
+          </table></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Agent Eval 从'看答案'升级到'看过程'——Trajectory Eval 评估推理链+工具调用链，答案对但过程错=不及格。EDD 落地：Eval Dataset 三来源（手工+事故+反馈）→ 三级评估（单元/场景/回归）→ CI 门禁。上线三步：Golden Traces → Shadow Testing → A/B Testing。SLO 四个维度：正确/效率/鲁棒/一致。"</div>
+      </div>
+    </div>
+
+    <!-- Q204 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q204</div>
+        <div style="flex:1">
+          <div class="q-title">Agent SRE 与生产化 — Circuit Breaker 在 Agent 工具调用中如何防止死循环烧钱？Kill Switch / Dead-letter Queue / 幂等性在 Agent 系统的设计方案？Agent SLO 指标体系设计？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Circuit Breaker（熔断器）在 Agent 中的应用：</strong>
+          <ul>
+            <li><strong>问题</strong>：Agent 可能在工具调用中陷入死循环——工具 A 失败 → 重试 → 再失败 → 换工具 B → 同样失败 → 回工具 A...每步都在消耗 Token（烧钱），但永远无法完成任务</li>
+            <li><strong>三级熔断策略</strong>：
+              <ul>
+                <li><strong>工具级熔断</strong>：单个工具连续失败 N 次（如 3 次）→ 该工具标记为不可用 → Agent 不能再调用它 → 强制走降级路径。适用于外部 API 宕机场景</li>
+                <li><strong>任务级熔断</strong>：整个任务的工具调用总次数超过阈值（如 20 次）→ 强制终止，返回"任务过于复杂，请人工处理"。防止无限循环烧钱</li>
+                <li><strong>成本级熔断</strong>：累计 Token 消耗超过预算上限（如 $5/任务）→ 立即中断，记录上下文供人工恢复。生产环境必须设置硬性预算上限</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Kill Switch（紧急停止开关）：</strong>
+          <ul>
+            <li><strong>设计原则</strong>：每个 Agent 实例和每个 Tool 都应有独立的 Kill Switch——通过配置中心（如 Feature Flag）实现秒级生效，无需重新部署</li>
+            <li><strong>粒度分级</strong>：① Agent 级（关闭某个 Agent 的所有请求）；② Tool 级（禁用某个工具，Agent 仍运行但走降级）；③ Model 级（切换到备选模型）</li>
+            <li><strong>自动触发条件</strong>：错误率突增（>10%）、P99 延迟飙升（>30s）、成本异常（单小时消耗 > 日常 3×）、安全事件（检测到 Prompt Injection）</li>
+          </ul>
+          <strong>Dead-letter Queue（死信队列）在 Agent 系统的应用：</strong>
+          <ul>
+            <li><strong>场景</strong>：长任务 Agent 执行到一半失败——如果无状态保存，前面所有工作（工具调用结果、推理链路）全部丢失，重试需要从头开始</li>
+            <li><strong>方案</strong>：Agent 的每个"步骤"（Thought + Tool Call + Observation）作为一个消息写入队列。成功执行后 ACK；失败后消息进入 Dead-letter Queue，保留完整上下文（执行到哪一步、中间结果、失败原因）</li>
+            <li><strong>恢复机制</strong>：从 DLQ 读取失败消息 → 分析失败原因 → 如果是临时性错误（API 超时），自动重放（Replay）；如果是逻辑错误（参数错误），人工介入修复后重放</li>
+            <li><strong>幂等性保证</strong>：重放时可能重复执行已成功的步骤——需要为每个步骤生成唯一幂等键（Idempotency Key），重复的步骤检测到相同 Key 后跳过执行直接返回缓存结果</li>
+          </ul>
+          <strong>Agent SLO 指标体系设计：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">SLO 类别</th><th style="padding:8px;border:1px solid #ddd">指标</th><th style="padding:8px;border:1px solid #ddd">目标示例</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">可用性</td><td style="padding:8px;border:1px solid #ddd">请求成功率（非 5xx）</td><td style="padding:8px;border:1px solid #ddd">99.9%</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">延迟</td><td style="padding:8px;border:1px solid #ddd">P50/P99 首 Token 时间 + 完整响应时间</td><td style="padding:8px;border:1px solid #ddd">P50<2s, P99<10s</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">质量</td><td style="padding:8px;border:1px solid #ddd">任务完成率、用户满意度、重试率</td><td style="padding:8px;border:1px solid #ddd">完成率>85%</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">成本</td><td style="padding:8px;border:1px solid #ddd">单任务平均 Token 消耗、日均总成本</td><td style="padding:8px;border:1px solid #ddd">单任务<$0.5</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">安全</td><td style="padding:8px;border:1px solid #ddd">Prompt Injection 检测率、敏感信息泄露数</td><td style="padding:8px;border:1px solid #ddd">泄露=0</td></tr>
+          </table></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Agent SRE = 把微服务运维模式移植到 Agent 系统。三级熔断：工具级（N次失败禁工具）→ 任务级（总调用超阈值终止）→ 成本级（Token预算硬上限）。Kill Switch 粒度：Agent/Tool/Model 三级秒级开关。Dead-letter Queue 保存失败上下文 + 幂等键重放。SLO 五维：可用/延迟/质量/成本/安全。"</div>
+      </div>
+    </div>
+
+    <!-- Q205 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q205</div>
+        <div style="flex:1">
+          <div class="q-title">Code Agent 代码检索方案对比 — Grep/Glob vs 向量 RAG vs Subagent 切分三种方案各有什么优劣？为什么 Claude Code 选择 Grep 而不是 RAG 检索代码？代码仓库的 Chunking 策略与普通文档有何不同？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三种代码检索方案核心对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Grep/Glob</th><th style="padding:8px;border:1px solid #ddd">向量 RAG</th><th style="padding:8px;border:1px solid #ddd">Subagent 切分</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">检索方式</td><td style="padding:8px;border:1px solid #ddd">精确文本/正则匹配 + 文件名模式匹配</td><td style="padding:8px;border:1px solid #ddd">语义向量相似度检索</td><td style="padding:8px;border:1px solid #ddd">子 Agent 独立搜索代码库子集后返回摘要</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">精度</td><td style="padding:8px;border:1px solid #ddd">最高——精确匹配，不会漏搜</td><td style="padding:8px;border:1px solid #ddd">中——语义近似可能漏相关代码</td><td style="padding:8px;border:1px solid #ddd">中——依赖子Agent搜索能力</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">召回</td><td style="padding:8px;border:1px solid #ddd">低——只能找到字面匹配</td><td style="padding:8px;border:1px solid #ddd">高——可找到语义相关但字面不同</td><td style="padding:8px;border:1px solid #ddd">中——受子Agent上下文窗口限制</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">上下文效率</td><td style="padding:8px;border:1px solid #ddd">极高——只加载匹配行</td><td style="padding:8px;border:1px solid #ddd">低——每个 Chunk 包含大量无关代码</td><td style="padding:8px;border:1px solid #ddd">高——子Agent只返回结果摘要</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">建立索引</td><td style="padding:8px;border:1px solid #ddd">无需（文件系统即索引）</td><td style="padding:8px;border:1px solid #ddd">需要（Embedding + 向量库）</td><td style="padding:8px;border:1px solid #ddd">无需</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">实时性</td><td style="padding:8px;border:1px solid #ddd">实时（文件系统直接读）</td><td style="padding:8px;border:1px solid #ddd">延迟（Embedding 更新成本高）</td><td style="padding:8px;border:1px solid #ddd">实时</td></tr>
+          </table>
+          <strong>为什么 Claude Code 选择 Grep 而非 RAG：</strong>
+          <ul>
+            <li><strong>代码检索的本质是"找定义"不是"找概念"</strong>：开发者找代码时的典型 Query 是"在哪里定义了 authenticateUser 函数"或"哪些文件 import 了 UserModel"——这是精确匹配问题，不是语义相似问题。Grep 完胜，RAG 反而会引入噪音</li>
+            <li><strong>代码的"语义"存在于结构而非文本</strong>：代码的语义通过 AST（抽象语法树）、类型系统、调用链表达——文本级别的语义相似度（RAG）无法捕捉"这个函数被哪些模块调用"这类结构性信息</li>
+            <li><strong>代码库的"正确答案"是唯一的</strong>：一个函数定义只有一个真实位置——Grep 能找到它。RAG 返回"语义相似"的多个 Chunk 中可能不包含真正的定义</li>
+            <li><strong>Token 预算效率</strong>：Grep 返回的匹配行精炼紧凑，RAG 返回的 Chunk 通常 500-2000 Token 且其中大部分是无关代码。在有限上下文窗口下，Grep 方案能用更少 Token 承载更多有效信息</li>
+            <li><strong>Subagent 作为补充</strong>：当 Grep 找不到时，Claude Code 用 Subagent 独立搜索代码库子集——Subagent 有自己的上下文窗口，完成搜索后只返回结果摘要。这比 RAG 更高效且不污染主 Agent 上下文</li>
+          </ul>
+          <strong>代码仓库的 Chunking 策略与普通文档的区别：</strong>
+          <ul>
+            <li><strong>文档 Chunking</strong>：按段落/固定 Token 数切分——目标是将连续文本切为"语义完整"的片段，适用于自然语言的线性阅读模式</li>
+            <li><strong>代码 Chunking</strong>（如果用 RAG）：
+              <ul>
+                <li><strong>按函数/类边界切分</strong>：一个 Chunk = 一个完整函数/类——不能从函数中间切断（破坏语法结构和语义完整性）</li>
+                <li><strong>按文件切分</strong>：小型文件（<500 行）整个作为一个 Chunk，大型文件按函数边界切</li>
+                <li><strong>包含 import/依赖上下文</strong>：每个 Chunk 需附带文件顶部的 import 语句和类型声明——否则函数中的类型引用无法解析</li>
+                <li><strong>元数据增强</strong>：Chunk 需附带文件路径、所属模块、导出的符号列表——结构化元数据比纯文本更适合代码检索</li>
+              </ul>
+            </li>
+            <li><strong>最佳实践</strong>：代码检索首选 AST-aware Grep + Glob，只有需要"找相似实现"或"跨语言语义搜索"时才考虑 RAG。Subagent 切分适合超大仓库（百万行级别），各子 Agent 独立搜索自己的模块</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"代码检索不是'语义匹配'问题是'定义查找'问题——Grep 精确、实时、零索引成本，完胜 RAG。Claude Code 选择 Grep 因为代码语义存在于结构（AST/类型/调用链）而非文本。代码 Chunking 必须按函数/类边界 + 附带 import 上下文。三方案选型：精确查找→Grep，语义探索→RAG，超大仓库→Subagent 切分。"</div>
+      </div>
+    </div>
+
+    <!-- Q206 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q206</div>
+        <div style="flex:1">
+          <div class="q-title">Agent Skill 管理与复用 — Skill 作为可复用 Agent 组件的设计原则？Skill 的上下文治理/版本管理/评估体系？与 Function Calling 和 MCP Tool 的本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Skill 的定义与设计原则：</strong>
+          <ul>
+            <li><strong>Skill 是什么</strong>：Skill 是一组<strong>可复用的 Prompt + 工具 + 知识 + 工作流</strong>的打包，让 Agent 在执行特定领域任务时自动加载对应的能力组合。类比：Function Calling 像"调用一个函数"，Skill 像"加载一个专业人员的全套能力"</li>
+            <li><strong>设计原则</strong>：
+              <ul>
+                <li><strong>单一职责</strong>：一个 Skill 只解决一类问题（如"PDF 处理"、"代码 Review"、"数据库查询"），避免功能膨胀</li>
+                <li><strong>自包含</strong>：Skill 包含完成任务所需的全部上下文——不依赖 Agent 的全局状态或隐式知识</li>
+                <li><strong>可发现性</strong>：Skill 通过元数据（名称、描述、触发条件、适用场景）注册到 Agent 的 Skill Registry，Agent 根据任务动态加载</li>
+                <li><strong>可组合性</strong>：多个 Skill 可以按需组合——"代码 Review" Skill 可能依赖"Git Diff" Skill 提供代码变更</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Skill 的上下文治理：</strong>
+          <ul>
+            <li><strong>按需加载，用完卸载</strong>：Skill 的 Prompt/工具/知识只在需要时注入 Agent 上下文窗口——任务完成后立即卸载释放 Token 空间。类似操作系统的动态链接库（DLL/so），不常驻内存</li>
+            <li><strong>上下文预算分配</strong>：每个 Skill 有固定的上下文 Token 预算（如 2000 Token）——包含 Skill 的系统提示词、工具说明、关键知识。Agent 的上下文管理器负责调度和回收</li>
+            <li><strong>冲突处理</strong>：多个 Skill 同时激活时，不同 Skill 的工具名/指令可能冲突——需要命名空间隔离（如 <code>pdf.read</code> vs <code>docx.read</code>）和优先级策略</li>
+          </ul>
+          <strong>Skill 版本管理与评估：</strong>
+          <ul>
+            <li><strong>版本化</strong>：每个 Skill 版本化为独立目录/文件（Git 管理），遵循语义化版本（SemVer）。Breaking Change 需要大版本升级，Agent 可指定兼容版本范围</li>
+            <li><strong>评估体系</strong>：每个 Skill 附带 Eval Dataset，CI 中自动运行——测试 Skill 在典型场景下的工具调用正确性、输出格式合规性、边界情况处理</li>
+            <li><strong>灰度发布</strong>：新版本 Skill 先对小比例流量生效，观察指标（任务成功率、Token 消耗）无劣化后全量</li>
+          </ul>
+          <strong>Skill vs Function Calling vs MCP Tool 的本质区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Function Calling</th><th style="padding:8px;border:1px solid #ddd">MCP Tool</th><th style="padding:8px;border:1px solid #ddd">Skill</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">粒度</td><td style="padding:8px;border:1px solid #ddd">单个 API 调用</td><td style="padding:8px;border:1px solid #ddd">标准化工具接口</td><td style="padding:8px;border:1px solid #ddd">完整能力组合（Prompt + 工具 + 知识 + 流程）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">包含内容</td><td style="padding:8px;border:1px solid #ddd">函数签名（参数+返回值）</td><td style="padding:8px;border:1px solid #ddd">工具定义 + 资源 + Prompts</td><td style="padding:8px;border:1px solid #ddd">Prompt + 多工具 + 知识 + 工作流 + 示例</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">生命周期</td><td style="padding:8px;border:1px solid #ddd">调用时存在</td><td style="padding:8px;border:1px solid #ddd">连接建立期间</td><td style="padding:8px;border:1px solid #ddd">按需加载、用完卸载</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">上下文管理</td><td style="padding:8px;border:1px solid #ddd">工具定义常驻</td><td style="padding:8px;border:1px solid #ddd">工具列表常驻</td><td style="padding:8px;border:1px solid #ddd">动态注入/卸载，按需消耗 Token 预算</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">复用性</td><td style="padding:8px;border:1px solid #ddd">单 Agent 复用</td><td style="padding:8px;border:1px solid #ddd">跨 Agent/跨框架复用</td><td style="padding:8px;border:1px solid #ddd">跨 Agent 复用 + 版本化分发</td></tr>
+          </table>
+          <strong>面试加分点：</strong>Skill 概念接近 Anthropic Claude Code 的"Skill"和 OpenAI 的"GPTs"——但更侧重工程化治理。可提及"Skill 是 Agent 工程化的关键——将 Agent 能力模块化、可测试、可版本管理，类似微服务之于单体应用"。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Skill = Prompt + 工具 + 知识 + 工作流的可复用打包。与 Function Calling（单函数）和 MCP Tool（标准工具接口）的区别在于粒度——Skill 是完整能力组合而非单次调用。核心设计：单一职责 + 自包含 + 按需加载卸载 + 版本化评估。Skill 之于 Agent 如同微服务之于单体应用。"</div>
+      </div>
+    </div>
+
+    <!-- Q208 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q208</div>
+        <div style="flex:1">
+          <div class="q-title">多 Agent 编排模式深度对比 — Orchestrator-Worker vs Round-Robin vs Handoff vs Hierarchical 四种模式的原理、优劣与选型？"何时不应该用 Multi-Agent"作为高级工程判断信号？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>四种多 Agent 编排模式：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">模式</th><th style="padding:8px;border:1px solid #ddd">原理</th><th style="padding:8px;border:1px solid #ddd">优势</th><th style="padding:8px;border:1px solid #ddd">劣势</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Orchestrator-Worker</strong></td><td style="padding:8px;border:1px solid #ddd">主 Agent 分析任务→拆分为子任务→分发给专业 Worker Agent→Worker 返回结果→主 Agent 合成输出</td><td style="padding:8px;border:1px solid #ddd">结构清晰、可控、便于权限管理</td><td style="padding:8px;border:1px solid #ddd">主 Agent 是单点瓶颈、任务拆分质量决定全局效果</td><td style="padding:8px;border:1px solid #ddd">结构化任务（代码审查、数据分析、报告生成）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Round-Robin（轮流）</strong></td><td style="padding:8px;border:1px solid #ddd">多个 Agent 轮流发言，各自在对话中贡献知识和决策。无中心协调者，平等对话</td><td style="padding:8px;border:1px solid #ddd">去中心化、鲁棒、适合头脑风暴</td><td style="padding:8px;border:1px solid #ddd">可能发散（无法收敛到决策）、上下文膨胀快、容易出现"同意回声室"</td><td style="padding:8px;border:1px solid #ddd">创意讨论、需求评审、多视角分析</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Handoff（交接）</strong></td><td style="padding:8px;border:1px solid #ddd">Agent A 处理完自己负责的部分后，将任务和上下文"交接"给 Agent B 继续。Agent B 独立完成剩余部分，不与 A 持续交互</td><td style="padding:8px;border:1px solid #ddd">上下文隔离好、各 Agent 专注</td><td style="padding:8px;border:1px solid #ddd">信息丢失风险（交接不完整）、需要精确的任务边界定义</td><td style="padding:8px;border:1px solid #ddd">流水线式任务（规划→实现→测试→部署）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Hierarchical（层级）</strong></td><td style="padding:8px;border:1px solid #ddd">多层树形结构——Top Agent 管理 Mid Agent，Mid Agent 管理 Leaf Agent。每层只和上下层交互</td><td style="padding:8px;border:1px solid #ddd">超大规模任务管理、抽象层次清晰</td><td style="padding:8px;border:1px solid #ddd">层级越多延迟越大、错误逐层放大、调试极其困难</td><td style="padding:8px;border:1px solid #ddd">极复杂任务（多团队协作、大规模代码重构）</td></tr>
+          </table>
+          <strong>"何时不应该用 Multi-Agent"——2026 面试新增核心考点：</strong>
+          <ul>
+            <li><strong>1. 任务不需要并行</strong>：如果任务可以线性分解为 A→B→C，单 Agent 顺序执行即可，Multi-Agent 的协调开销（Token 浪费+编排复杂度）大于收益</li>
+            <li><strong>2. 上下文泄露风险</strong>：Multi-Agent 间需要共享部分上下文——不同 Agent 可能看到不该看的信息（权限管控失效），或收到错误信息后连锁反应</li>
+            <li><strong>3. 调试成本爆炸</strong>：单 Agent 出错 → 看日志即可。Multi-Agent 出错 → 需要追踪哪个 Agent 在哪个环节做了错误决策，以及错误如何传播到其他 Agent——调试复杂度指数增长</li>
+            <li><strong>4. 成本线性放大</strong>：每个 Agent 的 System Prompt + 工具定义 + 通信开销都在消耗 Token——N 个 Agent 的成本远超 N × 单 Agent 成本</li>
+            <li><strong>5. "能用单 Agent + 好设计解决就不要上 Multi-Agent"</strong>：这是 2026 年面试官最看重的高级判断——资深工程师知道什么时候不该用复杂方案</li>
+          </ul>
+          <strong>Multi-Agent 工程选型决策树：</strong>
+          <ul>
+            <li>任务是否需要不同专业知识？→ 否 → 单 Agent（用 Skill 切换而非 Multi-Agent）</li>
+            <li>子任务间是否有强依赖（必须串行）？→ 是 → Handoff 模式（上下文隔离+流程清晰）</li>
+            <li>子任务是否独立可并行？→ 是 → Orchestrator-Worker（主 Agent 调度 Parallel Worker）</li>
+            <li>任务是否需要多视角讨论/创造性发散？→ 是 → Round-Robin（注意设置收敛条件防止无限讨论）</li>
+            <li>任务是否大到单次协作不够（需要多层管理）？→ 是 → Hierarchical（最后选择，额外复杂度需要充分理由）</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"四种模式：Orchestrator-Worker（结构化任务首选）、Round-Robin（讨论型）、Handoff（流水线型）、Hierarchical（超大任务）。关键面试判断：'何时不用 Multi-Agent'——任务不并行/上下文泄露/调试爆炸/成本放大/单 Agent 能搞定。2026 面试官看重的是'拒绝不必要的复杂度'的工程判断力。"</div>
       </div>
     </div>
 
