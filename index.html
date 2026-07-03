@@ -1109,6 +1109,53 @@
       </div>
     </div>
 
+
+    <!-- Q209 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q209</div>
+        <div style="flex:1">
+          <div class="q-title">现代渲染管线的 Render Graph / Frame Graph：为什么 UE5、Dawn、Filament 都在用？它如何解决资源屏障、内存别名与多队列提交问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Render Graph 要解决的核心矛盾：</strong>现代 GPU 有复杂的资源状态（image layout、buffer state）、同步原语（Barrier/Fence/Semaphore）和内存别名需求，手写代码极易出错且性能差。Render Graph 让开发者描述"要做什么"，由框架自动推导"怎么做"。</p>
+          <strong>Render Graph 三层抽象：</strong>
+          <ul>
+            <li><strong>1. Pass 声明层</strong>：每个 Pass 声明读/写的资源（Texture / Buffer）及使用方式（color / depth / uav / srv）。例如 <code>AddPass("SSAO", [&rAo](PassBuilder& b){ b.Read(gBufferDepth); b.Write(rAo); });</code></li>
+            <li><strong>2. 资源分配层</strong>：框架根据 Pass 依赖图计算资源生命周期，自动进行 transient resource allocation 和 memory aliasing——生命周期不重叠的资源可以共用同一块 GPU 内存</li>
+            <li><strong>3. 执行层</strong>：拓扑排序 Pass、插入 Barrier、合并 RenderPass、调度 Async Compute / Copy Queue，最终生成命令列表</li>
+          </ul>
+          <strong>资源屏障自动化：</strong>
+          <ul>
+            <li><strong>状态追踪</strong>：框架维护每个资源当前的 layout / access mask / stage mask，Pass 切换时自动插入 <code>vkCmdPipelineBarrier</code> 或 <code>ResourceBarrier</code></li>
+            <li><strong>RenderPass 合并</strong>：多个连续读/写同一 RT 的 Pass 可以合并为一个 RenderPass，利用 load/store op 和 subpass dependency 减少带宽</li>
+            <li><strong>异步队列同步</strong>：Async Compute / Copy 与 Graphics Queue 之间的资源迁移自动插入 semaphore 或 split barrier</li>
+          </ul>
+          <strong>Memory Aliasing 收益：</strong>
+          <ul>
+            <li>G-Buffer、Shadow Map、Post-Processing 中间纹理生命周期错开，可以共用显存</li>
+            <li>典型收益：4K 场景下总显存占用从数 GB 降到 1-2 GB，具体取决于管线复杂度</li>
+          </ul>
+          <strong>主流实现对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">实现</th><th style="padding:8px;border:1px solid #ddd">特点</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>UE5 RDG</strong></td><td style="padding:8px;border:1px solid #ddd">功能最完整，支持 Async Compute、UAV Counter、Transient Texture</td><td style="padding:8px;border:1px solid #ddd">大型商业引擎</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Chromium Dawn</strong></td><td style="padding:8px;border:1px solid #ddd">WebGPU 实现，跨平台，强调可移植性</td><td style="padding:8px;border:1px solid #ddd">Web / 轻量应用</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Filament FrameGraph</strong></td><td style="padding:8px;border:1px solid #ddd">移动端优先，内存别名策略激进</td><td style="padding:8px;border:1px solid #ddd">移动 / XR</td></tr>
+          </table>
+          <strong>面试加分点：</strong>Render Graph 不是银弹——对于简单的全屏后处理，它的开销可能不值；但对于复杂 deferred / forward+ / raytracing 混合管线，它能显著降低手写 barrier 的心智负担和 bug 率。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Render Graph = 声明式渲染管线 + 自动资源管理。三层：Pass声明→资源分配→执行调度。核心价值：自动barrier、内存别名、RenderPass合并、多队列同步。UE5 RDG/ Dawn/ Filament 各有侧重，复杂管线收益最大。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 光线追踪（新增） ══ -->
@@ -2128,6 +2175,52 @@
       </div>
     </div>
 
+
+    <!-- Q210 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q210</div>
+        <div style="flex:1">
+          <div class="q-title">NVIDIA Blackwell RTX 50 与光线追踪新硬件：Mega Geometry、Displaced Micro-Mesh、Opacity Micro-Map 分别解决什么问题？对实时路径追踪游戏意味着什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>实时路径追踪的瓶颈：</strong>传统 BVH 基于三角形，面对高几何复杂度场景（植被、毛发、微表面）时，要么 TLAS/BLAS 内存爆炸，要么光线-三角形求交次数过多。Blackwell 三代硬件加速技术分别从不同维度破局。</p>
+          <strong>1. Mega Geometry（ mega 几何）：</strong>
+          <ul>
+            <li><strong>问题</strong>：游戏场景中植被、草丛、毛发等实例数量巨大，每个实例一个 BLAS 导致 TLAS 节点爆炸，构建和遍历都慢</li>
+            <li><strong>方案</strong>：允许单个 BLAS 内包含大量几何体，GPU 直接对压缩几何解码并求交，减少 BVH 层级</li>
+            <li><strong>效果</strong>：RTX Mega Geometry 可将 TLAS 规模从百万级降到万级，植被路径追踪成为可能</li>
+          </ul>
+          <strong>2. Displaced Micro-Mesh（DMM，置换微网格）：</strong>
+          <ul>
+            <li><strong>问题</strong>：高度图置换地形、浮雕细节需要大量细分三角形，直接构建 BVH 不现实</li>
+            <li><strong>方案</strong>：BVH 节点存储基础三角形 + 位移纹理 + 微网格模板。光线命中后，按需实时生成微三角形并求交</li>
+            <li><strong>效果</strong>：用 1/10 的 BVH 内存获得同等细节，适合岩石、墙面、地面置换</li>
+          </ul>
+          <strong>3. Opacity Micro-Map（OMM，不透明度微图）：</strong>
+          <ul>
+            <li><strong>问题</strong>：树叶、铁丝网、镂空贴片等 Alpha Test 几何体，光线必须跑到 shader 里判断透明，打断硬件遍历流水线</li>
+            <li><strong>方案</strong>：预计算 2×2/4×4/8×8 的微图，记录每个微像素的透明度状态（opaque/transparent/unknown）。BVH 遍历阶段直接根据 OMM 决定光线命运</li>
+            <li><strong>效果</strong>：Alpha Test 场景遍历性能提升 2-3 倍，且避免大量 shader 调用</li>
+          </ul>
+          <strong>对实时路径追踪游戏的意义：</strong>
+          <ul>
+            <li><strong>几何不再是最短木板</strong>：植被、毛发、复杂表面可以进入路径追踪管线</li>
+            <li><strong>内存可接受了</strong>：DMM/OMM 大幅降低 BVH 显存，4K 路径追踪场景显存预算可控</li>
+            <li><strong>仍需降噪</strong>：硬件解决的是"能 trace"，每像素采样数仍有限，ReSTIR/NRD/DLSS Ray Reconstruction 仍是必需品</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Blackwell 三件套：Mega Geometry 解决实例爆炸、DMM 解决置换细节、OMM 解决 Alpha Test。它们共同让路径追踪从'干净场景'扩展到'真实游戏场景'，但降噪和后处理仍是核心。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -3164,6 +3257,59 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q211 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q211</div>
+        <div style="flex:1">
+          <div class="q-title">PBR 材质标准化：OpenPBR / MaterialX / Adobe Standard Material 的共性与差异？为什么游戏引擎需要支持 USD / MaterialX 工作流？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>行业痛点：</strong>不同 DCC 工具（Maya、Blender、Substance）、不同引擎（UE、Unity、Godot）有各自的材质模型，资产跨工具流转时需要反复"翻译"，导致视觉不一致和美术工作流断裂。</p>
+          <strong>三大标准的定位：</strong>
+          <ul>
+            <li><strong>OpenPBR</strong>：由 Autodesk / Adobe 主导提出的开放材质标准，目标是统一影视和游戏材质表示。定义了清晰的 BSDF 分层（diffuse / specular / coat / sheen / transmission / subsurface / emission）</li>
+            <li><strong>MaterialX</strong>：卢卡斯影业开源的材质交换格式，侧重<strong>图结构描述</strong>（节点图、连线、参数绑定），支持从简单 PBR 到复杂程序化材质的表达。是 USD 材质层的标准搭档</li>
+            <li><strong>Adobe Standard Material（ASM）</strong>：Adobe 内部材质规范的开放版，与 Substance 生态深度绑定，强调游戏/实时渲染友好</li>
+          </ul>
+          <strong>共性：</strong>
+          <ul>
+            <li>都基于物理的 BSDF 分层思想</li>
+            <li>都支持金属度/粗糙度工作流</li>
+            <li>都趋向与 USD 集成，成为跨工具资产标准</li>
+          </ul>
+          <strong>差异：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">标准</th><th style="padding:8px;border:1px solid #ddd">核心强项</th><th style="padding:8px;border:1px solid #ddd">主要生态</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>OpenPBR</strong></td><td style="padding:8px;border:1px solid #ddd">规范清晰、BSDF 参数标准化</td><td style="padding:8px;border:1px solid #ddd">Autodesk / 通用影视游戏</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>MaterialX</strong></td><td style="padding:8px;border:1px solid #ddd">节点图交换、程序化材质、USD 集成</td><td style="padding:8px;border:1px solid #ddd">工业光魔 / 影视 VFX</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>ASM</strong></td><td style="padding:8px;border:1px solid #ddd">与 Substance 工具链无缝、游戏优化</td><td style="padding:8px;border:1px solid #ddd">Adobe / 游戏美术</td></tr>
+          </table>
+          <strong>为什么引擎要支持 USD / MaterialX：</strong>
+          <ul>
+            <li><strong>资产标准化</strong>：模型、材质、灯光、动画可以统一描述，减少"每个工具一套资产"的混乱</li>
+            <li><strong>协作效率</strong>：美术在 Substance 调材质、Layout 在 Maya 摆场景、TD 在 USD 层做变体，引擎直接消费 USD Stage</li>
+            <li><strong>未来趋势</strong>：Apple Vision Pro、Omniverse、UE5 USD Stage 都在推进 USD 工作流，不支持意味着生态隔离</li>
+          </ul>
+          <strong>落地挑战：</strong>
+          <ul>
+            <li>MaterialX 节点图到引擎 shader 的翻译可能丢失特性或性能不可控</li>
+            <li>OpenPBR 的某些高级层（subsurface volume、thin film）在移动端难以实时实现</li>
+            <li>需要维护"标准材质 → 引擎 shader"的映射表和 fallback 策略</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"OpenPBR 定参数规范、MaterialX 定图结构、ASM 接 Substance。共性是 BSDF 分层+金属粗糙度，差异在生态和表达力。引擎支持 USD/MaterialX 是为了跨工具资产标准化和协作效率，但翻译和性能 fallback 是落地难点。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 5. 阴影 ══ -->
@@ -3627,6 +3773,54 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q212 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q212</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Virtual Shadow Maps（VSM）虚拟阴影贴图：为什么它能解决传统 CSM 的分辨率浪费和级联接缝问题？Page Table、GPU-Driven Cull、Nanite 协同如何工作？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 CSM 的问题：</strong>
+          <ul>
+            <li><strong>分辨率浪费</strong>：远处级联覆盖面积大但细节少，近处级联需要高分辨率但尺寸固定，无法按需分配</li>
+            <li><strong>级联接缝</strong>：不同级联之间采样不连续，需要 blend 区域，容易出现闪烁和硬边</li>
+            <li><strong>显存固定</strong>：每盏方向光 4-6 张 shadow map，分辨率和数量都是预分配，无法缩放</li>
+          </ul>
+          <strong>VSM 的核心思想：</strong>像虚拟纹理一样，把阴影贴图按需划分为 128×128 的 page，只分配和渲染屏幕上实际可见的区域。每盏光理论上可以获得极高有效分辨率，而显存只花在看得到的地方。</p>
+          <strong>三个关键机制：</strong>
+          <ul>
+            <li><strong>1. Page Table / Page Cache</strong>：维护虚拟 shadow map 到物理 page 的映射。GPU 根据屏幕空间 shadow 采样请求，判断哪些 page 缺失（page fault），只渲染缺失的 page</li>
+            <li><strong>2. GPU-Driven Culling</strong>：利用 Nanite / GPU Scene 的 cluster 信息，只把覆盖缺失 page 的几何体提交到 shadow pass。避免整帧全场景渲染 shadow map</li>
+            <li><strong>3. Nanite 协同</strong>：Nanite 自动 LOD + 软光栅化保证远距离阴影仍有稳定轮廓，VSM page 可以精确对应到 Nanite 的 cluster 粒度</li>
+          </ul>
+          <strong>VSM 渲染流程：</strong>
+          <ol>
+            <li>从相机视角标记需要阴影贴图覆盖的屏幕像素</li>
+            <li>反向投影到 light space，计算需要哪些 virtual page</li>
+            <li>查询 Page Table，得到缺失 page 列表</li>
+            <li>对缺失 page 做 GPU-driven cull，渲染这些 page 的 shadow</li>
+            <li>屏幕空间采样时通过 page table 找到物理 page 并双线性/PCF 采样</li>
+          </ol>
+          <strong>代价与挑战：</strong>
+          <ul>
+            <li><strong>Page 分配抖动</strong>：快速移动相机或光源时，每帧 page fault 很多，需要 LRU cache 和预取</li>
+            <li><strong>依赖 GPU Scene</strong>：没有 Nanite/GPU-Driven 的引擎很难直接复刻 VSM</li>
+            <li><strong>透贴/毛发</strong>：Alpha Test 和半透明物体处理复杂，常需 fallback 到传统 shadow map</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"VSM = 虚拟纹理思想做阴影。解决 CSM 分辨率浪费和级联接缝：按需 page 分配、无级联边界。三机制：Page Table 虚拟→物理映射、GPU-Driven Cull 只渲染缺失 page、Nanite 协同提供稳定 LOD。挑战是 page fault 抖动和特殊材质 fallback。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 6. 抗锯齿 ══ -->
@@ -3974,6 +4168,54 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q213 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q213</div>
+        <div style="flex:1">
+          <div class="q-title">抗锯齿与超分新趋势：FSR 4 用 ML、DLSS 4 Multi-Frame Generation 6X、Transformer 超分模型相比 CNN 超分各有什么优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>超分技术的两条路线：</strong>传统 CNN 超分（DLSS 2/3 FSR 2/3）依赖局部感受野和时序反馈，而 Transformer / 生成式模型开始引入长程依赖和更好的语义理解。</p>
+          <strong>FSR 4（ML-based）：</strong>
+          <ul>
+            <li><strong>变化</strong>：AMD 首次在 FSR 中引入机器学习模型，一改此前纯算法/手工特征的历史</li>
+            <li><strong>优势</strong>：图像质量接近 DLSS，硬件兼容性比 DLSS 好（RDNA4 支持，未来可能下放），开源生态潜力大</li>
+            <li><strong>劣势</strong>：需要专用 AI 加速器（RDNA4 AI core），老卡无法运行；训练数据和模型质量仍在追赶</li>
+          </ul>
+          <strong>DLSS 4 Multi-Frame Generation（MFG）：</strong>
+          <ul>
+            <li><strong>原理</strong>：在传统帧生成基础上，每渲染 1 帧额外生成 3 帧，实现 4× 插帧；配合 Transformer 超分模型提升基础画质</li>
+            <li><strong>优势</strong>：帧率提升巨大，低输入帧率下也能获得流畅体验；Transformer 模型减少重影和闪烁</li>
+            <li><strong>劣势</strong>：延迟增加明显，竞技游戏不适用；需要硬件光流加速器；快速运动场景仍可能产生 artifact</li>
+          </ul>
+          <strong>Transformer 超分 vs CNN 超分：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">CNN 超分</th><th style="padding:8px;border:1px solid #ddd">Transformer 超分</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">感受野</td><td style="padding:8px;border:1px solid #ddd">局部，依赖堆叠卷积层扩大</td><td style="padding:8px;border:1px solid #ddd">全局 Self-Attention，长程依赖强</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">细节重建</td><td style="padding:8px;border:1px solid #ddd">擅长高频细节 but 容易过度锐化</td><td style="padding:8px;border:1px solid #ddd">语义一致性好，边缘更稳定</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">计算成本</td><td style="padding:8px;border:1px solid #ddd">低，适合实时</td><td style="padding:8px;border:1px solid #ddd">高，需要专门优化（窗口 Attention/线性 Attention）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">时序稳定性</td><td style="padding:8px;border:1px solid #ddd">依赖运动向量，快速运动易重影</td><td style="padding:8px;border:1px solid #ddd">对遮挡和复杂运动更鲁棒</td></tr>
+          </table>
+          <strong>选型思考：</strong>
+          <ul>
+            <li>追求画质上限 + 有 NVIDIA 硬件 → DLSS 4 Transformer + MFG</li>
+            <li>追求跨平台兼容 + 开源 → FSR 4 / 未来 FSR 4 下放</li>
+            <li>竞技/低延迟场景 → 关闭 MFG，只用基础超分或 TAAU</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"超分进入 ML+Transformer 时代。FSR 4 是 AMD 首次 ML 化；DLSS 4 MFG 把插帧推到 4× 但延迟增大；Transformer 超分比 CNN 有更稳定边缘和更好语义，但成本更高。竞技游戏慎用 MFG。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 7. 延迟渲染 ══ -->
@@ -4325,6 +4567,54 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q214 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q214</div>
+        <div style="flex:1">
+          <div class="q-title">延迟渲染中的 Decal 技术：Deferred Decal / Mesh Decal / SDF Decal 三种方案的原理、优劣与适用场景？为什么现代引擎倾向混合使用多种 Decal？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Decal 的作用：</strong>在不修改原模型的情况下，在地表/墙面/物体表面叠加细节纹理，如弹孔、血迹、污渍、标识、轮胎印等。是提升场景细节密度的低成本手段。</p>
+          <strong>Deferred Decal（屏幕空间/后处理 Decal）：</strong>
+          <ul>
+            <li><strong>原理</strong>：在 Deferred Shading 后，用包围盒筛选屏幕像素，对命中像素从 G-Buffer 读取法线/深度，将 decal 纹理按局部坐标投影到表面</li>
+            <li><strong>优势</strong>：与场景几何无关，不增加 draw call；能正确贴合任意复杂曲面；支持 normal、roughness、metalness 等材质属性覆盖</li>
+            <li><strong>劣势</strong>：只能在 Deferred 管线使用；对 Forward 物体无效；过度依赖 G-Buffer 精度</li>
+          </ul>
+          <strong>Mesh Decal（网格 Decal）：</strong>
+          <ul>
+            <li><strong>原理</strong>：生成一个贴合目标表面的薄片网格，作为普通 mesh 渲染，用 decal 纹理覆盖原表面</li>
+            <li><strong>优势</strong>：可用于 Forward 和 Deferred；不依赖 G-Buffer；可以实现复杂形状和边缘控制</li>
+            <li><strong>劣势</strong>：需要生成/更新网格；在曲面上容易出现 z-fighting 或拉伸；额外 draw call</li>
+          </ul>
+          <strong>SDF Decal（有向距离场 Decal）：</strong>
+          <ul>
+            <li><strong>原理</strong>：用 SDF 描述 decal 形状，在 ray marching 或屏幕空间步进中判断是否与场景表面相交，然后投影纹理</li>
+            <li><strong>优势</strong>：无网格、无 UV 拉伸、可无限放大、边缘清晰；适合程序化/动态 decal</li>
+            <li><strong>劣势</strong>：需要场景 SDF；性能开销大；软边和混合控制较复杂</li>
+          </ul>
+          <strong>现代引擎的混合策略：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">类型</th><th style="padding:8px;border:1px solid #ddd">最佳场景</th><th style="padding:8px;border:1px solid #ddd">代表引擎</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Deferred Decal</strong></td><td style="padding:8px;border:1px solid #ddd">大量动态表面细节（弹孔、油渍）</td><td style="padding:8px;border:1px solid #ddd">UE4/UE5 Deferred Decal</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Mesh Decal</strong></td><td style="padding:8px;border:1px solid #ddd">需要精确边缘或 Forward 物体（角色纹身）</td><td style="padding:8px;border:1px solid #ddd">Unity Projector / 自定义</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>SDF Decal</strong></td><td style="padding:8px;border:1px solid #ddd">程序化、无拉伸、大尺度（雪地脚印）</td><td style="padding:8px;border:1px solid #ddd">实验性 / Frostbite</td></tr>
+          </table>
+          <strong>面试加分点：</strong>Decal 与透明物体、双面材质、动态物体的交互是工程难点；Deferred Decal 在处理复杂法线覆盖时需注意 tangent space 一致性。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Deferred Decal 后处理投影、适配任意曲面但只限 Deferred；Mesh Decal 生成薄片网格、通用但需处理 z-fighting；SDF Decal 无拉伸程序化但开销大。现代引擎混合使用，按场景选方案。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -5175,6 +5465,64 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q215 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q215</div>
+        <div style="flex:1">
+          <div class="q-title">Transformer 替代架构：Mamba / State Space Models（SSM）、Linear Attention、RWKV 与标准 Transformer 的核心差异？为什么 2025 年后大家开始重新讨论"非 Transformer"架构？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准 Transformer 的瓶颈：</strong>Self-Attention 的二次复杂度 <code>O(n²)</code> 和长序列 KV Cache 显存是两大硬伤。虽然 FlashAttention、MQA/GQA、稀疏 Attention 缓解了问题，但底层复杂度没变。</p>
+          <strong>三类替代路线：</strong>
+          <ul>
+            <li><strong>1. State Space Models（Mamba 系列）</strong>：
+              <ul>
+                <li>把序列建模看作连续系统的离散化，用隐藏状态 h_t 压缩历史信息</li>
+                <li>每步只读当前输入并更新状态，推理复杂度 <code>O(n)</code>，不需要 KV Cache</li>
+                <li>Mamba-2 引入 SSD（Structured State Space Duality）把 SSM 和 Attention 统一，训练效率大幅提升</li>
+              </ul>
+            </li>
+            <li><strong>2. Linear Attention</strong>：
+              <ul>
+                <li>用特征映射近似 softmax attention，把 <code>softmax(QK^T)V</code> 变成 <code>φ(Q)(φ(K)^T V)</code></li>
+                <li>先算 <code>Σ φ(k_i)v_i</code> 作为全局状态，每步只更新一次，复杂度 <code>O(n)</code></li>
+                <li>劣势：表达能力弱于 softmax attention，长程依赖和 precision 召回不如 Transformer</li>
+              </ul>
+            </li>
+            <li><strong>3. RWKV</strong>：
+              <ul>
+                <li>把 Transformer 的 position-wise attention 改成通道级 decay 的线性 attention，结合 RNN 的常数状态</li>
+                <li>训练并行、推理常数内存，适合端侧部署</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>为什么 2025 年后重新热议：</strong>
+          <ul>
+            <li><strong>长上下文刚需</strong>：1M token 上下文下 Transformer KV Cache 显存爆炸，线性架构有天然优势</li>
+            <li><strong>端侧推理</strong>：手机、AR 眼镜需要低内存、低延迟的模型，SSM/RWKV 更友好</li>
+            <li><strong>测试时计算 scaling</strong>：o1/o3 类长思维链进一步放大了序列长度问题</li>
+            <li><strong>Mamba-2/3 效果逼近 Transformer</strong>：在部分任务上差距缩小到可接受范围</li>
+          </ul>
+          <strong>现实判断：</strong>
+          <ul>
+            <li>Transformer 仍是训练稳定性和通用能力的最安全选择</li>
+            <li>SSM/Linear Attention 在特定场景（长文档、音频、端侧）有明确优势</li>
+            <li>更可能走向<strong>混合架构</strong>：局部用 Attention，长程用 SSM，像 Jamba、Zamba 那样</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Transformer 的 O(n²) 和 KV Cache 是硬伤。Mamba/SSM 用隐藏状态替代 KV Cache 实现 O(n)；Linear Attention 用核技巧近似；RWKV 训练并行推理常数内存。2025 后重燃是因为长上下文、端侧、测试时计算的需求。未来可能是混合架构。"</div>
+      </div>
+    </div>
     <!-- ── 训练 & 微调 ── -->
     <h3 id="llm-train" style="margin:32px 0 16px;color:var(--accent)">🎓 训练 & 微调</h3>
 
@@ -5264,6 +5612,43 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q216 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q216</div>
+        <div style="flex:1">
+          <div class="q-title">SFT 数据质量工程：为什么"数据质量 > 数据数量"成为 2025 年共识？指令多样性、难度分布、格式一致性、领域覆盖如何系统性构建？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>共识转变的原因：</strong>基座模型能力越来越强，SFT 的核心任务从"教模型知识"变成"教模型听话/对齐格式"。低质量数据不仅不增益，还会引入噪声、降低指令遵循稳定性，甚至造成灾难性遗忘。</p>
+          <strong>SFT 数据质量四维度：</strong>
+          <ul>
+            <li><strong>1. 指令多样性（Diversity）</strong>：覆盖任务类型（问答、总结、推理、代码、创作）、输入长度、输出格式（JSON/Markdown/列表）。避免单一模板导致过拟合</li>
+            <li><strong>2. 难度分布（Difficulty Curriculum）</strong>：简单/中等/困难样本比例要合理。全简单 → 模型学不会复杂推理；全困难 → 训练不稳定。常用课程学习逐步增加难度</li>
+            <li><strong>3. 格式一致性（Format Consistency）</strong>：System/Instruction/Input/Output 结构统一，特殊 token（<code>&lt;|im_start|&gt;</code>、<code>&lt;tool&gt;</code>）使用一致。格式混乱会严重损害推理时的指令遵循</li>
+            <li><strong>4. 领域覆盖（Domain Coverage）</strong>：根据落地场景强化领域数据比例（客服、医疗、代码），但避免过度偏向导致通用能力下降</li>
+          </ul>
+          <strong>数据清洗与过滤方法：</strong>
+          <ul>
+            <li><strong>规则过滤</strong>：去重（MinHash/LSH）、去短/过长、去低质量来源、去 PII</li>
+            <li><strong>模型打分</strong>：用更强模型给 (instruction, response) 对打分，保留高分样本；或用 reward model / perplexity 筛选</li>
+            <li><strong>拒绝采样（Rejection Sampling）</strong>：对同一问题生成多个回答，只保留通过验证或得分高的</li>
+            <li><strong>数据混合比例调优</strong>：通过 small-scale experiment 找到最优 domain mixing ratio，不是简单按比例采样</li>
+          </ul>
+          <strong>面试加分点：</strong>2025 年的趋势是"less is more"——OpenAI、Anthropic 都强调用 1-10K 高质量样本胜过 100K 低质量样本。数据工程师在 RL/Alignment 中的价值正在上升。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"基座变强后，SFT 从'教知识'变成'教格式和对齐'。质量四维度：多样性、难度分布、格式一致性、领域覆盖。清洗手段：规则去重+模型打分+拒绝采样+混合比例调优。2025 共识：少而精 > 多而杂。"</div>
+      </div>
+    </div>
     <!-- ── 推理优化 ── -->
     <h3 id="llm-infer" style="margin:32px 0 16px;color:var(--accent)">🚀 推理优化</h3>
 
@@ -5470,6 +5855,67 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q217 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q217</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 推理优化新前沿：Prefix Caching、Chunked Prefill、FP8 W8A8 / KV Cache 量化、Prefix-aware Scheduling 如何协同降低 TTFT 与成本？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>推理服务的两个核心指标：</strong>
+          <ul>
+            <li><strong>TTFT（Time To First Token）</strong>：用户发完 prompt 到看到第一个输出的时间，主要由 Prefill 阶段决定</li>
+            <li><strong>TPOT（Time Per Output Token）</strong>：后续每个 token 的生成时间，主要由 Decode 阶段决定</li>
+          </ul>
+          <strong>四项优化技术：</strong>
+          <ul>
+            <li><strong>1. Prefix Caching</strong>：
+              <ul>
+                <li>把高频复用的前缀（System Prompt、RAG 上下文、多轮对话历史）的 KV Cache 缓存起来</li>
+                <li>新请求只需计算变化的 suffix 部分，Prefill 计算量大幅下降</li>
+                <li>vLLM v0.4+、SGLang、TRT-LLM 都已支持，对 Agent 多轮对话收益巨大</li>
+              </ul>
+            </li>
+            <li><strong>2. Chunked Prefill</strong>：
+              <ul>
+                <li>把长 prompt 切成多个 chunk，与 Decode 请求交错调度</li>
+                <li>避免一个长 Prefill 阻塞所有 Decode，降低 P99 TTFT</li>
+                <li>平衡算力密集（Prefill）和带宽密集（Decode）两类负载</li>
+              </ul>
+            </li>
+            <li><strong>3. FP8 W8A8 / KV Cache 量化</strong>：
+              <ul>
+                <li>FP8 权重激活量化：H100/H200 原生支持，模型权重显存减半，矩阵乘用 Tensor Core FP8 加速</li>
+                <li>KV Cache INT8/FP8 量化：长上下文场景显存占大头，量化后 batch size 可翻倍</li>
+                <li>注意：量化对数学/代码等精度敏感任务需做 per-channel / per-token scaling</li>
+              </ul>
+            </li>
+            <li><strong>4. Prefix-aware Scheduling</strong>：
+              <ul>
+                <li>调度器优先把共享相同前缀的请求 batch 在一起，最大化 Prefix Caching 命中率</li>
+                <li>比纯 FCFS 或短作业优先更能降低平均 TTFT</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>协同效果：</strong>
+          <ul>
+            <li>Prefix Caching 减少 Prefill 计算 → Chunked Prefill 平滑调度 → Prefix-aware Scheduling 提高命中 → FP8 量化扩大 batch</li>
+            <li>典型收益：长上下文 Agent 服务的 TTFT 降低 50-70%，单位 token 成本下降 30-50%</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"TTFT 看 Prefill，TPOT 看 Decode。Prefix Caching 复用 KV、Chunked Prefill 平滑调度、FP8 量化扩 batch、Prefix-aware Scheduling 提高命中率。四项技术协同可大幅压低长上下文服务成本。"</div>
+      </div>
+    </div>
     <!-- ── RAG & Agent ── -->
     <h3 id="llm-rag" style="margin:32px 0 16px;color:var(--accent)">🔗 RAG & Agent</h3>
 
@@ -9286,6 +9732,161 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+
+    <!-- Q218 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q218</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 检索进阶：Contextual Retrieval、Late Interaction（ColBERT / ColPali）、Multi-Vector 表示与传统向量检索相比有何优势？多模态 RAG 的向量应该怎么做？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统向量检索的局限：</strong>一个 chunk 压缩成一个固定维向量，丢失了 token 级细节、位置信息和细粒度语义。对于"找某句话里的某个具体条件"这类问题，单向量容易召回不准。</p>
+          <strong>Contextual Retrieval：</strong>
+          <ul>
+            <li><strong>问题</strong>：chunk 切分后丢失上下文，独立 chunk 的语义不完整</li>
+            <li><strong>方案</strong>：在 embedding 前，先用 LLM 为每个 chunk 生成上下文摘要（"该 chunk 来自关于 XX 的文档，前面讲...后面讲..."），把摘要 prepend 到 chunk 后再 embedding</li>
+            <li><strong>效果</strong>：Anthropic 实践显示检索失败率下降约 50%</li>
+          </ul>
+          <strong>Late Interaction（ColBERT / ColPali）：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：不提前把 query 和 document 压缩成单一相似度，而是在检索时保留双方的 token/ patch 级向量，计算细粒度 interaction</li>
+            <li><strong>ColBERT</strong>：query 和 doc 各保留 per-token 向量，用 MaxSim 计算相似度。检索质量和可解释性都优于 single-vector</li>
+            <li><strong>ColPali</strong>：把 Late Interaction 扩展到文档图像（PDF 页面截图），用 vision encoder 提取 patch 向量，解决复杂排版文档的检索</li>
+            <li><strong>代价</strong>：索引体积大、检索延迟高，通常作为二阶段 reranker 而非一阶段召回</li>
+          </ul>
+          <strong>Multi-Vector 表示：</strong>
+          <ul>
+            <li>一个 document 用多个向量表示（每个句子、每个段落、每个关键词、每个表格行）</li>
+            <li>检索时 query 也拆成多个 aspect，分别匹配 document 的不同向量</li>
+            <li>适合长文档、多主题、表格密集场景</li>
+          </ul>
+          <strong>多模态 RAG 向量策略：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">模态</th><th style="padding:8px;border:1px solid #ddd">向量化方式</th><th style="padding:8px;border:1px solid #ddd">注意点</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>图像</strong></td><td style="padding:8px;border:1px solid #ddd">CLIP / SigLIP 全局向量，或 patch 级向量</td><td style="padding:8px;border:1px solid #ddd">图文对齐，OCR 提取文字辅助</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>表格</strong></td><td style="padding:8px;border:1px solid #ddd">行/单元格向量化 + 表结构元数据</td><td style="padding:8px;border:1px solid #ddd">不要把表格按固定长度切碎</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>视频</strong></td><td style="padding:8px;border:1px solid #ddd">关键帧图像向量 + ASR 文本向量 + 时间戳</td><td style="padding:8px;border:1px solid #ddd">时序信息很重要</td></tr>
+          </table>
+          <strong>面试加分点：</strong>生产系统通常是"多路召回 + Late Interaction rerank"：向量检索 + 关键词 + 图谱召回 top-K，再用 ColBERT/ cross-encoder rerank。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"单向量检索丢细节。Contextual Retrieval 补 chunk 上下文；ColBERT/ColPali 保留 token/patch 级 Late Interaction；Multi-Vector 适合长文档多主题。多模态 RAG 要按模态选编码器、保留结构信息。生产=多路召回+Late Interaction rerank。"</div>
+      </div>
+    </div>
+
+    <!-- Q219 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q219</div>
+        <div style="flex:1">
+          <div class="q-title">Agent 协议深度对比：MCP、A2A（Agent-to-Agent）、Function Calling 三者在目标、能力边界和适用场景上有何本质区别？为什么 2025 年 MCP 成为事实标准？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三者的定位差异：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">Function Calling</th><th style="padding:8px;border:1px solid #ddd">MCP</th><th style="padding:8px;border:1px solid #ddd">A2A</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>层级</strong></td><td style="padding:8px;border:1px solid #ddd">模型能力（单次调用）</td><td style="padding:8px;border:1px solid #ddd">工具接口协议（client-server）</td><td style="padding:8px;border:1px solid #ddd">Agent 间协作协议</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>核心对象</strong></td><td style="padding:8px;border:1px solid #ddd">函数 / API</td><td style="padding:8px;border:1px solid #ddd">Tools / Resources / Prompts</td><td style="padding:8px;border:1px solid #ddd">Agent 能力卡片 + 任务状态</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>连接范围</strong></td><td style="padding:8px;border:1px solid #ddd">单个模型调用</td><td style="padding:8px;border:1px solid #ddd">本地/远程服务（文件、数据库、搜索、浏览器）</td><td style="padding:8px;border:1px solid #ddd">不同厂商/框架的 Agent 之间</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>状态</strong></td><td style="padding:8px;border:1px solid #ddd">无状态单次调用</td><td style="padding:8px;border:1px solid #ddd">有状态连接，支持 streaming</td><td style="padding:8px;border:1px solid #ddd">长任务协作，支持任务生命周期</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>典型问题</strong></td><td style="padding:8px;border:1px solid #ddd">每个模型厂商 schema 略有不同</td><td style="padding:8px;border:1px solid #ddd">权限管控、transport 安全、context 过大</td><td style="padding:8px;border:1px solid #ddd">跨 Agent 身份认证、任务委托、结果聚合</td></tr>
+          </table>
+          <strong>MCP 为什么成为事实标准：</strong>
+          <ul>
+            <li><strong>时机</strong>：Agent 需要连接大量外部工具，但每个工具都写一遍 adapter 不可持续</li>
+            <li><strong>设计</strong>：MCP 把"工具定义 + 资源读取 + Prompt 模板"标准化，Client 一次接入，Server 任意扩展</li>
+            <li><strong>生态</strong>：Anthropic 主推，Cursor、Claude Code、WindSurf、OpenAI 等快速跟进，形成网络效应</li>
+            <li><strong>本地优先</strong>：MCP Server 可以跑在本地，访问文件系统、数据库、浏览器，解决了 LLM 与私有环境集成的痛点</li>
+          </ul>
+          <strong>A2A 的补充价值：</strong>
+          <ul>
+            <li>当多个独立 Agent（可能来自不同团队/厂商）需要协作完成一个长任务时，需要 A2A 这样的"Agent 间 HTTP/JSON-RPC 协议"</li>
+            <li>A2A 关注 Agent Capability Discovery、Task Lifecycle、Human-in-the-loop，而不是具体工具调用</li>
+          </ul>
+          <strong>面试加分点：</strong>Function Calling 是"模型怎么调用工具"，MCP 是"工具怎么被提供和发现"，A2A 是"Agent 之间怎么协作"——三者互补而非替代。未来系统可能是：A2A 编排多个 Agent，每个 Agent 内部用 MCP 调用工具，模型用 Function Calling 触发。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Function Calling=模型单次调用工具；MCP=工具服务协议；A2A=Agent协作协议。MCP 火是因为 Agent 需要标准化接外部工具，生态形成网络效应。三者互补：A2A 编排 Agent → MCP 接入工具 → Function Calling 触发。"</div>
+      </div>
+    </div>
+
+    <!-- Q220 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q220</div>
+        <div style="flex:1">
+          <div class="q-title">GUI Agent / Computer Use：让 LLM 操作电脑、浏览器、手机的工程挑战是什么？视觉感知、动作空间、安全隔离、评估基准如何设计？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GUI Agent 的核心能力：</strong>让模型像人一样看屏幕、理解界面、执行点击/输入/滚动等操作，完成订票、填表、测试、数据录入等任务。代表：Anthropic Computer Use、OpenAI Operator、智谱 AutoGLM、Google Project Mariner。</p>
+          <strong>四大工程挑战：</strong>
+          <ul>
+            <li><strong>1. 视觉感知（Perception）</strong>：
+              <ul>
+                <li>屏幕截图分辨率通常很高（1920×1080+），直接喂原图 token 爆炸</li>
+                <li>需要 OCR、元素检测（icon、button、input box）、可访问性树（Accessibility Tree）等多模态输入</li>
+                <li>小目标识别困难（比如 8×8 的关闭按钮）</li>
+              </ul>
+            </li>
+            <li><strong>2. 动作空间（Action Space）</strong>：
+              <ul>
+                <li>低层：click(x,y)、type(text)、scroll、hotkey</li>
+                <li>高层：open_app、search、fill_form、submit</li>
+                <li>需要动作原语设计平衡表达力和可控性；坐标预测需要精确，否则点错按钮</li>
+              </ul>
+            </li>
+            <li><strong>3. 安全隔离（Sandboxing）</strong>：
+              <ul>
+                <li>Agent 能操作真实浏览器/系统，存在误操作、数据泄露、恶意指令风险</li>
+                <li>必须跑在沙箱/虚拟机/容器里，限制文件系统、网络、敏感 API 访问</li>
+                <li>关键操作（转账、删除、发送邮件）需要人工确认（Human-in-the-loop）</li>
+              </ul>
+            </li>
+            <li><strong>4. 评估基准（Benchmarks）</strong>：
+              <ul>
+                <li>WebArena、Mind2Web、OSWorld、Windows Agent Arena：覆盖网页、桌面、手机场景</li>
+                <li>指标：任务完成率、步骤效率、错误恢复率、平均执行时间</li>
+                <li>难点：界面动态变化，同一任务不同状态可能导致结果波动</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>技术栈分层：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">层</th><th style="padding:8px;border:1px solid #ddd">技术</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">输入</td><td style="padding:8px;border:1px solid #ddd">截图 + Accessibility Tree + HTML DOM + OCR</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">理解</td><td style="padding:8px;border:1px solid #ddd">多模态 LLM（GPT-4o、Claude 3.5 Sonnet、Qwen-VL）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">规划</td><td style="padding:8px;border:1px solid #ddd">ReAct / CoT / 任务分解 + 错误恢复</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">执行</td><td style="padding:8px;border:1px solid #ddd">PyAutoGUI / Playwright / Android adb / 系统 API</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">安全</td><td style="padding:8px;border:1px solid #ddd">沙箱 + 权限最小化 + 关键操作确认 + 审计日志</td></tr>
+          </table>
+          <strong>面试加分点：</strong>GUI Agent 的瓶颈不在"看懂屏幕"，而在"理解任务意图并把它映射到正确的低层动作序列"，以及失败后的恢复能力。当前 SOTA 在复杂长任务上的完成率仍不高（30-60%），是 2025-2026 年的重点方向。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"GUI Agent 四大挑战：视觉感知（高分辨率+小目标）、动作空间（坐标精确+原语设计）、安全隔离（沙箱+人工确认）、评估基准（动态界面+完成率）。技术栈=多模态输入→VLM理解→ReAct规划→自动化执行→安全审计。瓶颈是长任务规划和错误恢复。"</div>
+      </div>
+    </div>
   </section>
 
 <script>
