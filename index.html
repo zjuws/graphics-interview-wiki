@@ -1156,6 +1156,69 @@
         <div class="tip-box">💡 <strong>面试框架：</strong>"Render Graph = 声明式渲染管线 + 自动资源管理。三层：Pass声明→资源分配→执行调度。核心价值：自动barrier、内存别名、RenderPass合并、多队列同步。UE5 RDG/ Dawn/ Filament 各有侧重，复杂管线收益最大。"</div>
       </div>
     </div>
+
+    <!-- Q226 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q226</div>
+        <div style="flex:1">
+          <div class="q-title">神经纹理压缩（Neural Texture Compression / NTC）：如何用小型神经网络替代传统 BCn/ASTC？NTC 相比 BC7/ASTC 在压缩率、PSNR、随机访问方面的优劣？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>背景：</strong>传统纹理压缩（BC1-7 / ASTC 4×4-12×12）将纹理划分为固定大小块，每块独立编码——本质上是固定比率的局部分块压缩。NTC 将纹理压缩转化为"学习一个紧凑表示"的问题，用神经网络从少量 latent 参数重建纹理。</p>
+          <strong>NTC 技术原理（NVIDIA，SIGGRAPH 2023 + GTC 2025 更新）：</strong>
+          <ul>
+            <li><strong>编码阶段（离线）</strong>：
+              <ol>
+                <li>将纹理划分为小 patch（如 4×4 或 8×8）</li>
+                <li>每个 patch 分配一个低维 latent vector（如 8-32 个 FP16 值）和一个共享的索引</li>
+                <li>训练一个小型 MLP 解码器（3-5 层，每层 32-128 neurons）从 latent → patch 的所有 texel 值</li>
+                <li>使用 Auto-Encoder + Rate-Distortion 损失 → 压缩 latent + 固定解码器权重</li>
+              </ol>
+            </li>
+            <li><strong>解码阶段（运行时）</strong>：
+              <ol>
+                <li>Shader 根据 UV 计算所需 texel 的 patch 索引</li>
+                <li>查表获取 latent vector</li>
+                <li>执行 MLP 推理 → 输出 texel RGBA 值</li>
+                <li>通过 Tensor Core 硬件加速矩阵乘（利用 NVIDIA Cooperative Vectors API）</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>与传统压缩的对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">BC7</th><th style="padding:8px;border:1px solid #ddd">ASTC 6×6</th><th style="padding:8px;border:1px solid #ddd">NTC</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">压缩率</td><td style="padding:8px;border:1px solid #ddd">1 byte/texel → 3:1 压缩（RGBA→BC7）</td><td style="padding:8px;border:1px solid #ddd">~0.89 bpt → 3.6:1（6×6 块）</td><td style="padding:8px;border:1px solid #ddd"><strong>0.3-0.5 bpt → 8-16:1</strong></td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">PSNR（相对无损）</td><td style="padding:8px;border:1px solid #ddd">40-50 dB（有损但可接受）</td><td style="padding:8px;border:1px solid #ddd">42-52 dB</td><td style="padding:8px;border:1px solid #ddd"><strong>45-55 dB @ 8:1</strong>（同 bpt 下显著更高）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">随机访问</td><td style="padding:8px;border:1px solid #ddd">O(1)：块固定地址偏移</td><td style="padding:8px;border:1px solid #ddd">O(1)：块固定地址偏移</td><td style="padding:8px;border:1px solid #ddd">O(MLP)：需要推理计算</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">硬件支持</td><td style="padding:8px;border:1px solid #ddd">所有 GPU + 硬件采样器（免费 trilinear filtering）</td><td style="padding:8px;border:1px solid #ddd">移动端硬件采样器</td><td style="padding:8px;border:1px solid #ddd">需要 Tensor Core（RTX 20+ / 数据中心 GPU）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质系统兼容</td><td style="padding:8px;border:1px solid #ddd">无缝——所有采样器原生支持</td><td style="padding:8px;border:1px solid #ddd">无缝</td><td style="padding:8px;border:1px solid #ddd">需要 Shader 级别替换 Texture Sample</td></tr>
+          </table>
+          <strong>关键权衡：</strong>
+          <ul>
+            <li><strong>压缩率优势碾压</strong>：同质量下 NTC 比 BC7 小 3-10×——这对 VRAM 有限的《开放世界》和大规模纹理资产库是天翻地覆的变化</li>
+            <li><strong>随机访问延迟</strong>：传统纹理采样 = 硬件纹理单元 1 周期；NTC = MLP 推理 50-200 周期（取决于网络大小和 batch）——对延迟敏感的主渲染 Pass 需要缓存/预取</li>
+            <li><strong>MipMap 问题</strong>：原始 NTC 独立编码每个 Mip Level，不共享信息——扩展方案使用层次化 latent（coarse latent + fine residual）</li>
+            <li><strong>压缩时间</strong>：编码 4K 纹理需要数分钟（训练 MLP + 量化为 INT8/FP8），远长于 BC7（毫秒级）——适合离线 Cook Pipeline</li>
+          </ul>
+          <strong>2026 落地状态：</strong>
+          <ul>
+            <li>NVIDIA RTX Neural Shaders SDK 中 NTC 已进入 Beta——支持 D3D12/Vulkan 的 Cooperative Vectors 加速推理</li>
+            <li>NTC 的推理阶段可利用 RTX 50 系列的 FP4 Tensor Core（更小 latency、更低功耗）</li>
+            <li>生产挑战：材质编辑器中的纹理预览、mipmap 生成、与现有 BC 管道的混用——需要引擎级别的深度改造</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"NTC = 纹理压缩的神经网络范式：离线训练 MLP 学习紧凑 latent 表示，运行时 Tensor Core 推理解码。核心优势：8-16:1 压缩率远超 BC7/ASTC，同 bpt 下 PSNR 高 3-8 dB。挑战：随机访问延迟高（MLP vs 硬件采样器）、需要 Tensor Core、压缩耗时长、mipmap 需层次化 latent。是 GPU VRAM 危机的解药，但 2026 仍在早期落地阶段。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 光线追踪（新增） ══ -->
@@ -2829,6 +2892,65 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
             <li><strong>SDK 状态</strong>：预计 2026 年晚些时候发布公开 SDK，部分主要工作室已获得开发者预览版</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Project Lightspeed = 离线训练神经网络学习场景光照传播 + 运行时 Tensor Core 推理输出 GI。核心优势：动态光源响应 + 接近实时性能 + 质量接近离线。对比烘焙 GI（无动态）和实时光追 GI（有噪声需降噪），神经 GI 是第三条路——用训练换质量，用推理换性能。"</div>
+      </div>
+    </div>
+
+    <!-- Q222 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q222</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Lumen 的 Surface Cache 与 Radiance Cache 是如何配合工作的？Card Capture / Mesh Distance Field 与 Screen Probe Gather 的分工是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Lumen 架构总览：</strong>Lumen 是 UE5 的实时全局光照系统，核心思路是"先缓存再查询"——将场景表面光照信息缓存在 Surface Cache 和 Radiance Cache 两级结构中，渲染时从缓存查询 GI。</p>
+          <strong>Surface Cache（表面缓存）：</strong>
+          <ul>
+            <li><strong>作用</strong>：存储场景中每个可见表面的 albedo、法线、emissive 和直接光照/间接光照结果</li>
+            <li><strong>捕获方式</strong>：
+              <ul>
+                <li><strong>Card Capture</strong>：对每个 mesh 生成 6 个轴向卡片（正交投影），适合大部分静态/动态几何体——每个 mesh 的 6 个面各一张 atlas 子图</li>
+                <li><strong>Mesh Distance Field</strong>：对远距离/复杂几何使用 SDF 表示，从 SDF 追踪获取表面信息——精度低于 Card 但覆盖全局</li>
+              </ul>
+            </li>
+            <li><strong>更新策略</strong>：每帧更新受直接光照/动态光源影响的卡片——UE5.4+ 使用 GPU 驱动的增量更新，只重绘脏卡片区域</li>
+            <li><strong>分辨率</strong>：默认每米约 20 texels（可调），4K 场景 Surface Cache 总分辨率可达 8192×8192 atlas</li>
+          </ul>
+          <strong>Radiance Cache（辐射度缓存）：</strong>
+          <ul>
+            <li><strong>作用</strong>：存储空间采样点上的球面辐射度分布（使用 Spherical Harmonics 二阶表示），替代逐像素的光线追踪查询</li>
+            <li><strong>放置策略</strong>：在世界空间中按固定间距（默认 32cm）放置探针（probes），仅在有几何体的区域放置——利用 SDF 判断位置有效性</li>
+            <li><strong>更新</strong>：从 Surface Cache 追踪光线 → 击中 Surface Cache → 获取该表面位置的辐亮度 → 投影到 SH → 写入 Radiance Cache</li>
+          </ul>
+          <strong>Screen Probe Gather（屏幕探针采集）：</strong>
+          <ul>
+            <li>渲染时，对每个屏幕像素，在屏幕空间邻域内随机采样若干像素位置</li>
+            <li>对每个采样位置，查询其世界空间位置对应的 Radiance Cache 探针</li>
+            <li>对查到的 SH 辐射度做球面积分（cosine lobe 卷积）得到该方向入射的间接光照</li>
+            <li>结果空间上采样 + 时间上滤波（Temporal）来去噪——类似 TAA 的 temporal history</li>
+          </ul>
+          <strong>数据流总结：</strong>
+          <ol>
+            <li>Direct Lighting → 写入 Surface Cache 卡片</li>
+            <li>Surface Cache → 光线追踪（或 SDF 追踪）→ 计算间接光照 → 写入 Radiance Cache 探针</li>
+            <li>Radiance Cache → Screen Probe Gather → 每个像素插值探针 → 屏幕空间滤波 → 最终间接光照</li>
+          </ol>
+          <strong>关键限制与优化：</strong>
+          <ul>
+            <li>Surface Cache 对薄几何体（树叶、铁丝网）可能漏光——需要用 SDF 补充或增加卡片密度</li>
+            <li>Radiance Cache 的探针间距是质量/性能杠杆——32cm 高画质、64cm 性能模式</li>
+            <li>UE5.5+ 引入 Hardware Ray Tracing 模式：Surface Cache → Radiance Cache 的追踪用硬件光追替代 SDF 追踪，大幅提升准确性</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Lumen = 两级缓存：Surface Cache（表面光照 atlas，Card/SDF 捕获）+ Radiance Cache（空间 SH 探针，存储反射辐射度）。流程：Direct→Surface Cache→Ray Trace→Radiance Cache→Screen Probe Gather→Temporal Filter→Final GI。对比传统光照贴图：动态、不需预计算、可与实时光源互动。"</div>
       </div>
     </div>
 
@@ -4615,6 +4737,49 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Deferred Decal 后处理投影、适配任意曲面但只限 Deferred；Mesh Decal 生成薄片网格、通用但需处理 z-fighting；SDF Decal 无拉伸程序化但开销大。现代引擎混合使用，按场景选方案。"</div>
       </div>
     </div>
+
+    <!-- Q221 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q221</div>
+        <div style="flex:1">
+          <div class="q-title">无序透明渲染（OIT）：A-Buffer / Depth Peeling / Per-Pixel Linked Lists / Weighted Blended OIT 全面对比，各自适用场景与显存/性能权衡？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心问题：</strong>传统 alpha 混合要求从远到近排序渲染，但 GPU 上的透明排序（OIT）一直是难题——既要正确 alpha 混合，又要避免 CPU 排序瓶颈。</p>
+          <strong>五大 OIT 方案对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">方案</th><th style="padding:8px;border:1px solid #ddd">原理</th><th style="padding:8px;border:1px solid #ddd">显存开销</th><th style="padding:8px;border:1px solid #ddd">正确性</th><th style="padding:8px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Depth Peeling</strong></td><td style="padding:8px;border:1px solid #ddd">多 Pass 逐层剥离：Pass N 剥离最前 N 层，最后 Pass 从后向前混合</td><td style="padding:8px;border:1px solid #ddd">低（双深度缓冲）</td><td style="padding:8px;border:1px solid #ddd">精确</td><td style="padding:8px;border:1px solid #ddd">层数少（2-4 层）、画质优先</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>A-Buffer</strong></td><td style="padding:8px;border:1px solid #ddd">每像素分配固定大小数组存储片段，渲染后排序混合</td><td style="padding:8px;border:1px solid #ddd">中（固定 per-pixel 数组）</td><td style="padding:8px;border:1px solid #ddd">精确（受数组大小限制）</td><td style="padding:8px;border:1px solid #ddd">已知透明层数上限</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>PPLL<br/>（Per-Pixel Linked Lists）</strong></td><td style="padding:8px;border:1px solid #ddd">每像素维护链表，动态分配节点，渲染后遍历链表排序混合</td><td style="padding:8px;border:1px solid #ddd">高（链表节点池 + 头指针 buffer）</td><td style="padding:8px;border:1px solid #ddd">精确</td><td style="padding:8px;border:1px solid #ddd">复杂透明场景、大量重叠</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>WBOIT<br/>（Weighted Blended）</strong></td><td style="padding:8px;border:1px solid #ddd">近似：用加权平均代替排序，权重=alpha × 深度衰减</td><td style="padding:8px;border:1px solid #ddd">极低（2 个额外 RT）</td><td style="padding:8px;border:1px solid #ddd">近似（有能量泄露）</td><td style="padding:8px;border:1px solid #ddd">粒子、烟雾、头发（可接受近似）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Stochastic Transparency</strong></td><td style="padding:8px;border:1px solid #ddd">随机采样 alpha（MSAA 思路）：每个子样本随机保留或丢弃片段</td><td style="padding:8px;border:1px solid #ddd">中（随 MSAA 倍数增长）</td><td style="padding:8px;border:1px solid #ddd">近似（有噪声）</td><td style="padding:8px;border:1px solid #ddd">可配合 TAA 降噪、移动端不适用</td></tr>
+          </table>
+          <strong>关键权衡：</strong>
+          <ul>
+            <li><strong>Depth Peeling</strong> 精确但 Pass 数 = 透明层数（GPU 几何 Pass 开销 × N），4 层以上性能急剧下降</li>
+            <li><strong>PPLL</strong> 通过 UAV 原子操作分配链表节点——需要支持原子操作的 UAV（D3D11+ / GL4.3+），且在高透明密度区域可能因节点池溢出而丢弃片段</li>
+            <li><strong>WBOIT</strong> 是最省显存/带宽的方案，但深色透明物体叠加浅色背景时会出现"能量泄露"（energy bleeding），即透明物体在近处变得过于透明</li>
+            <li><strong>Moment-Based OIT</strong>（WBOIT 改进）：用 4 阶矩（Power Moments）重构透射率曲线，显著减少能量泄露——代价是 4 个 RT（rgba16f）而非 2 个</li>
+          </ul>
+          <strong>最新进展（2025-2026）：</strong>
+          <ul>
+            <li><strong>Neural OIT</strong>：训练小型 MLP（每像素 64-128 参数）预测正确的透明度结果，在少量 RT 输入下达到接近 ground truth 的质量</li>
+            <li><strong>Vulkan/WebGPU</strong> 的渐趋成熟使 PPLL 的跨平台可移植性大幅提升</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"OIT 四种主流：Depth Peeling（精确多 Pass）、A-Buffer（固定数组）、PPLL（动态链表，显存高但精确）、WBOIT（近似，极省带宽但有能量泄露）。选型看场景：粒子用 WBOIT，半透明玻璃用 Depth Peeling 2-3 层，复杂场景用 PPLL。2025 年趋势：Moment OIT 结合 WBOIT 减少泄露、Neural OIT 用 MLP 逼近 ground truth。"</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 8. 性能优化 ══ -->
@@ -4807,6 +4972,148 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>为什么稳定帧率比峰值帧率更重要：</strong>人眼对帧间隔的不一致性感知远强于对绝对帧率高低——心理学研究表明，稳定 60fps 比不稳定 90-55fps 的体验评分更高。这是因为视觉系统会"预期"下一帧到达的时间点，延迟或提前都会打断预期，造成不适感。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"三件事：Tearing = GPU 和显示器节奏不同步 → VSync 消除撕裂但引入跳帧；Stuttering = 帧间隔不均匀 → Frame Pacing 用精确 Sleep 保证每帧间隔一致；VRR = 显示器跟随 GPU 刷新 → 消除撕裂+跳帧。最终答案：VRR + Frame Pacing 组合才是完整方案，稳定 60fps > 不稳定 90fps。"</div>
+      </div>
+    </div>
+
+    <!-- Q223 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q223</div>
+        <div style="flex:1">
+          <div class="q-title">着色器编译卡顿（Shader Compilation Stutter）与 PSO 缓存：引擎层面如何通过预编译、Pipeline State Object 缓存、异步编译来解决首帧/首次遇敌的掉帧问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题根源：</strong>现代图形 API（D3D12/Vulkan/Metal）的 PSO（Pipeline State Object）是包含 Shader + 渲染状态 + 混合模式 + 深度模板等的重量级对象，驱动需要在 Draw Call 时即时编译 GPU 指令——如果 PSO 未缓存，驱动内部触发 shader compile + pipeline creation，耗时可达 5-200ms，直接造成主线程卡顿（"hitching"）。</p>
+          <strong>三层解决方案：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">层级</th><th style="padding:8px;border:1px solid #ddd">策略</th><th style="padding:8px;border:1px solid #ddd">实现方式</th><th style="padding:8px;border:1px solid #ddd">收益与代价</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>1. PSO 预编译</strong></td><td style="padding:8px;border:1px solid #ddd">加载时/菜单阶段提前创建所有可能用到的 PSO</td><td style="padding:8px;border:1px solid #ddd">扫描材质-Shader组合→批量 vkCreateGraphicsPipelines / CreatePSO；UE5 PSO Precaching 扫描资产引用</td><td style="padding:8px;border:1px solid #ddd">完全消除运行时卡顿，但加载时间增加；需要扫描所有 Shader 变体（宏组合爆炸）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>2. PSO 缓存</strong></td><td style="padding:8px;border:1px solid #ddd">将编译好的 PSO 序列化到磁盘，下次启动直接读取</td><td style="padding:8px;border:1px solid #ddd">VK_EXT_pipeline_cache / D3D12 Cached PSO / Steam Shader Pre-Caching；驱动自动合并 vendor-specific cache</td><td style="padding:8px;border:1px solid #ddd">非首次启动零编译；但对驱动/GPU 组合敏感（不同 GPU 需要不同缓存）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>3. 异步编译</strong></td><td style="padding:8px;border:1px solid #ddd">运行时触发编译但不阻塞：先渲染替代材质（fallback），编译完成后再替换</td><td style="padding:8px;border:1px solid #ddd">编译线程 + 渲染线程分离；D3D12 需要 Pipeline Library + 自定义 async PSO 管理器</td><td style="padding:8px;border:1px solid #ddd">不增加加载时间，但首几帧可能看到简化 Shader（如只用 base color，无 normal/PBR）</td></tr>
+          </table>
+          <strong>PSO 哈希键的组成（为什么组合爆炸）：</strong>
+          <ul>
+            <li>VS + PS（+ HS/DS/GS for tessellation）各 Shader 变体</li>
+            <li>Vertex Layout（顶点属性格式与排列）</li>
+            <li>Render Target 格式（R8G8B8A8 / R16G16B16A16_FLOAT / etc. × N 个 RT）</li>
+            <li>Depth/Stencil 格式与操作</li>
+            <li>Blend State（每个 RT 的 blend mode、write mask）</li>
+            <li>Rasterizer State（Fill/Solid，Cull，Depth Bias 等）</li>
+            <li>即使 Shader 相同、RT 格式不同 → 需要不同的 PSO</li>
+          </ul>
+          <strong>业界实践：</strong>
+          <ul>
+            <li><strong>UE5</strong>：启动时 PSO Precaching 管线——Cook 阶段记录所有材质-Shader-RT 组合，运行时预创建；支持 PSO 缓存文件随补丁分发</li>
+            <li><strong>Unity</strong>：ShaderVariantCollection 标记需要预热的变体；2022 LTS+ 支持 async shader compilation + fallback</li>
+            <li><strong>Fortnite</strong>（DX12 标杆）：PSO 缓存集成到下载流程，匹配用户 GPU 驱动版本，首次运行零 JIT</li>
+            <li><strong>Steam</strong>：Fossilize（Vulkan layer）记录+回放 PSO 创建序列，跨游戏共享部分缓存</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Shader stutter 三法宝：预编译=提前创建所有 PSO；缓存=序列化到磁盘；异步编译=运行时编译不阻塞，用 fallback 过渡。PSO 组合爆炸来自 VS×PS×RTFormat×Blend×Rasterizer 的叉积。业界标杆：UE5 PSO Precaching + Steam Fossilize。最终目标：首帧零 hitching。"</div>
+      </div>
+    </div>
+
+    <!-- Q224 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q224</div>
+        <div style="flex:1">
+          <div class="q-title">DirectStorage 与 GPU 直接解压：如何让 GPU 绕过 CPU 直接从 NVMe SSD 读取并解压资源？对开放世界 streaming 的意义是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统 IO 路径的瓶颈：</strong>
+          <ol>
+            <li>App 请求读文件 → OS 文件 API（ReadFile）→ 内核从 SSD 读数据到系统内存（RAM）</li>
+            <li>CPU 执行解压（如 LZ4/Zlib/oodle）——解压大数据（如 4K 纹理）消耗可观 CPU 时间</li>
+            <li>解压后数据从 RAM → GPU VRAM（PCIe 总线传输）——又是一次数据搬运</li>
+          </ol>
+          问题：SSD 带宽已达 7+ GB/s（PCIe 5.0），但传统路径中 CPU 解压成瓶颈（单核 500MB-2GB/s），且三次数据搬移浪费 PCIe 带宽。</p>
+          <strong>DirectStorage 如何解决：</strong>
+          <ul>
+            <li><strong>GPU 直接解压</strong>：使用 GPU Compute Shader（或专用硬件如 GDeflate）在 VRAM 中直接解压压缩数据——CPU 完全不参与解压</li>
+            <li><strong>绕过系统内存</strong>：SSD → GPU VRAM 的 DMA 传输（通过 PCIe BAR / GPU Direct RDMA），数据不经过 CPU RAM</li>
+            <li><strong>批处理 IO</strong>：一次提交多个 IO 请求，GPU 硬件调度器并行处理——最大化 SSD 队列深度利用率</li>
+            <li><strong>GDeflate</strong>：NVIDIA 的 GPU 解压标准，RTX 30+ 的硬件解压单元可达 14 GB/s；DirectStorage 1.1 正式支持 GPU 端解压</li>
+          </ul>
+          <strong>架构对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">传统 IO（Win32 ReadFile）</th><th style="padding:8px;border:1px solid #ddd">DirectStorage</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">CPU 参与</td><td style="padding:8px;border:1px solid #ddd">IO 提交 + 解压（大量 CPU 占用）</td><td style="padding:8px;border:1px solid #ddd">仅 IO 提交（极低 CPU 占用）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">数据路径</td><td style="padding:8px;border:1px solid #ddd">SSD→RAM（CPU解压）→GPU VRAM</td><td style="padding:8px;border:1px solid #ddd">SSD→GPU VRAM（GPU解压）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">有效吞吐</td><td style="padding:8px;border:1px solid #ddd">受限于 CPU 解压速度（2-5 GB/s）</td><td style="padding:8px;border:1px solid #ddd">接近 SSD 硬件上限（7-14 GB/s）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">CPU 负载</td><td style="padding:8px;border:1px solid #ddd">50-100%（全核解压）</td><td style="padding:8px;border:1px solid #ddd">&lt;1%</td></tr>
+          </table>
+          <strong>对开放世界 Streaming 的影响：</strong>
+          <ul>
+            <li><strong>更快的场景切换</strong>：从 SSD 到 GPU 的 latency 降低 2-3×，场景加载从 3-5 秒降到 1-2 秒</li>
+            <li><strong>更少的 CPU 占用</strong>：CPU 不再阻塞于解压，可以处理更多 AI/物理/游戏逻辑——对开放世界尤其关键</li>
+            <li><strong>更高的世界密度</strong>：因为 streaming 更快更省 CPU，可以在不降低视觉质量的前提下增加 streaming 区域的精度和资产密度</li>
+            <li><strong>UE5 Nanite + DirectStorage</strong>：Nanite 的虚拟纹理 + 几何 streaming 天然适配——当玩家移动时，GPU 直接从 SSD 拉取并解压新的 Nanite 页面数据</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"传统 IO 三瓶颈：CPU 解压慢、数据三次搬移、PCIe 带宽浪费。DirectStorage = GPU 直接解压（GDeflate）+ DMA SSD→VRAM + 批处理 IO。收益：吞吐 7-14 GB/s、CPU 负载 <1%、开放世界 streaming 延迟降低 2-3×。是下一代游戏 IO 架构的标配。"</div>
+      </div>
+    </div>
+
+    <!-- Q225 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q225</div>
+        <div style="flex:1">
+          <div class="q-title">Async Compute 与多引擎调度：如何利用 Graphics Queue + Compute Queue + Copy Queue 并发执行提升 GPU 利用率？Async Compute 的前置条件与反模式是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag common">通用</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPU 多队列架构：</strong>现代 GPU（D3D12/Vulkan）提供三大命令队列类型：
+          <ul>
+            <li><strong>Graphics Queue（图形队列）</strong>：Draw/Dispatch + Render Pass + PSO 切换——渲染管线主力</li>
+            <li><strong>Compute Queue（计算队列）</strong>：Dispatch（Compute Shader）——纯计算，无 Render Target 概念</li>
+            <li><strong>Copy Queue（拷贝队列）</strong>：DMA Copy（Buffer/Texture 传输）、资源上传/回读——数据传输专用</li>
+          </ul>
+          三条队列可以并行执行，但正确同步需要显式的 Fence / Barrier。</p>
+          <strong>Async Compute 的核心思路：</strong>Graphics Queue 在处理复杂 Pixel Shader 时 GPU 的 Shader Cores 可能未满载（受限于 ROP/带宽/固定功能单元），此时 Compute Queue 上的异步计算任务可以利用空闲的 Shader Cores 做有用功。</p>
+          <strong>典型场景：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">场景</th><th style="padding:8px;border:1px solid #ddd">Graphics Queue</th><th style="padding:8px;border:1px solid #ddd">Async Compute Queue</th><th style="padding:8px;border:1px solid #ddd">收益</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">阴影渲染</td><td style="padding:8px;border:1px solid #ddd">G-Buffer Pass</td><td style="padding:8px;border:1px solid #ddd">Shadow Map 深度 Pass（下一帧）</td><td style="padding:8px;border:1px solid #ddd">~10-15% frame time</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">后处理</td><td style="padding:8px;border:1px solid #ddd">光照计算</td><td style="padding:8px;border:1px solid #ddd">Bloom Downsample / DOF</td><td style="padding:8px;border:1px solid #ddd">~5-8%</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">粒子/物理</td><td style="padding:8px;border:1px solid #ddd">主场景渲染</td><td style="padding:8px;border:1px solid #ddd">粒子模拟 / GPU 物理 / SDF 更新</td><td style="padding:8px;border:1px solid #ddd">~5-20% (compute-heavy)</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">DLSS/FSR</td><td style="padding:8px;border:1px solid #ddd">Tone Mapping</td><td style="padding:8px;border:1px solid #ddd">DLSS Upscale（已在另一帧）</td><td style="padding:8px;border:1px solid #ddd">帧生成管线优化</td></tr>
+          </table>
+          <strong>前置条件与陷阱：</strong>
+          <ul>
+            <li><strong>Fence/Barrier 正确性</strong>：Compute Queue 不能读取 Graphics Queue 尚未写完的资源——需要 UAV Barrier + Fence Signal/Wait。错误导致 race condition，表现为闪烁/黑屏</li>
+            <li><strong>Occupancy 不是免费的</strong>：如果 Graphics Queue 已经满载 Shader Cores（如全屏 heavy compute shader），Async Compute 反而会抢占资源、降低主渲染性能</li>
+            <li><strong>Render Graph 辅助</strong>：UE5 RDG 自动分析跨 Queue 依赖，插入正确的 Barrier 和 Fence</li>
+            <li><strong>移动端 GPU</strong>：Tile-based GPU（Apple/Mali/Adreno）的 Async Compute 行为与桌面 GPU 不同——部分型号只有一个硬件队列，Async 只是时间片轮转</li>
+            <li><strong>Copy Queue 独立并行</strong>：纹理上传（Map/Unmap staging → Copy Queue → VRAM）不应阻塞 Graphics Queue——使用独立的 Copy Queue + Fence 调度</li>
+          </ul>
+          <strong>面试加分点：</strong>真正理解 "Occupancy"——Async Compute 本质是利用 Graphics Queue 的"气泡"（bubble），而不是凭空加速。需要通过 GPU Profiler（PIX/RenderDoc/NSight）确认 Graphics Queue 的 SM 利用率是否有空闲。在最大 Occupancy 的场景（如 4K RT+DLSS3）中 Async Compute 收益最大。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Async Compute = 三条队列（Graphics/Compute/Copy）并行执行。在 Graphics Queue 有空闲 SM 时，Compute Queue 做阴影/后处理/粒子来填满 GPU。关键：正确的 Fence/Barrier、避免 SM 争抢、Render Graph 辅助自动化。移动端 TBDR 行为不同，需 per-platform 评估。"</div>
       </div>
     </div>
 
@@ -5523,6 +5830,121 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Transformer 的 O(n²) 和 KV Cache 是硬伤。Mamba/SSM 用隐藏状态替代 KV Cache 实现 O(n)；Linear Attention 用核技巧近似；RWKV 训练并行推理常数内存。2025 后重燃是因为长上下文、端侧、测试时计算的需求。未来可能是混合架构。"</div>
       </div>
     </div>
+
+    <!-- Q227 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q227</div>
+        <div style="flex:1">
+          <div class="q-title">推理模型（Reasoning Models）与 Test-Time Compute Scaling：DeepSeek-R1 / OpenAI o3/o4 的"思考"机制是什么？test-time compute 如何随推理预算扩展？与标准 LLM 的推理阶段有何本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>什么是推理模型：</strong>与传统 LLM（直接输出答案）不同，推理模型在输出最终答案前会生成一个"思考链"（Chain-of-Thought，内部化到模型权重中），通过 RL 训练学会在推理时"花更多 token 思考"。代表：DeepSeek-R1（开源）、OpenAI o1/o3/o4/Pro（闭源）、Anthropic Claude Opus Extended Thinking。</p>
+          <strong>核心机制——Test-Time Compute Scaling：</strong>
+          <ul>
+            <li><strong>问题分解</strong>：模型将复杂问题拆解为子问题，逐步解决，每一步输出中间推理</li>
+            <li><strong>自我验证（Self-Verification）</strong>：模型在执行推理后回头检查自己的逻辑——类似于人类的"验算"</li>
+            <li><strong>回溯与修正（Backtracking）</strong>：发现推理路径错误时，模型能回退并尝试替代方案</li>
+            <li><strong>计算预算分配</strong>：模型根据问题难度动态决定"思考多少 token"——简单题少思考，难题多思考</li>
+          </ul>
+          <strong>DeepSeek-R1 的训练方法（GRPO）：</strong>
+          <ol>
+            <li><strong>Cold Start SFT</strong>：用少量高质量的 CoT 数据做初始监督微调，教模型"如何思考"的基本格式</li>
+            <li><strong>RL with GRPO（Group Relative Policy Optimization）</strong>：不用单独的 Critic 模型（省显存），用同一 batch 内多个输出的相对排名计算 advantage——核心奖励信号：答案正确性 + 格式合规</li>
+            <li><strong>Rejection Sampling + SFT</strong>：从 RL 模型中采样高质量 CoT，混合通用 SFT 数据，再做一轮监督微调——防止 RL 导致模型"只会做题、不会聊天"</li>
+            <li><strong>全场景 RL</strong>：最终阶段 RL 涵盖 helpfulness、harmlessness 等对齐维度</li>
+          </ol>
+          <strong>推理预算（Reasoning Budget）控制：</strong>
+          <ul>
+            <li><strong>Token 预算</strong>：API 层面设置 max_completion_tokens 限制思考长度——低预算（如 4K tokens）= 快速但可能不完整；高预算（32K+）= 深度但昂贵</li>
+            <li><strong>Early Exit</strong>：模型内部可在"足够自信"的中间步骤提前终止思考并输出——类似 adaptive computation time</li>
+            <li><strong>预算与质量关系</strong>：研究表明，test-time compute 增加 4-8× 在数学/编程任务上可带来 +5-15% 准确率提升，但边际收益递减</li>
+          </ul>
+          <strong>与标准 LLM 的本质区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">标准 LLM（GPT-4/Claude）</th><th style="padding:8px;border:1px solid #ddd">推理模型（o3/R1）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">输出方式</td><td style="padding:8px;border:1px solid #ddd">直接生成答案</td><td style="padding:8px;border:1px solid #ddd">先生成内部 CoT（思考），再输出答案</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">延迟</td><td style="padding:8px;border:1px solid #ddd">低（1-5s）</td><td style="padding:8px;border:1px solid #ddd">高（10-120s，取决于预算）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">成本</td><td style="padding:8px;border:1px solid #ddd">输出 token 计费</td><td style="padding:8px;border:1px solid #ddd">输出 token + 思考 token 均计费</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">适用场景</td><td style="padding:8px;border:1px solid #ddd">对话、总结、翻译、创意写作</td><td style="padding:8px;border:1px solid #ddd">数学、编程竞赛、科学推理、多步规划</td></tr>
+          </table>
+          <strong>面试加分点：</strong>推理模型 ≠ 更好的模型——它是"用时间换质量"的权衡。在低难度任务上推理模型可能更慢更贵但质量不提升。真正价值在于突破标准 LLM 的单次推理瓶颈，实现类似 System 2 的深度思考。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"推理模型 = RL 训练让模型学会在推理时生成内部思考链。核心：GRPO 训练（R1）、test-time compute scaling（花更多 token 换更好答案）、推理预算控制（budget vs quality）。o3/R1 不是'更聪明的模型'，而是'会花时间思考的模型'——延迟和成本与预算成正比。"</div>
+      </div>
+    </div>
+
+    <!-- Q228 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q228</div>
+        <div style="flex:1">
+          <div class="q-title">DeepSeek-V4 架构创新：CSA/HCA 混合压缩注意力、mHC 流形约束超连接、Muon 优化器如何实现百万上下文低成本推理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DeepSeek-V4 定位：</strong>2026 年 4 月发布的开源旗舰模型，包含 V4-Pro（MoE 1.6T 总参 / 49B 激活）和 V4-Flash（284B 总参 / 13B 激活），均原生支持 1M token 上下文。首次实现华为昇腾 + 英伟达 GPU 双平台训练推理。</p>
+          <strong>核心创新一：CSA + HCA 混合压缩注意力</strong>
+          <ul>
+            <li><strong>CSA（Compressed Sparse Attention）压缩稀疏注意力：</strong>
+              <ul>
+                <li>每 4 个 token 合并为一个摘要 token（压缩率 4:1）</li>
+                <li>通过 Lightning Indexer 对压缩后的 KV 评分，每个 query token 只选 top-1024 个相关条目做注意力——稀疏选择</li>
+                <li>索引计算使用 FP4 精度，超长上下文下开销极低</li>
+              </ul>
+            </li>
+            <li><strong>HCA（Heavy Compressed Attention）重度压缩注意力：</strong>
+              <ul>
+                <li>压缩率拉到 128:1（每 128 token 合并），不做稀疏选择，所有压缩 KV 都参与计算</li>
+                <li>"极致压缩换全局视野"——互补 CSA 的精细检索</li>
+              </ul>
+            </li>
+            <li><strong>SWA（Sliding Window Attention）滑动窗口：</strong>每层保留最近 128 token 的原始 KV 捕获局部依赖</li>
+            <li><strong>交替堆叠</strong>：CSA 层（精细检索）→ HCA 层（全局感知）→ CSA → HCA ... 交替排列，三条路径协同</li>
+          </ul>
+          <strong>显存与计算收益：</strong>
+          <ul>
+            <li>100 万 token 场景下，KV Cache 仅占传统全注意力（BF16 GQA8）的 <strong>~2%</strong></li>
+            <li>单 token 推理 FLOPs 仅为 DeepSeek-V3.2 的 <strong>27%</strong></li>
+            <li>KV 使用混合精度存储：RoPE 维度 BF16，其余 FP8——体积再砍一半</li>
+          </ul>
+          <strong>核心创新二：mHC 流形约束超连接</strong>
+          <ul>
+            <li>传统残差连接（Residual）在大深度（100+ 层）下存在信号衰减和梯度消失</li>
+            <li>mHC（Manifold Constrained Hyper-Connection）在残差路径上引入归一化约束条件，强制每层的输出保持在一个稳定的流形上</li>
+            <li>效果：训练更稳定、收敛更快、深层信号不衰减——支撑 V4-Pro 的超大深度</li>
+          </ul>
+          <strong>核心创新三：Muon 优化器替代 AdamW</strong>
+          <ul>
+            <li>Muon = Momentum + Newton-Schulz 迭代正交化</li>
+            <li>比 AdamW 收敛快 1.5-2×，且对超参数（学习率）更鲁棒</li>
+            <li>Backend: FP8 + Distributed / ZeRO-3——适配大规模 MoE 训练</li>
+          </ul>
+          <strong>后训练范式："分化再统一"</strong>
+          <ul>
+            <li>不是直接用混合 RL 训练单一模型——而是数学、代码、Agent 等领域各训练一个专家模型，单项拉满</li>
+            <li>再用 On-Policy Distillation 把多位专家蒸馏成一个统一模型——减少能力互扰</li>
+          </ul>
+          <strong>国产芯片适配里程碑：</strong>首次在技术报告中并列验证华为昇腾 NPU + NVIDIA GPU——MoE 权重和稀疏索引使用 FP4 精度（昇腾 950PR 原生支持），实现了训练推理全流程不依赖 CUDA 生态。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"DeepSeek-V4 三大创新：CSA+HCA 混合注意力（百万 token KV Cache 仅 2% 传统方案）、mHC 超连接（深层稳定训练）、Muon 优化器（1.5-2× 收敛加速）。后训练用 On-Policy Distillation 先分领域专精再统一蒸馏。首次昇腾+GPU 双平台训练推理——国产算力闭环的里程碑。"</div>
+      </div>
+    </div>
     <!-- ── 训练 & 微调 ── -->
     <h3 id="llm-train" style="margin:32px 0 16px;color:var(--accent)">🎓 训练 & 微调</h3>
 
@@ -5647,6 +6069,109 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>面试加分点：</strong>2025 年的趋势是"less is more"——OpenAI、Anthropic 都强调用 1-10K 高质量样本胜过 100K 低质量样本。数据工程师在 RL/Alignment 中的价值正在上升。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"基座变强后，SFT 从'教知识'变成'教格式和对齐'。质量四维度：多样性、难度分布、格式一致性、领域覆盖。清洗手段：规则去重+模型打分+拒绝采样+混合比例调优。2025 共识：少而精 > 多而杂。"</div>
+      </div>
+    </div>
+
+    <!-- Q230 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q230</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 自动化评估：LLM-as-Judge、MT-Bench、AlpacaEval、Chatbot Arena 的原理与偏差？如何构建生产级的模型评估体系？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>评估体系分层：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">层级</th><th style="padding:8px;border:1px solid #ddd">方法</th><th style="padding:8px;border:1px solid #ddd">优缺点</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>自动基准</strong></td><td style="padding:8px;border:1px solid #ddd">MMLU / GSM8K / HumanEval / MATH——标准选择题或固定答案</td><td style="padding:8px;border:1px solid #ddd">客观、可复现，但无法评估开放式对话质量</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>LLM-as-Judge</strong></td><td style="padding:8px;border:1px solid #ddd">用强模型（如 GPT-4 / Claude）按 rubric 打分</td><td style="padding:8px;border:1px solid #ddd">灵活、接近人工；但有位置偏差、长度偏差、自偏好（self-preference）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>Arena / 人类偏好</strong></td><td style="padding:8px;border:1px solid #ddd">真实用户对两个模型输出做 blind vote—Chatbot Arena Elo</td><td style="padding:8px;border:1px solid #ddd">最接近实际使用，但慢、贵、样本偏差</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>业务指标</strong></td><td style="padding:8px;border:1px solid #ddd">留存率、用户满意度、任务完成率、拒绝率</td><td style="padding:8px;border:1px solid #ddd">直接反映价值，但受产品 UI、延迟等混淆因素影响</td></tr>
+          </table>
+          <strong>LLM-as-Judge 的三大偏差：</strong>
+          <ul>
+            <li><strong>1. 位置偏差（Position Bias）</strong>：Judge 模型倾向于给先出现的回答更高分——MT-Bench 论文发现位置偏差可高达 30%。<strong>缓解</strong>：双向评估（交换顺序评估两次取平均）</li>
+            <li><strong>2. 长度偏差（Verbosity Bias）</strong>：Judge 模型倾向于给更长、更啰嗦的回答更高分——即使额外内容不重要。<strong>缓解</strong>：在 rubric 中明确加入"简洁性"维度</li>
+            <li><strong>3. 自偏好（Self-Preference）</strong>：模型倾向于给自己的输出打高分——GPT-4 作为 Judge 时会对 GPT 系列模型更宽容。<strong>缓解</strong>：使用训练数据不重叠的跨家族 Judge（如用 Claude 评 GPT 系列）</li>
+          </ul>
+          <strong>MT-Bench 设计原理：</strong>
+          <ul>
+            <li>8 大类任务（写作、角色扮演、推理、数学、编程、提取、STEM、人文）各 10 题 = 80 个多轮对话</li>
+            <li>用 GPT-4 作为 Judge，按 1-10 分打分，评价维度包括准确性、相关性、详细程度等</li>
+            <li>关键创新：多轮对话评估——能测出模型的上下文记忆能力</li>
+          </ul>
+          <strong>Chatbot Arena Elo 系统：</strong>
+          <ul>
+            <li>盲测：用户不知道正在对比哪两个模型，减少品牌偏见</li>
+            <li>Elo 评分 = 类似国际象棋排名的动态评分系统——每场"对战"后根据预期胜率和实际结果更新</li>
+            <li>LMSYS Chatbot Arena 的局限性：用户群偏技术、偏好英语、免费模型更可能被测试</li>
+          </ul>
+          <strong>生产级评估体系设计：</strong>
+          <ul>
+            <li><strong>离线评估</strong>：标准基准 + LLM-as-Judge（用固定黄金测试集，每次发版前运行）</li>
+            <li><strong>在线 A/B</strong>：用户满意度、任务完成率、P50/P90 延迟——真实流量评估</li>
+            <li><strong>护栏指标</strong>：有害输出率、幻觉率、PII 泄露率——这些必须为 0 或接近 0</li>
+            <li><strong>回归监控</strong>：每次模型更新后对比历史版本在固定测试集上的表现——防止"修了 A 坏了 B"</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"评估四层：自动基准（MMLU/GSM8K）→ LLM-as-Judge（灵活但有位置/长度/自偏好三大偏差）→ Arena（真实盲测 Elo）→ 业务指标（留存/满意度）。生产级体系 = 离线评测 + 在线 A/B + 护栏指标 + 回归监控。核心洞见：没有一个单一指标能全面评估 LLM 质量。"</div>
+      </div>
+    </div>
+
+    <!-- Q231 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q231</div>
+        <div style="flex:1">
+          <div class="q-title">大模型后训练（Post-Training）完整管线：SFT → DPO/RLHF → Red Teaming → Evaluation 各阶段的目标是什么？如何设计一个高效的后训练 Pipeline？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag common">通用</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>后训练（Post-Training）的定义：</strong>在 Pre-training（基础语言建模）之后、部署之前的整个对齐与能力注入阶段。Pre-training 给模型"知识"，Post-training 给模型"行为"——如何与人交互、遵循指令、拒绝有害内容、体现价值观。</p>
+          <strong>四阶段 Pipeline：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">阶段</th><th style="padding:8px;border:1px solid #ddd">目标</th><th style="padding:8px;border:1px solid #ddd">输入数据</th><th style="padding:8px;border:1px solid #ddd">方法</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>1. SFT</strong><br/>（监督微调）</td><td style="padding:8px;border:1px solid #ddd">教会模型"指令-回复"格式、角色扮演基础、工具调用格式</td><td style="padding:8px;border:1px solid #ddd">高质量 (instruction, response) 对，1K-100K 条</td><td style="padding:8px;border:1px solid #ddd">Standard LM loss（Cross-Entropy），通常用 LoRA/QLoRA</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>2. 偏好对齐</strong><br/>（DPO / RLHF）</td><td style="padding:8px;border:1px solid #ddd">对齐人类偏好：让模型输出更 helpful、harmless、honest</td><td style="padding:8px;border:1px solid #ddd">Preference pairs（chosen vs rejected）</td><td style="padding:8px;border:1px solid #ddd"><strong>DPO</strong>（直接优化分类损失，不需 Reward Model）；<strong>RLHF</strong>（训练 Reward Model + PPO 优化）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>3. Red Teaming</strong><br/>（红队测试）</td><td style="padding:8px;border:1px solid #ddd">发现并修复安全漏洞：越狱、偏见、PII 泄露、有害内容</td><td style="padding:8px;border:1px solid #ddd">对抗性 prompt 集 + 自动化攻击</td><td style="padding:8px;border:1px solid #ddd">对抗训练（用攻击样本微调）+ Safety Filter + Constitutional AI</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>4. Evaluation</strong><br/>（评估）</td><td style="padding:8px;border:1px solid #ddd">全面评估模型质量，决定是否可以发布</td><td style="padding:8px;border:1px solid #ddd">MMLU/GSM8K/MT-Bench/Chatbot Arena + 业务测试集</td><td style="padding:8px;border:1px solid #ddd">自动基准 + LLM-as-Judge + 人类评估 + A/B 测试</td></tr>
+          </table>
+          <strong>SFT 数据设计原则：</strong>
+          <ul>
+            <li><strong>多样性 > 数量</strong>：覆盖角色扮演、推理、代码、翻译、拒绝、工具调用等场景，1K 精选样本 > 100K 同质样本</li>
+            <li><strong>格式一致性</strong>：每个样本的 system/user/assistant 格式、分隔符、特殊 token 必须一致——格式不一致是 SFT 失败的首要原因</li>
+            <li><strong>质量分层</strong>：简单任务（短回复）+ 中等任务（带推理）+ 困难任务（多步/长文/代码），按 40:40:20 混合</li>
+          </ul>
+          <strong>DPO vs RLHF 选型：</strong>
+          <ul>
+            <li><strong>DPO（Direct Preference Optimization）优势</strong>：不需要 Reward Model（一半显存）、训练稳定（分类损失 vs PPO 的 on-policy RL）、收敛快</li>
+            <li><strong>RLHF 优势</strong>：Reward Model 可复用（评估 + 训练）、对复杂偏好（如"既要 helpful 又要 concise"）建模更灵活</li>
+            <li><strong>2026 行业趋势</strong>：DPO 及变体（IPO/KTO/SimPO）已在大多数场景替代 RLHF——除非有专门训练的高质量 Reward Model</li>
+          </ul>
+          <strong>Red Teaming 的实操：</strong>
+          <ul>
+            <li>内部红队 + 外部众包（如 Surge AI / Scale AI）生成数千条攻击 prompt</li>
+            <li>自动化攻击框架：GCG（Greedy Coordinate Gradient 对抗 suffix）、PAIR（用 LLM 生成攻击 prompt）</li>
+            <li>修复策略：收集攻击失败案例 → 补充 SFT 安全训练数据 → 加入 DPO 的 rejected set → 再次评估</li>
+            <li>关键指标：Attack Success Rate (ASR) 必须从 Red Team 前的 >30% 降到 Red Team 后的 <1%</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"后训练四阶段：SFT（教格式）→ DPO/RLHF（对齐偏好）→ Red Teaming（修复安全漏洞）→ Evaluation（全面评测）。SFT 数据设计：多样性分层 + 格式一致性 + 质量分层。DPO 已基本取代 RLHF（不需 Reward Model、训练稳定）。Red Teaming 需将 ASR 压到 <1% 才能发布。"</div>
       </div>
     </div>
     <!-- ── 推理优化 ── -->
@@ -5914,6 +6439,65 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li>典型收益：长上下文 Agent 服务的 TTFT 降低 50-70%，单位 token 成本下降 30-50%</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"TTFT 看 Prefill，TPOT 看 Decode。Prefix Caching 复用 KV、Chunked Prefill 平滑调度、FP8 量化扩 batch、Prefix-aware Scheduling 提高命中率。四项技术协同可大幅压低长上下文服务成本。"</div>
+      </div>
+    </div>
+
+    <!-- Q232 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q232</div>
+        <div style="flex:1">
+          <div class="q-title">流式推理与实时 Agent 延迟优化：如何降低首 Token 延迟（TTFT）和 Token 间延迟（TPOT）？流式输出、长对话内存管理、请求调度策略如何影响用户体验？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>两个核心延迟指标：</strong>
+          <ul>
+            <li><strong>TTFT（Time to First Token）</strong>：从收到请求到第一个 token 输出的时间——用户感知的"响应速度"。影响因子：Prompt 长度（Prefill 计算量）、KV Cache 是否命中、调度排队时间</li>
+            <li><strong>TPOT（Time per Output Token）</strong>：生成阶段每个新 token 的平均延迟——用户感知的"流畅度"。影响因子：Decode 内存带宽、模型大小、batch 并发度</li>
+          </ul>
+          <strong>降低 TTFT 的策略：</strong>
+          <ul>
+            <li><strong>Prefix Caching</strong>：系统级缓存常见 prompt 前缀的 KV Cache，命中后跳过 Prefill——非常适合有固定 System Prompt 的 Agent 场景</li>
+            <li><strong>Chunked Prefill</strong>：将长 prompt 的 Prefill 拆分为多个小 chunk，与其他请求的 Decode 交叉调度——避免一个长 Prefill 阻塞所有请求</li>
+            <li><strong>激进预取（Speculative Prefill）</strong>：在用户仍在输入时就开始预计算部分 prompt 的 KV Cache（类似搜索引擎的 Query Suggestion）</li>
+            <li><strong>模型路由</strong>：简单请求路由到小模型（如 V4-Flash），TTFT 可降到 100-200ms</li>
+          </ul>
+          <strong>降低 TPOT 的策略：</strong>
+          <ul>
+            <li><strong>量化</strong>：FP8/INT8 量化使 Decode 阶段内存带宽需求减半——Decode 瓶颈是 GPU HBM 带宽而非 FLOPs</li>
+            <li><strong>Speculative Decoding</strong>：用小模型或额外头快速生成候选 token，大模型并行验证——TPOT 可降低 2-3×</li>
+            <li><strong>Multi-Query / Grouped-Query Attention</strong>：共享 KV Head 减少 Decode 时的 KV Cache 读取量——GQA（如 Llama 3 的 8 KV heads）比 MHA 的 Decode 快 2-3×</li>
+          </ul>
+          <strong>流式输出（Streaming）的工程设计：</strong>
+          <ul>
+            <li><strong>SSE（Server-Sent Events）</strong>：最主流的流式传输协议——Server 端每生成一个 token 立即推送，Client 逐 token 渲染</li>
+            <li><strong>首屏渲染优化</strong>：不等完整响应，第一个 token 到达即开始 UI 渲染——"逐字打字"效果</li>
+            <li><strong>Back-pressure</strong>：如果 Client 处理速度 < Server 生成速度，需要反压——WebSocket / SSE 的 TCP 流控天然处理，但 HTTP Stream 需要应用层实现</li>
+            <li><strong>中断（Cancellation）</strong>：用户点击"停止生成" → Client 发 Cancel 信号 → Server 立即释放 KV Cache 和计算资源——vLLM 的 abort_request API</li>
+          </ul>
+          <strong>长对话内存管理：</strong>
+          <ul>
+            <li><strong>问题</strong>：多轮对话的 KV Cache 随历史 token 线性增长——第 20 轮对话的 KV Cache 可能是第 1 轮的 20 倍，HBM 很快耗尽</li>
+            <li><strong>KV Cache Eviction</strong>：根据注意力分数统计每个 token 的"重要性"，淘汰不重要的 KV 条目——H2O（Heavy-Hitter Oracle）、SnapKV 等方法</li>
+            <li><strong>On-Disk KV Cache</strong>：将超出 HBM 容量的 KV 缓存写入 NVMe——DeepSeek-V4 的 on-disk KV cache 支持从 SSD 异步加载历史 KV</li>
+            <li><strong>Sliding Window + Summary</strong>：保留最近 N 轮完整对话 + 对更早的对话生成摘要（Summarization-based compression）</li>
+          </ul>
+          <strong>请求调度策略：</strong>
+          <ul>
+            <li><strong>Priority Queue</strong>：交互式请求（实时对话）优先级 > 批处理请求（评测/数据处理）</li>
+            <li><strong>Preempt & Resume</strong>：高优先级请求到达时暂停低优先级 Decode，保存 KV Cache，完成后恢复——vLLM 和 SGLang 支持</li>
+            <li><strong>Cost-based Scheduling</strong>：根据请求的 token 长度估计计算量，短请求优先（SJF）降低平均 TTFT</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"TTFT 看 Prefill（Prefix Caching/Chunked Prefill/模型路由），TPOT 看 Decode（量化/GQA/Speculative Decoding）。流式=SSE 逐 token 推送，长对话=KV Eviction/On-Disk Cache/Sliding Window。调度=Priority Queue + Preempt & Resume。核心：交互延迟和吞吐量是 trade-off，需要在延迟 SLO 约束内最大化吞吐。"</div>
       </div>
     </div>
     <!-- ── RAG & Agent ── -->
@@ -9885,6 +10469,87 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </table>
           <strong>面试加分点：</strong>GUI Agent 的瓶颈不在"看懂屏幕"，而在"理解任务意图并把它映射到正确的低层动作序列"，以及失败后的恢复能力。当前 SOTA 在复杂长任务上的完成率仍不高（30-60%），是 2025-2026 年的重点方向。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"GUI Agent 四大挑战：视觉感知（高分辨率+小目标）、动作空间（坐标精确+原语设计）、安全隔离（沙箱+人工确认）、评估基准（动态界面+完成率）。技术栈=多模态输入→VLM理解→ReAct规划→自动化执行→安全审计。瓶颈是长任务规划和错误恢复。"</div>
+      </div>
+    </div>
+
+    <!-- Q229 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q229</div>
+        <div style="flex:1">
+          <div class="q-title">Google Agent-to-Agent（A2A）协议深度解析：Agent Card、Task 生命周期、Streaming 机制如何实现跨厂商 Agent 协作？A2A 与 MCP 如何协同工作？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>A2A 的定位：</strong>Google 于 2025 年 4 月发布的开放协议，解决"不同厂商/框架的 Agent 之间如何发现彼此、如何委托任务、如何追踪进度"的问题。与 MCP 互补——MCP 管 Agent ↔ 工具，A2A 管 Agent ↔ Agent。</p>
+          <strong>A2A 三大核心概念：</strong>
+          <ul>
+            <li><strong>1. Agent Card（代理名片）</strong>：
+              <ul>
+                <li>JSON 文件描述 Agent 的身份、能力（skills）、端点（URL）、认证方式</li>
+                <li>放在 `/.well-known/agent.json`（仿 Web 的 `/.well-known/` 惯例）</li>
+                <li>包含：name、description、url、capabilities（支持的操作类型）、authentication、version</li>
+              </ul>
+            </li>
+            <li><strong>2. Task（任务）</strong>：
+              <ul>
+                <li>A2A 的核心抽象——Agent A 向 Agent B 发送一个 Task，B 异步执行并返回结果</li>
+                <li>Task 状态机：submitted → working → input-required（需要人类输入）→ completed / failed / cancelled</li>
+                <li>支持 Human-in-the-loop：Task 状态下可以暂停等待人类批准或输入</li>
+              </ul>
+            </li>
+            <li><strong>3. Streaming（流式传输）</strong>：
+              <ul>
+                <li>Task 执行过程中通过 SSE（Server-Sent Events）推送中间状态和部分结果</li>
+                <li>支持 Artifact（任务产出物，如生成的代码文件、图片等）的增量更新</li>
+                <li>Client 可以实时观察任务进度，类似"看另一个 Agent 在工作"</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>A2A 通信流程：</strong>
+          <ol>
+            <li><strong>Discovery</strong>：Agent A 请求 Agent B 的 Agent Card → 获知 B 能做什么、怎么调用</li>
+            <li><strong>Task Send</strong>：A 向 B 发送 `tasks/send` 请求（JSON-RPC over HTTP），包含任务描述、期望的输出格式、上下文</li>
+            <li><strong>Streaming Subscribe</strong>：A 订阅 B 的 SSE 流，接收实时状态更新：`task.status` → working → `task.artifact.update`</li>
+            <li><strong>Completion</strong>：B 完成任务后推送 `task.status: completed` + 最终 artifact</li>
+            <li><strong>Optional Push Notification</strong>：支持 webhook 回调，A 不需要一直保持 SSE 连接</li>
+          </ol>
+          <strong>A2A vs MCP 的分工：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+            <tr style="background:#f0f7ff"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">MCP</th><th style="padding:8px;border:1px solid #ddd">A2A</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>解决的问题</strong></td><td style="padding:8px;border:1px solid #ddd">Agent 如何调用外部工具/数据源</td><td style="padding:8px;border:1px solid #ddd">Agent 之间如何协作和委托任务</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>通信模型</strong></td><td style="padding:8px;border:1px solid #ddd">Client-Server（Agent=Client，Tool=Server）</td><td style="padding:8px;border:1px solid #ddd">Peer-to-Peer / Client-Agent（Agent=Client + Agent=Server）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>原语</strong></td><td style="padding:8px;border:1px solid #ddd">Tools / Resources / Prompts</td><td style="padding:8px;border:1px solid #ddd">Agent Card / Task / Artifact / Message</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>设计目标</strong></td><td style="padding:8px;border:1px solid #ddd">标准化工具接入</td><td style="padding:8px;border:1px solid #ddd">标准化 Agent 间协作</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>状态管理</strong></td><td style="padding:8px;border:1px solid #ddd">无状态（每次调用独立）</td><td style="padding:8px;border:1px solid #ddd">有状态（Task 生命周期跨多个回合）</td></tr>
+          </table>
+          <strong>协同场景示例：</strong>
+          <ul>
+            <li>用户问"帮我写一份竞品分析报告" → Orchestrator Agent 分解任务：
+              <ul>
+                <li>→ Web Research Agent（A2A Task：搜索竞品信息）</li>
+                <li>→ Data Analysis Agent（A2A Task：分析财报数据）</li>
+                <li>→ Writing Agent（A2A Task：汇总撰写报告）</li>
+                <li>每个子 Agent 内部通过 MCP 调用各自的工具（搜索 API、数据 API、文档编辑器）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>A2A 的工程挑战：</strong>
+          <ul>
+            <li><strong>跨 Agent 认证</strong>：Agent A 如何向 Agent B 证明"我是合法调用者"——OAuth 2.0 / API Key / mTLS</li>
+            <li><strong>任务拆分粒度</strong>：太粗 = B 无法独立完成，太细 = 通信开销吞没收益</li>
+            <li><strong>错误传播</strong>：Agent C 的错误是否需要回滚到 Agent B 和 A——或需要分布式事务语义</li>
+            <li><strong>安全边界</strong>：A2A 的 Agent 间通信不应暴露内部敏感信息——需要最小的上下文传递原则</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"A2A 解决跨厂商 Agent 协作：Agent Card（能力发现）→ Task（异步任务/状态机/长生命周期）→ Streaming（SSE 实时推送）。与 MCP 互补：MCP 管 Agent↔工具，A2A 管 Agent↔Agent。未来系统可能是 A2A 编排多个 Agent，每个 Agent 内部用 MCP 调用工具，模型用 Function Calling 触发。"</div>
       </div>
     </div>
   </section>
