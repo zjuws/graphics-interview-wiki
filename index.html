@@ -1221,6 +1221,55 @@
     </div>
   </section>
 
+    <!-- Q233 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q233</div>
+        <div style="flex:1">
+          <div class="q-title">NVIDIA DLSS 5 实时神经网络渲染：如何将生成式 AI 与传统渲染管线融合，实现照片级光照和材质？与 Path Tracing 的分工和协同机制是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DLSS 5 定位：</strong>2026 年 GTC 发布，黄仁勋称为"图形技术的 GPT 时刻"——自 2018 年实时光线追踪以来 NVIDIA 最重大的计算机图形突破。引入实时神经网络渲染模型，让像素拥有照片级写实光照和材质。
+          <strong>核心工作原理：</strong>
+          <ul>
+            <li><strong>输入</strong>：游戏每帧的 color buffer + motion vectors → 锚定 3D 内容，确保 AI 输出与源场景一致</li>
+            <li><strong>场景语义理解</strong>：端到端训练的 AI 模型从单帧分析角色、头发、布料、半透明皮肤等复杂语义，以及顺光/逆光/阴天等环境光照条件</li>
+            <li><strong>输出</strong>：注入 photoreal lighting + materials——皮肤 SSS、布料光泽、头发光线-材质交互——4K 实时运行</li>
+            <li><strong>确定性</strong>：与离线 AI（Stable Diffusion 等）不同——DLSS 5 输出 grounded to 3D content，帧间 temporal consistent</li>
+          </ul>
+          <strong>DLSS 5 vs Path Tracing 的分工：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">Path Tracing</th><th style="padding:6px;border:1px solid #333">DLSS 5</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">提供</td><td style="padding:6px;border:1px solid #333">光照准确性（光线在哪，阴影位置正确）</td><td style="padding:6px;border:1px solid #333">光照真实感（看起来像真的，ray budget 更大的效果）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">本质</td><td style="padding:6px;border:1px solid #333">物理模拟</td><td style="padding:6px;border:1px solid #333">AI 增强/生成</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">关系</td><td style="padding:6px;border:1px solid #333">基础（提供几何光照信息）</td><td style="padding:6px;border:1px solid #333">增强（叠加 photoreal 细节）</td></tr>
+          </table>
+          <strong>开发者控制力：</strong>
+          <ul>
+            <li><strong>精调接口</strong>：光源强度、色彩分级、遮罩——美术团队决定哪增强、怎么增强</li>
+            <li><strong>风格保持</strong>：可 mask 排除特定物体/区域——AI 不破坏游戏独特美学</li>
+            <li><strong>集成</strong>：NVIDIA Streamline SDK / UE5 Plugin——无缝对接现有 DLSS 和 Reflex 框架</li>
+          </ul>
+          <strong>硬件与性能：</strong>
+          <ul>
+            <li>GTC Demo：2×RTX 5090（一张渲染游戏 + 一张跑 DLSS 5 模型）</li>
+            <li>发布时（2026 秋季）优化为单卡运行——最小 GPU 规格待定</li>
+            <li>DLSS 5 可与 DLSS Super Resolution / Ray Reconstruction / MFG 同时使用</li>
+          </ul>
+          <strong>行业意义：</strong>从"AI 渲染增强"到"AI 参与渲染"——DLSS 4.5 时每 24 像素 23 个 AI 生成，DLSS 5 进一步让 AI 理解场景语义并主动注入真实感。标志光线追踪之后的第二次图形革命。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"DLSS 5 = 3D-Guided Neural Rendering：color+motion vector 锚定 3D 内容 → AI 语义理解（角色/材质/光照）→ 注入 photoreal 细节 → 4K 实时。与 PT 分工：PT 管正确性、DLSS 5 管真实感。集成 Streamline SDK，2026 秋季发布。DLSS 5 是图形技术从'AI 辅助渲染'到'AI 参与渲染'的质变——GTC Demo 2×5090→发布时单卡优化。"</div>
+      </div>
+    </div>
+
   <!-- ══ 光线追踪（新增） ══ -->
   <section class="wiki-section" id="raytracing">
     <div class="section-title"><span class="section-icon">🔆</span>光线追踪</div>
@@ -2956,6 +3005,45 @@ imageAtomicExchange(headBuffer, pixelCoord, nodeIdx);</pre>
 
   </section>
 
+    <!-- Q234 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q234</div>
+        <div style="flex:1">
+          <div class="q-title">ReSTIR PT Enhanced（I3D 2026 Best Paper）：通过哪些算法优化实现路径追踪 2-3× 加速？互惠邻选、足迹阈值、重复映射、统一蓄水池各自解决什么问题？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>背景：ReSTIR（Reservoir Spatiotemporal Importance Resampling）</strong>自 2020 年起是实时路径追踪降噪的核心方法——复用相邻像素和前一帧的高质量光路样本，大幅减少每像素所需的光线数。
+          <strong>ReSTIR PT Enhanced 五大优化：</strong>
+          <ul>
+            <li><strong>1. Reciprocal Neighbor Selection（互惠邻选）</strong>：传统做法是像素 A 从邻居 B/C/D 借样本——改进后像素间互惠共享光路，空间复用成本减半。这是 2×+ 加速的主要来源</li>
+            <li><strong>2. Footprint-based Reconnection Criteria（足迹阈值）</strong>：空间复用的核心陷阱——从邻居借的光路不一定对该像素有效（遮挡不同、材质不同）。足迹阈值根据场景几何和材质复杂度自适应调整 reconnection 条件，防止物理不准和 boiling 伪影</li>
+            <li><strong>3. Sample Duplication Maps（重复映射）</strong>：跨帧复用时同名样本在不同帧被多次使用，引入 correlation artifacts（颜色偏置、噪声模式固化）。Duplication Map 追踪样本复用次数并抑制过度复用的样本</li>
+            <li><strong>4. Unified Direct + Indirect Illumination Reservoirs（统一蓄水池）</strong>：原方案分别管理直接光照和间接光照的蓄水池——两套 resampling 开销翻倍。统一蓄水池将两者合并，消除重复开销并提升质量（直接/间接光在统一重采样中互相补充）</li>
+            <li><strong>5. Advanced Disocclusion Noise Reduction（遮挡去噪）</strong>：相机/物体运动导致部分区域前一帧无有效样本——传统方法在遮挡区域回退到高噪声新建路径。改进方案利用运动矢量和深度信息预测遮挡区域，渐进式注入上一帧的有效样本</li>
+          </ul>
+          <strong>实测性能（RTX 5880 工作站卡）：</strong>
+          <ul>
+            <li>4 个测试场景平均 <strong>2.74× speedup</strong>，最佳 3.05×</li>
+            <li>SM warp occupancy: 22.4% → 31.1%（更多 wavefront 隐藏延迟）</li>
+            <li>Active threads per warp: 15.3 → 19.9</li>
+            <li>Warp latency: 347,000 → 241,000 cycles</li>
+            <li>Frame memory: 431 MB → 265 MB（←38%）</li>
+          </ul>
+          <strong>与 SER（Shader Execution Reordering）协同：</strong>SER 于 2026.2 正式进入 DirectX SM 6.9——将相似光线分组执行减少 divergence。ReSTIR PT Enhanced 的 occupancy 提升 + SER 的 divergence 降低，两者协同使全路径追踪接近生产级。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"ReSTIR PT Enhanced 五大优化：互惠邻选（半成本空间复用）→ 足迹阈值（防过度复用伪影）→ 重复映射（减跨帧相关噪声）→ 统一蓄水池（直接/间接合并去重）→ 遮挡降噪（运动补偿渐进注入）。实测 2.74× 加速 + 38% 显存节省。与 SER 协同达到生产级实时路径追踪——算法优化（不是硬件堆料）推动中端 GPU 全 PT 成为可能。"</div>
+      </div>
+    </div>
+
   <!-- ══ 4. PBR ══ -->
   <section class="wiki-section" id="pbr">
     <div class="section-title"><span class="section-icon">🔬</span>PBR 物理渲染</div>
@@ -3433,6 +3521,47 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
   </section>
+
+    <!-- Q235 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q235</div>
+        <div style="flex:1">
+          <div class="q-title">DirectX Shader Model 6.9 Cooperative Vectors：如何在 HLSL 着色器中调用 Tensor Core 实现神经材质与神经着色？这对跨厂商 PBR 材质管线意味着什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Cooperative Vectors 解决的核心问题：</strong>传统着色器无法高效运行神经网络推理——矩阵乘法需手动展开为大量 ALU 指令。而现代 GPU 的 Tensor Core 可以做高效的矩阵运算，但此前只能在 Compute Shader 或 CUDA 中调用，与图形管线割裂。
+          <strong>Cooperative Vectors 工作原理：</strong>
+          <ul>
+            <li>SM 6.9 新增 HLSL 内联函数 <code>dx.op.cooperativeVector</code>——在 Vertex/Pixel/Compute Shader 中直接调用 Tensor Core</li>
+            <li>支持精度：FP16、INT8、FP8（E4M3/E5M2）、FP4（RTX 50 系列新增）</li>
+            <li>本质：让神经网络的矩阵运算在渲染管线内原地执行——不再需要 dispatch compute → barrier → readback → graphics 的跨阶段开销</li>
+          </ul>
+          <strong>在 PBR/材质管线的四大应用场景：</strong>
+          <ul>
+            <li><strong>Neural Materials 加速</strong>：用小型 MLP（2-4 层，每层 16-64 神经元）近似复杂多层材质的 BRDF 计算——RTX Neural Materials 宣称 5× 材质处理加速。神经 BRDF 比解析式 GGX/多层 BSDF 更灵活但需要原位推理能力</li>
+            <li><strong>NTC（Neural Texture Compression）运行时解码</strong>：在 Pixel Shader 中采样压缩 latent → Cooperative Vector 推理解码为 RGBA/Normal/Roughness——8× VRAM 节省</li>
+            <li><strong>NRC（Neural Radiance Cache）查询</strong>：在着色器中查询神经辐射缓存预测间接光照——替代昂贵的路径追踪反弹</li>
+            <li><strong>Neural OIT 解码</strong>：MLP 预测透明混合结果——替代 PPLL/A-Buffer 的显存和排序开销</li>
+          </ul>
+          <strong>跨厂商生态意义：</strong>
+          <ul>
+            <li>DirectX 标准化使神经着色从 NVIDIA 专属走向全行业——AMD RDNA 4 有 AI Accelerator、Intel XMX、Qualcomm Adreno 均有矩阵加速单元</li>
+            <li>2026 状态：SM 6.9 已 retail，但 Cooperative Vectors API 正在向更通用的 Linear Algebra 设计演进（SM 6.10 规划中）</li>
+            <li>趋势：未来的 PBR 管线 = 传统解析式 BRDF + 神经增强（MLP 补细节）+ Cooperative Vectors 做推理引擎</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Cooperative Vectors = HLSL 中的 Tensor Core：在着色器内原地运行矩阵运算（FP16/INT8/FP8/FP4），消除 Compute→Barrier→Graphics 跨阶段开销。PBR 应用：Neural Material MLP（5× 加速）、NTC 解码（8× VRAM 省）、NRC 查询（预测 GI）、Neural OIT。跨厂商：SM 6.9 已零售，推动神经着色从 NVIDIA 专属到 DirectX 全行业标准。"</div>
+      </div>
+    </div>
 
   <!-- ══ 5. 阴影 ══ -->
   <section class="wiki-section" id="shadow">
@@ -3945,6 +4074,55 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
     </div>
   </section>
 
+    <!-- Q236 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q236</div>
+        <div style="flex:1">
+          <div class="q-title">RTX Neural Faces：生成式 AI 如何跨越恐怖谷，实现实时逼真数字人面部渲染？与传统 MetaHuman 方案的核心差异是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RTX Neural Faces 定位：</strong>NVIDIA RTX Character Rendering 套件中的生成式 AI 组件，专门解决数字人面部渲染的"恐怖谷"问题——传统的网格+纹理+光照的方法在高精度要求下仍显塑料感。
+          <strong>三阶段工作流：</strong>
+          <ul>
+            <li><strong>1. 数据构造</strong>：真人照片作为基础 → 合成生成管线（synthetic generation pipeline）扩展数据集——生成不同光照角度/强度、不同表情（FACS blendshape）、不同遮挡条件下的面部变体</li>
+            <li><strong>2. 模型训练</strong>：AI 学习从 rasterized face（传统光栅化结果）+ 3D pose 到 photoreal enhanced face 的映射——本质是学习"传统渲染缺什么细节"</li>
+            <li><strong>3. 运行时推理</strong>：传统光栅化渲染基础面部 → Neural Faces 模型增强为照片级真实——在渲染管线中作为一个后处理 pass</li>
+          </ul>
+          <strong>与 RTX Character 套件的协同：</strong>
+          <ul>
+            <li><strong>LSS（Linear Swept Spheres）</strong>：Blackwell 硬件加速的球-曲线基元——路径追踪发丝，百万级发丝实时渲染</li>
+            <li><strong>SSS（Subsurface Scattering）</strong>：光线追踪皮肤次表面散射——光穿透表皮在真皮层散射（皮肤"透亮感"的来源）</li>
+            <li><strong>Enhanced Analytical BSDF</strong>：发丝双向散射分布函数——正确处理发丝的 specular（高光环）和 transmission（透光）</li>
+            <li><strong>DOTS（Disjoint Orthogonal Triangle Strips）</strong>：高质量发丝几何——适用于所有 GPU，不依赖 Blackwell</li>
+          </ul>
+          <strong>跨过恐怖谷的三个关键：</strong>
+          <ul>
+            <li><strong>微细节学习</strong>：从真实数据自主学习毛孔、毛细血丝、微表情——而非艺术家手工雕刻</li>
+            <li><strong>Unified Lighting</strong>：Neural Face 输出与场景光照匹配——不是"贴上去的脸"</li>
+            <li><strong>Temporal Stability</strong>：帧间无 flicker/jitter——表情变化时皮肤微细节过渡自然</li>
+          </ul>
+          <strong>vs MetaHuman 方案：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">MetaHuman</th><th style="padding:6px;border:1px solid #333">RTX Neural Faces</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">方法</td><td style="padding:6px;border:1px solid #333">艺术家雕刻参数化面部</td><td style="padding:6px;border:1px solid #333">AI 从真实数据学习面部细节</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">细节</td><td style="padding:6px;border:1px solid #333">受制于艺术家时间/技能</td><td style="padding:6px;border:1px solid #333">照片级，自动学习微观细节</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">迭代</td><td style="padding:6px;border:1px solid #333">重新雕刻</td><td style="padding:6px;border:1px solid #333">补充数据重新训练</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">部署</td><td style="padding:6px;border:1px solid #333">标准管线、跨平台</td><td style="padding:6px;border:1px solid #333">需 Tensor Core、RTX 系列</td></tr>
+          </table></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Neural Faces = 生成式 AI 面部增强：真人照片→合成变体数据集→训练 rasterized face+3D pose→photoreal output 映射。协同 LSS+SSS+Enhanced BSDF+DOTS 完整数字人方案。跨恐怖谷三关键：微细节自学习、Unified Lighting 匹配场景、Temporal Stable。vs MetaHuman：AI 数据驱动 vs 艺术家手工——前者照片级但需 Tensor Core，后者通用但需人力。"</div>
+      </div>
+    </div>
+
   <!-- ══ 6. 抗锯齿 ══ -->
   <section class="wiki-section" id="aa">
     <div class="section-title"><span class="section-icon">🔲</span>抗锯齿技术</div>
@@ -4339,6 +4517,51 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
   </section>
+
+    <!-- Q237 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q237</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS 架构演进全景：从 DLSS 1.0 到 DLSS 5，如何从"CNN 单游戏超分"演进到"生成式 AI 实时神经渲染"？每个版本的架构跃迁和技术取舍是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>八年演进全景（2018-2026）：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">版本</th><th style="padding:6px;border:1px solid #333">年份</th><th style="padding:6px;border:1px solid #333">核心技术</th><th style="padding:6px;border:1px solid #333">关键突破</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">1.0</td><td style="padding:6px;border:1px solid #333">2018</td><td style="padding:6px;border:1px solid #333">逐游戏训练 CNN 超分</td><td style="padding:6px;border:1px solid #333">首次 AI 用于游戏渲染</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">2.0</td><td style="padding:6px;border:1px solid #333">2020</td><td style="padding:6px;border:1px solid #333">通用 Temporal 超分 + Motion Vector + Jitter</td><td style="padding:6px;border:1px solid #333">不再逐游戏训练，通用模型</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">3.0</td><td style="padding:6px;border:1px solid #333">2022</td><td style="padding:6px;border:1px solid #333">Frame Generation（OFA 光流插帧）</td><td style="padding:6px;border:1px solid #333">首次 AI 生成完整帧</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">3.5</td><td style="padding:6px;border:1px solid #333">2023</td><td style="padding:6px;border:1px solid #333">Ray Reconstruction + 单一网络替代多 Denoiser</td><td style="padding:6px;border:1px solid #333">从像素域进入信号域</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">4.0</td><td style="padding:6px;border:1px solid #333">2025</td><td style="padding:6px;border:1px solid #333">Multi Frame Generation + 硬件 Flip Metering + Transformer 超分/去噪</td><td style="padding:6px;border:1px solid #333">CNN→Transformer, 4× 插帧</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">4.5</td><td style="padding:6px;border:1px solid #333">2026</td><td style="padding:6px;border:1px solid #333">23/24 像素 AI 生成, Transformer 升级</td><td style="padding:6px;border:1px solid #333">AI 主导画面</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333"><strong>5</strong></td><td style="padding:6px;border:1px solid #333"><strong>2026秋</strong></td><td style="padding:6px;border:1px solid #333"><strong>实时神经网络渲染模型</strong></td><td style="padding:6px;border:1px solid #333"><strong>生成式 AI 注入光照材质</strong></td></tr>
+          </table>
+          <strong>三个维度的架构跃迁：</strong>
+          <ul>
+            <li><strong>Pixel 维度</strong>：超分（低→高分辨率）→ 帧生成（插中间帧）→ 像素增强（注入真实感光照/材质）——从"补全像素"到"提升像素质量"</li>
+            <li><strong>Signal 维度</strong>：去噪（Ray Reconstruction 去 Monte Carlo 噪声）→ 光照重建（DLSS 5 注入 lighting/materials 信息）——从"修信号"到"造信号"</li>
+            <li><strong>Model 维度</strong>：CNN（逐像素卷积）→ Transformer（注意力跨像素/帧）→ End-to-End Neural Renderer（理解场景语义）——模型越来越"理解"画面</li>
+          </ul>
+          <strong>技术取舍（Trade-off）：</strong>
+          <ul>
+            <li>MFG 增加帧数但增加延迟——不适合竞技游戏</li>
+            <li>Transformer 画质更好但推理成本高于 CNN——DLSS 4 首次切换到 Transformer</li>
+            <li>DLSS 5 需要 Tensor Core——划定了硬件分界线</li>
+            <li>Frame Generation 需要 Reflex 低延迟技术协同——否则手感下降</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"DLSS 演进 = Pixel × Signal × Model 三维跃迁。Pixel：超分→插帧→像素增强。Signal：去噪→光照重建。Model：CNN→Transformer→端到端 Neural Renderer。DLSS 5 是质变——从'增强已有像素'到'理解场景后注入新信息'。关键 trade-off：画质/延迟/硬件门槛的不可能三角——DLSS 用版本分层解决（基础超分低门槛、MFG+Neural Rendering 高硬件需求）。"</div>
+      </div>
+    </div>
 
   <!-- ══ 7. 延迟渲染 ══ -->
   <section class="wiki-section" id="deferred">
@@ -4781,6 +5004,48 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
   </section>
+
+    <!-- Q238 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q238</div>
+        <div style="flex:1">
+          <div class="q-title">GPU Work Graph 2.0（SM 6.9+）：如何实现"零 CPU 回读"的完全 GPU 自驱动渲染管线？与传统的 GPU-Driven Rendering 相比有哪些突破？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPU Work Graph 是什么：</strong>D3D12 Work Graphs 是 GPU 上执行的 DAG（有向无环图）任务编排系统。每个 Node 完成一项工作后可动态创建下游 Node 并向其传递数据——全程 GPU 自主，无需 CPU 介入。
+          <strong>1.0 → 2.0 关键升级：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">特性</th><th style="padding:6px;border:1px solid #333">Work Graph 1.0 (SM 6.8, 2024)</th><th style="padding:6px;border:1px solid #333">Work Graph 2.0 (SM 6.9+, 2025-26)</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">图结构</td><td style="padding:6px;border:1px solid #333">静态 DAG，编译时确定</td><td style="padding:6px;border:1px solid #333">动态 Node 创建 + 递归 + 条件分支</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">数据传递</td><td style="padding:6px;border:1px solid #333">简单 record 类型</td><td style="padding:6px;border:1px solid #333">丰富数据类型 + 变长数组</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">调试</td><td style="padding:6px;border:1px solid #333">基本 PIX 支持</td><td style="padding:6px;border:1px solid #333">完善 PIX 可视化 + Node 级 Profiling</td></tr>
+          </table>
+          <strong>GPU-Driven 2.0 工作流（vs 传统 GPU-Driven 1.0）：</strong>
+          <ul>
+            <li><strong>传统 GPU-Driven（1.0）</strong>：GPU Culling → 写入 Indirect Draw Buffer → <strong style="color:#e84d1c">CPU 读回验证/调整</strong> → CPU 发起 Draw。CPU 仍在循环中——读回就是瓶颈</li>
+            <li><strong>Work Graph 2.0（GPU-Driven 2.0）</strong>：GPU Cull → Classify（按材质/阴影/LOD 分类）→ 动态创建对应的 Draw/Shadow/Reflection Node → <strong style="color:#07c160">直接 Dispatch</strong>。全程 GPU，零 CPU 回读</li>
+          </ul>
+          <strong>四大实际应用场景：</strong>
+          <ul>
+            <li><strong>动态 LOD 选择</strong>：GPU 根据可见三角形的屏幕占比动态创建对应 LOD 的 Node——不再需要 CPU 预先枚举所有 LOD 的 Draw Call</li>
+            <li><strong>Multi-Pass 依赖链</strong>：Shadow Map → G-Buffer → Lighting → Post Process → GPU 自动编排 Barrier+Dispatch</li>
+            <li><strong>自适应 Ray Tracing</strong>：根据材质粗糙度动态决定使用 RT 还是 rasterized 反射——Work Graph 做决策 + 分发</li>
+            <li><strong>Compute-Driven Particle</strong>：粒子发射→更新→排序→渲染全流程 GPU 自闭环——粒子数量动态变化时 Work Graph 自动调整 Node 数</li>
+          </ul>
+          <strong>核心突破——Material Classification 自驱动：</strong>传统 GPU-Driven 的局限：Culling 后 CPU 仍需枚举所有可能的 Material 类型来组织 Draw Call。Work Graph 2.0 中 GPU 根据 Culling 结果自行决定哪些 Material 需要渲染——对海量材质场景（如 Nanite 几何体）的 CPU 瓶颈是革命性的。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Work Graph 2.0 = GPU DAG 2.0：动态 Node 创建 + 递归 + 条件分支。vs GPU-Driven 1.0：CPU 读回验证→零 CPU 回读。最关键突破：Material Classification 后 GPU 自己决定渲染什么——海量材质场景的 CPU 瓶颈彻底消除。四大场景：动态 LOD / Multi-Pass 依赖链 / 自适应 RT / Compute-Driven Particle。挑战：调试黑盒、PIX 完善中。"</div>
+      </div>
+    </div>
 
   <!-- ══ 8. 性能优化 ══ -->
   <section class="wiki-section" id="optimize">
@@ -5945,6 +6210,53 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"DeepSeek-V4 三大创新：CSA+HCA 混合注意力（百万 token KV Cache 仅 2% 传统方案）、mHC 超连接（深层稳定训练）、Muon 优化器（1.5-2× 收敛加速）。后训练用 On-Policy Distillation 先分领域专精再统一蒸馏。首次昇腾+GPU 双平台训练推理——国产算力闭环的里程碑。"</div>
       </div>
     </div>
+
+    <!-- Q239 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q239</div>
+        <div style="flex:1">
+          <div class="q-title">Mamba-2 / SSD（Structured State-Space Duality）：状态空间模型能否替代 Transformer？SSD 对偶性如何统一 SSM 和线性注意力？2026 年 Hybrid 架构成为主流的逻辑是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Mamba 两代演进：</strong>
+          <ul>
+            <li><strong>Mamba-1（2023）</strong>：选择性 SSM——核心突破是让 SSM 参数 A/B/C 依赖输入（打破 LTI 假设），实现内容感知的序列建模。但实现效率受限——需硬件感知的 scan 算法（parallel scan + recomputation）</li>
+            <li><strong>Mamba-2 / SSD（2024）</strong>：揭示结构化状态空间对偶性——SSM 的递推计算与线性注意力有数学等价关系，两者可统一为结构化矩阵乘法框架。比 Mamba-1 快 2-8×，可直接利用 Tensor Core 优化的矩阵乘法，不再需要复杂的硬件感知 scan</li>
+          </ul>
+          <strong>SSD 对偶性的核心洞见：</strong>
+          <ul>
+            <li>SSM 的连续时间状态空间方程离散化后，可重写为 semi-separable matrix × input 的形式</li>
+            <li>这个 semi-separable matrix 的结构恰好对应线性注意力中的 causal attention mask + kernel feature map</li>
+            <li>结论：SSM 和线性注意力是同一框架的两种参数化——SSM 是结构化的矩阵乘法，线性注意力是非结构化的</li>
+          </ul>
+          <strong>Mamba-2 vs Transformer 全面对比：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">Transformer</th><th style="padding:6px;border:1px solid #333">Mamba-2/SSM</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">推理复杂度</td><td style="padding:6px;border:1px solid #333">O(L²) 注意力 + KV Cache</td><td style="padding:6px;border:1px solid #333">O(L) 递推 + 固定状态（无 KV Cache）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">长序列</td><td style="padding:6px;border:1px solid #333">需 RoPE 扩展/Ring Attention</td><td style="padding:6px;border:1px solid #333">天然支持超长序列</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">可解释性</td><td style="padding:6px;border:1px solid #333">注意力权重可可视化</td><td style="padding:6px;border:1px solid #333">递推隐状态难以解释</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">训练成熟度</td><td style="padding:6px;border:1px solid #333">高度优化、生态完善</td><td style="padding:6px;border:1px solid #333">仍在追赶</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">In-Context Learning</td><td style="padding:6px;border:1px solid #333">强（注意力天然支持）</td><td style="padding:6px;border:1px solid #333">弱（递推状态难以动态适应）</td></tr>
+          </table>
+          <strong>2025-2026 行业共识——Hybrid 架构：</strong>
+          <ul>
+            <li><strong>Jamba（AI21）</strong>：Mamba + MoE + Transformer attention layers 交错堆叠——SSM 处理长程依赖、Attention 处理局部精确检索</li>
+            <li><strong>Griffin（DeepMind）</strong>：RG-LRU（real-gated linear recurrent unit）+ local sliding window attention</li>
+            <li><strong>趋势判断</strong>：短期内不会完全替代，而是 Hybrid（SSM/Attention/MoE 交错）成为新范式——SSM 负责高效长程建模，Attention 负责精确 token 级交互</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Mamba-2 核心 = SSD 对偶性：统一 SSM 和线性注意力为矩阵乘法框架，比 Mamba-1 快 2-8×。vs Transformer：O(L) vs O(L²)、无 KV Cache vs 有 KV Cache、长序列天然优势 vs 需扩展、ICL 弱 vs 强。2026 行业共识：Hybrid 架构（SSM+Attention+MoE 交错）成为新范式——不是替代而是融合。关键判断：Transformer 的注意力机制的可解释性和生态优势短期内无可替代。"</div>
+      </div>
+    </div>
     <!-- ── 训练 & 微调 ── -->
     <h3 id="llm-train" style="margin:32px 0 16px;color:var(--accent)">🎓 训练 & 微调</h3>
 
@@ -6172,6 +6484,50 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li>关键指标：Attack Success Rate (ASR) 必须从 Red Team 前的 >30% 降到 Red Team 后的 <1%</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"后训练四阶段：SFT（教格式）→ DPO/RLHF（对齐偏好）→ Red Teaming（修复安全漏洞）→ Evaluation（全面评测）。SFT 数据设计：多样性分层 + 格式一致性 + 质量分层。DPO 已基本取代 RLHF（不需 Reward Model、训练稳定）。Red Teaming 需将 ASR 压到 <1% 才能发布。"</div>
+      </div>
+    </div>
+
+    <!-- Q240 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q240</div>
+        <div style="flex:1">
+          <div class="q-title">大模型训练前沿三件套：Multi-Token Prediction 如何提升样本效率？FP8 混合精度训练的实际工程挑战？超长上下文（128K→1M→10M）如何扩展？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>一、Multi-Token Prediction（MTP）：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：每个 position 同时预测未来 N 个 token——打破"一次只预测下一个 token"的范式</li>
+            <li><strong>实现</strong>：共享 trunk + N 个独立 output head（head_i 预测 position t+i 的 token），各自计算 cross-entropy loss 后取平均或加权和</li>
+            <li><strong>为什么有效</strong>：更密集的训练信号——每个 token 参与 N 次 loss 计算，样本效率提升。尤其在代码/数学等结构化任务中，多步预测提供了"前瞻规划"的学习信号</li>
+            <li><strong>DeepSeek-V3/V4 实践</strong>：pretrain 阶段使用 MTP（N=2-4），推理时丢弃额外 head——训练开销 +1-3% 参数，推理零开销</li>
+            <li><strong>收益</strong>：同等 token 预算下模型质量提升 2-5%（benchmark scores），尤其在 HumanEval、MATH 等结构化推理任务</li>
+          </ul>
+          <strong>二、FP8 混合精度训练：</strong>
+          <ul>
+            <li><strong>理论收益</strong>：相比 BF16——2× 显存节省（梯度/优化器状态/激活均可 FP8）+ 2× 矩阵乘吞吐（Tensor Core FP8 吞吐是 BF16 的 2×）</li>
+            <li><strong>挑战 1：Dynamic Range 窄</strong>——FP8 E4M3 范围 [2^-6≈0.0156, 448]，BF16 范围 [~10^-8, ~3.4×10^38]。解决方案：per-tensor scaling factor（动态调整缩放因子）</li>
+            <li><strong>挑战 2：Accumulation 精度</strong>——矩阵乘内部 accumulate 需 FP32/BF16，不能全程 FP8。Forward 可用 FP8，Backward gradient 需保留 BF16/FP32</li>
+            <li><strong>挑战 3：敏感 Op</strong>——FFN 下投影（down_proj）和 Attention QKV 计算对精度敏感——需要选择性使用 FP8（NVIDIA Transformer Engine 的 delayed scaling 策略）</li>
+            <li><strong>硬件支持</strong>：H100/B200/RTX 50 系列原生 FP8 Tensor Core——硬件自动管理 scaling factor histogram</li>
+          </ul>
+          <strong>三、超长上下文扩展（128K→1M→10M）：</strong>
+          <ul>
+            <li><strong>RoPE 扩展</strong>：NTK-aware scaling 在高频维度做非线性插值；YaRN（Yet another RoPE extensioN）结合 NTK + temperature scaling；Self-Extend 用分组注意力模拟长上下文</li>
+            <li><strong>Ring Attention</strong>：跨多 GPU 分布式计算长序列 attention——每个 GPU 持有一部分 KV，rotate 完成全序列 attention</li>
+            <li><strong>训练数据</strong>：需构造大量长序列数据——书籍/代码仓库/长对话/论文。短数据用 packing 拼接</li>
+            <li><strong>DeepSeek-V4 实践</strong>：CSA（Context-Sparse Attention）+ HCA（Hierarchical Context Attention）实现百万 token 仅需 2% 传统 KV Cache</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"训练三件套：MTP（多步预测提样本效率 2-5%，推理零开销）→ FP8（2× 显存+吞吐但 dynamic range 窄，需 selective precision + per-tensor scaling）→ 超长上下文（RoPE 扩展/Ring Attention/CSA+HCA）。共同指向 Scaling Law 的三维延伸：数据效率×算力效率×上下文长度。"</div>
       </div>
     </div>
     <!-- ── 推理优化 ── -->
@@ -6498,6 +6854,68 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>Cost-based Scheduling</strong>：根据请求的 token 长度估计计算量，短请求优先（SJF）降低平均 TTFT</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"TTFT 看 Prefill（Prefix Caching/Chunked Prefill/模型路由），TPOT 看 Decode（量化/GQA/Speculative Decoding）。流式=SSE 逐 token 推送，长对话=KV Eviction/On-Disk Cache/Sliding Window。调度=Priority Queue + Preempt & Resume。核心：交互延迟和吞吐量是 trade-off，需要在延迟 SLO 约束内最大化吞吐。"</div>
+      </div>
+    </div>
+
+    <!-- Q241 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q241</div>
+        <div style="flex:1">
+          <div class="q-title">LLM 推理成本控制体系：模型路由（Model Router）、语义缓存（Semantic Cache）、Prompt 压缩、分级服务（Tiered Service）如何协同将推理成本降低 50-90%？各自的 trade-off 是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>成本公式：</strong>总成本 = Σ (Token 单价 × Token 消耗量 × 并发数)。降本从三个维度入手——单价（模型选择+量化）、消耗量（缓存+压缩）、并发效率（batching+调度）。
+          <strong>四大降本策略：</strong>
+          <ul>
+            <li><strong>1. 模型路由（Model Router）——降低单价</strong>
+              <ul>
+                <li>核心：简单/短请求 → 小模型（Haiku/Flash/4o-mini），复杂/长请求 → 大模型（Sonnet/Opus/4o）</li>
+                <li>Router 实现：轻量分类器（BERT-small + prompt 特征）、基于 embedding 的语义复杂度估计、LLM-as-Judge 离线评测驱动路由规则</li>
+                <li>难点：Router 延迟 <50ms（不能抵消节省）、误路由代价（大→小模型有损质量，小→大模型浪费成本）</li>
+                <li>实践收益：Anthropic/OpenAI 的模型路由系统可节省 30-50%，ChatGPT 免费/Plus/Pro 的分级是路由的消费级体现</li>
+              </ul>
+            </li>
+            <li><strong>2. 语义缓存（Semantic Cache）——降低 Token 消耗</strong>
+              <ul>
+                <li>不是精确字符串匹配，而是基于 embedding 相似度——cosine >0.95 视为"语义相同"命中缓存</li>
+                <li>适用场景：FAQ、客服、代码补全的常见前缀（如 import 语句）、固定 System Prompt 的 Agent 首轮</li>
+                <li>实践：GPTCache（开源）、LangChain Cache、vLLM Prefix Caching 是更底层的 KV Cache 复用</li>
+                <li>代价：Cache 牺牲一致性（缓存命中的答案可能不是"最新"的）、Cache invalidation 复杂</li>
+              </ul>
+            </li>
+            <li><strong>3. Prompt 压缩——降低 Token 消耗</strong>
+              <ul>
+                <li>LLMLingua / Selective Context 方案：用小模型或规则识别 prompt 中的冗余 token→压缩 2-5×</li>
+                <li>适用场景：RAG 中多文档拼接的长 prompt（检索 10 个文档各 500 token → 5000 token prompt → 压缩到 1000 token）、长对话历史</li>
+                <li>两种压缩方式：Extractive（删除低信息量 token/句子）vs Abstractive（LLM 重写为更短版本）</li>
+                <li>代价：Extractive 安全但压缩率有限（2-3×），Abstractive 压缩率高（5-10×）但有信息丢失风险</li>
+              </ul>
+            </li>
+            <li><strong>4. 分级服务（Tiered Service）——按价值分配资源</strong>
+              <ul>
+                <li>免费用户→量化小模型+低并发+无缓存优先级；付费用户→全精度大模型+高并发+优先队列</li>
+                <li>Rate Limiting + Queue Priority + QoS 分级实现降本提效</li>
+                <li>内部系统：评测任务（低优先级）vs 交互式对话（高优先级）——通过 Priority Queue + Preempt & Resume 实现</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>四策略协同关系：</strong>
+          <ul>
+            <li>Router + Cache 互补：Router 处理"必须推理的请求"，Cache 拦截"已回答过的请求"</li>
+            <li>Compress + Cache 互补：压缩后的 prompt 更可能命中缓存（更短的语义 signature）</li>
+            <li>Router + Tiered 协同：Router 选择模型层级，Tiered 管理请求优先级——两者共同决定"谁用什么资源"</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"推理降本四维度 = 单价×消耗量×并发。Router（30-50%节省但误路由代价）→ Cache（重复 query 零成本但牺牲一致性）→ Compress（2-5× prompt 缩但信息丢失风险）→ Tiered（按价值分级但体验差异）。协同：Router+Cache 互补请求分类，Compress+Cache 提高命中率，Router+Tiered 管理资源分配。核心 trade-off：成本 vs 质量的一致性——需要可量化评估体系（Cache hit rate/Router accuracy/latency SLA）。"</div>
       </div>
     </div>
     <!-- ── RAG & Agent ── -->
@@ -10550,6 +10968,162 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>安全边界</strong>：A2A 的 Agent 间通信不应暴露内部敏感信息——需要最小的上下文传递原则</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"A2A 解决跨厂商 Agent 协作：Agent Card（能力发现）→ Task（异步任务/状态机/长生命周期）→ Streaming（SSE 实时推送）。与 MCP 互补：MCP 管 Agent↔工具，A2A 管 Agent↔Agent。未来系统可能是 A2A 编排多个 Agent，每个 Agent 内部用 MCP 调用工具，模型用 Function Calling 触发。"</div>
+      </div>
+    </div>
+
+    <!-- Q242 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q242</div>
+        <div style="flex:1">
+          <div class="q-title">Agentic RAG 3.0：从 Naive RAG 到 Self-RAG → Corrective RAG → Adaptive RAG 的演进路线是什么？Agentic RAG 与普通 RAG 的本质区别在哪里？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RAG 三代演进：</strong>
+          <ul>
+            <li><strong>Naive RAG（2023）— Retrieve-Read</strong>：检索→拼接→生成，一次性，无反馈。痛点：检索不准则答案崩塌</li>
+            <li><strong>Advanced RAG（2024）— 检索前后增强</strong>：Pre-retrieval（Query Rewrite/HyDE/Multi-Query）+ Post-retrieval（Reranker/Filter）。仍是一次性检索——不理想时不重试</li>
+            <li><strong>Agentic RAG（2025-2026）— 自主检索决策</strong>：LLM 拥有检索的控制权——决定何时检索、从哪检索、是否重试</li>
+          </ul>
+          <strong>Agentic RAG 三大范式：</strong>
+          <ul>
+            <li><strong>Self-RAG</strong>：LLM 在生成时通过特殊 token 自我反思——<code>&lt;Retrieve&gt;</code>（是否需要检索）、<code>&lt;IsREL&gt;</code>（检索片段相关吗）、<code>&lt;IsSUP&gt;</code>（生成答案有依据吗）、<code>&lt;IsUSE&gt;</code>（答案有用吗）。训练时加入这些 token 的判别 loss，推理时模型自己决定</li>
+            <li><strong>Corrective RAG（CRAG）</strong>：检索后用轻量级 T5 评估器给检索结果打分——低于阈值自动触发 Web Search 替代。本质是"检索→评估→纠错"循环，不需要 LLM 自己判断检索质量</li>
+            <li><strong>Adaptive RAG</strong>：根据 query 复杂度动态选择检索策略——简单事实查询用 vector search + top-3；复杂多跳推理用 KG + Web Search + 子问题分解 + 多源融合。关键是 query 的自动复杂度分类器</li>
+          </ul>
+          <strong>Agentic RAG vs 普通 RAG 的本质区别：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">普通 RAG</th><th style="padding:6px;border:1px solid #333">Agentic RAG</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">流程</td><td style="padding:6px;border:1px solid #333">Retrieve → Generate（线性）</td><td style="padding:6px;border:1px solid #333">Plan → Retrieve → Evaluate → Re-retrieve → Generate（闭环）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">检索决策</td><td style="padding:6px;border:1px solid #333">固定，每次都检索</td><td style="padding:6px;border:1px solid #333">Agent 自主决策—是否需要、从哪检索、够不够</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">工具</td><td style="padding:6px;border:1px solid #333">单一 Vector DB</td><td style="padding:6px;border:1px solid #333">VecDB + Web + KG + SQL + API 多源</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">错误处理</td><td style="padding:6px;border:1px solid #333">检索不准则答案差</td><td style="padding:6px;border:1px solid #333">自动评估→切换源→重试</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">状态</td><td style="padding:6px;border:1px solid #333">无状态</td><td style="padding:6px;border:1px solid #333">维护检索历史和决策上下文</td></tr>
+          </table></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Agentic RAG 3.0 = 从 Retrieve-Read 到 Plan-Retrieve-Evaluate-Re-retrieve-Generate 闭环。三个范式：Self-RAG（反思 token 自判断）→ CRAG（T5 评估+自动切换源）→ Adaptive（按 query 复杂度动态策略）。本质区别：Agent 拥有检索控制权——不是'每次都检索'而是'需要时才检索，不够就换源重试'。工具组合从单 VecDB 到 Vec+Web+KG+SQL 多源协作。"</div>
+      </div>
+    </div>
+
+    <!-- Q243 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q243</div>
+        <div style="flex:1">
+          <div class="q-title">MCP（Model Context Protocol）生产级工具治理：如何控制工具数量避免上下文爆炸？Streamable HTTP vs stdio 传输选型？懒加载、权限控制、企业治理如何落地？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MCP 2026 里程碑：</strong>
+          <ul>
+            <li>2025.11 规范正式版：异步操作、无状态模式、服务端身份、Streamable HTTP + OAuth 2.1</li>
+            <li>2025.12：捐赠给 Agentic AI Foundation（Linux Foundation）→ 厂商中立标准</li>
+            <li>OpenAI 全面支持（Agents SDK / Responses API / ChatGPT），SDK 月下载 9700 万+，公开服务器 11000+</li>
+          </ul>
+          <strong>工具数量治理四铁律：</strong>
+          <ul>
+            <li><strong>1. 单 Agent ≤15 个工具</strong>：每个工具定义 300-500 token——40+ 工具光定义就占 15000+ token。某主流 IDE 曾因 43 个 MCP 工具导致定义占 55000 token——"干活之前先花掉一半预算"是 2026 最常见生产级错误</li>
+            <li><strong>2. 懒加载（Tool Search）</strong>：不要一次性加载所有工具定义——Agent 决定调用时才 fetch schema。Anthropic 2026 Tool Search API + Programmatic Tool Calling 实现了按需发现</li>
+            <li><strong>3. 组合优先拆分</strong>：一个 "search_and_analyze" 复合工具 vs 三个独立工具（search + extract + analyze）——减少 tool count 的同时减少 LLM 的 planning 步数</li>
+            <li><strong>4. Server-side 预处理</strong>：MCP 工具返回前用代码过滤/聚合数据，减少进入 LLM context 的原始数据量——代码执行在服务端完成，只传处理后的结果</li>
+          </ul>
+          <strong>传输方式选型：</strong>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px">
+            <tr style="background:rgba(100,108,255,0.1)"><th style="padding:6px;border:1px solid #333">维度</th><th style="padding:6px;border:1px solid #333">stdio</th><th style="padding:6px;border:1px solid #333">Streamable HTTP</th></tr>
+            <tr><td style="padding:6px;border:1px solid #333">通信</td><td style="padding:6px;border:1px solid #333">本地进程 stdin/stdout</td><td style="padding:6px;border:1px solid #333">HTTP + SSE 远程</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">延迟</td><td style="padding:6px;border:1px solid #333">极低（进程内）</td><td style="padding:6px;border:1px solid #333">网络延迟</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">场景</td><td style="padding:6px;border:1px solid #333">开发/单机 Agent</td><td style="padding:6px;border:1px solid #333">生产/多 Agent 共享工具服务器</td></tr>
+            <tr><td style="padding:6px;border:1px solid #333">认证</td><td style="padding:6px;border:1px solid #333">无需（本地）</td><td style="padding:6px;border:1px solid #333">OAuth 2.1</td></tr>
+          </table>
+          <strong>企业治理三件套：</strong>
+          <ul>
+            <li><strong>OAuth 2.1 认证</strong>：每次工具调用需授权——Agent 不能随意访问任何 MCP 服务</li>
+            <li><strong>OPA（Open Policy Agent）策略</strong>：声明式定义"谁可以调用什么工具读什么数据"——Agent A 只能读 CRM 的 customer 字段，不能写</li>
+            <li><strong>审计日志</strong>：记录每次调用的输入/输出/耗时/token——用于安全审计和成本归因</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"MCP 治理四铁律：≤15 工具（防 token 爆炸）→ 懒加载（按需 schema）→ 组合优先（减 tool count + planning 步数）→ Server-side 预处理（数据过滤后再进 context）。传输：本地用 stdio、生产用 Streamable HTTP+OAuth。企业治理：OPA 权限 + 审计日志。核心原则：每个工具都是 context 税——工具越少越好，但不能牺牲功能。"</div>
+      </div>
+    </div>
+
+    <!-- Q244 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q244</div>
+        <div style="flex:1">
+          <div class="q-title">Agent 可观测性与故障排查体系：面对"凌晨 3 点 Agent 行为异常"，如何用 Langfuse / 分布式追踪 / Token 监控 / 故障回放构建完整的生产级监控和排查能力？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Agent 可观测性 vs 传统后端的关键差异：</strong>
+          <ul>
+            <li>传统后端：请求→处理→响应，单次调用，确定性</li>
+            <li>Agent：Prompt → LLM → Tool Call → LLM → Tool Call → ... → Response，多步骤、长时间、非确定性——传统"按 Request ID 查日志"完全不够</li>
+          </ul>
+          <strong>四层监控体系：</strong>
+          <ul>
+            <li><strong>1. Trace 层（全链路追踪）— 核心</strong>
+              <ul>
+                <li>工具：Langfuse / Arize / Weights & Biases / OpenTelemetry + Jaeger</li>
+                <li>记录：每一步的 prompt/completion/tool_call/error/latency/token_count，按 trace_id 串联整个 Agent 执行链</li>
+                <li>关键：Trace 是 Agent 可观测性的 backbone——类似微服务分布式追踪，但 Span 结构对应的是 ReAct 的 Think→Act→Observe 循环</li>
+              </ul>
+            </li>
+            <li><strong>2. Metric 层（指标监控+告警）</strong>
+              <ul>
+                <li>成功率：任务完成率（task_success_rate）、工具调用成功率（tool_success_rate）、最终答案正确率（通过 eval）</li>
+                <li>延迟：TTFT（首 token 时间）、TPOT（token 间延迟）、总执行时间 P50/P95/P99</li>
+                <li>成本：Token 消耗趋势（input/output/total）、工具调用次数、平均每任务成本</li>
+                <li>告警三阈值：Token 消耗 >2× baseline、任务失败率 >5%、P95 延迟突破 SLO</li>
+              </ul>
+            </li>
+            <li><strong>3. Log 层（审计与故障回放）</strong>
+              <ul>
+                <li>完整记录每次执行的推理链：每一步的 raw LLM response + parsed tool call + tool output</li>
+                <li>故障回放（Replay）：用相同 prompt + 工具状态重放——确定是模型输出变化还是工具行为变化</li>
+                <li>审计：谁、何时、调了什么工具、读了什么数据——满足 SOC2/ISO 27001 合规</li>
+              </ul>
+            </li>
+            <li><strong>4. Eval 层（质量持续评估）</strong>
+              <ul>
+                <li>在线 Eval：用户反馈（👍👎）、人工抽检（1% 流量）</li>
+                <li>离线 Eval：标准化测试集定期回归——发现模型升级或 prompt 变更导致的质量退化</li>
+                <li>EDD（Evaluation-Driven Development）：先写 eval 再改 prompt——每次变更跑全量测试</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>"凌晨 3 点"故障排查模式：</strong>
+          <ol>
+            <li>报警：P95 延迟突破 SLO 或失败率 >5%</li>
+            <li>查 Langfuse Dashboard → 看异常 trace 的分布（集中在哪个 tool/哪类 query）</li>
+            <li>定位异常步 → 看该步的 LLM raw output（是 hallucinated tool call？还是 tool 本身挂了？）</li>
+            <li>如果是 tool 故障 → 加 fallback/降级</li>
+            <li>如果是 LLM 行为漂移 → 回放验证（同 prompt 重放看是否稳定复现）→ 加 prompt guard 或 retry logic</li>
+          </ol></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Agent 可观测性四层：Trace（全链路 Langfuse/OTel）→ Metric（成功率/延迟/成本 + 三阈值告警）→ Log（推理链审计 + 故障回放）→ Eval（在线反馈 + 离线回归 + EDD）。与传统后端核心差异：Agent 是多步长时非确定性执行——排查从'请求 ID 查日志'升级到'trace ID 定位哪一步出错'。凌晨 3 点流程：告警 → Langfuse trace → 定位异常步 → 回放验证 → 修复。"</div>
       </div>
     </div>
   </section>
