@@ -1219,6 +1219,58 @@
         <div class="tip-box">💡 <strong>面试框架：</strong>"NTC = 纹理压缩的神经网络范式：离线训练 MLP 学习紧凑 latent 表示，运行时 Tensor Core 推理解码。核心优势：8-16:1 压缩率远超 BC7/ASTC，同 bpt 下 PSNR 高 3-8 dB。挑战：随机访问延迟高（MLP vs 硬件采样器）、需要 Tensor Core、压缩耗时长、mipmap 需层次化 latent。是 GPU VRAM 危机的解药，但 2026 仍在早期落地阶段。"</div>
       </div>
     </div>
+
+    <!-- Q257 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q257</div>
+        <div style="flex:1">
+          <div class="q-title">UE5.5 Nanite 虚拟化几何体进阶：Skeletal Mesh 生产化的技术突破与限制？Foliage 专属渲染路径如何解决 Masked 材质开销？Mesh Paint Texture Color 如何实现 Nanite 网格上的顶点色绘制？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Nanite Skeletal Mesh 生产化（UE5.4 实验 → UE5.5 稳定）：</strong>
+          <ul>
+            <li><strong>核心突破</strong>：Nanite 从仅支持 Static Mesh 扩展到 Skeletal Mesh——骨骼蒙皮动画的几何体也可以享受 Cluster 化 LOD、Visibility Buffer 光栅化、GPU-Driven 剔除</li>
+            <li><strong>Compute Skin Cache</strong>：骨骼蒙皮计算从 VS 移至 Compute Shader，在 GPU 端完成顶点变换后再进入 Nanite 管线——这是 Skeletal Mesh 支持 Nanite 的前提条件</li>
+            <li><strong>LOD 与 Cluster</strong>：每个动画帧的 Cluster 仍然可以做 DAG LOD 选择，但需要在蒙皮变换后重新计算 Cluster 边界——性能开销比 Static Mesh 大</li>
+            <li><strong>限制</strong>：Morph Target（形变目标）和 Cloth Simulation（布料模拟）仍有限制——复杂面部动画和物理布料需要 fallback 到传统 Skeletal Mesh 管线</li>
+          </ul>
+          <strong>Foliage 专属渲染路径：</strong>
+          <ul>
+            <li><strong>问题</strong>：传统 Nanite 中 Masked 材质（树叶、栅栏）需要独立的 Raster Bin——每个 Masked 材质一次 Pass，大量 foliage 导致 Draw Call 爆炸</li>
+            <li><strong>UE5.5 解决方案</strong>：引入 Foliage 专属路径——用 WPO（World Position Offset）+ 两阶段光栅化替代 Alpha Test：第一阶段快速光栅化写入 Visibility，第二阶段按需着色</li>
+            <li><strong>替代表示</strong>：新版 Nanite 用不同的叶子形状表示方式（Meshlet + 程序化旋转），即使森林密度也能受益于 Nanite 的 Cluster 剔除</li>
+            <li><strong>性能提升</strong>：从"每棵树一次 Draw Call"变为"整个森林一次 Dispatch"——CPU 开销从 O(n) 降为 O(1)</li>
+          </ul>
+          <strong>Mesh Paint Texture Color（UE5.5 新功能）：</strong>
+          <ul>
+            <li><strong>痛点</strong>：UE5.5 之前 Nanite 不支持 Mesh Paint——美术无法在 Nanite 网格上做顶点色绘制（类似战地系列的覆盖层效果）</li>
+            <li><strong>方案</strong>：Texture Color 模式——将绘制数据写入虚拟纹理（Virtual Texture）而非顶点数据，通过 Per-Instance Custom Data 在材质中采样</li>
+            <li><strong>优势</strong>：绘制分辨率由纹理决定而非顶点数——与 Nanite 的 LOD 机制完全兼容；支持 Vertex ↔ Texture Color 互转</li>
+            <li><strong>工程意义</strong>：场景美术可以在 Nanite 资产上做局部色彩变化（污渍、磨损、涂装），无需为每个实例创建独立材质</li>
+          </ul>
+          <strong>Nanite 整体限制清单（面试必记）：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">限制项</td><td style="padding:8px;border:1px solid #ddd">状态</td><td style="padding:8px;border:1px solid #ddd">Fallback 方案</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">半透明材质</td><td style="padding:8px;border:1px solid #ddd">不支持</td><td style="padding:8px;border:1px solid #ddd">传统光栅化管线</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Masked 材质</td><td style="padding:8px;border:1px solid #ddd">支持但昂贵</td><td style="padding:8px;border:1px solid #ddd">Foliage 专属路径 / WPO 替代</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Morph Target</td><td style="padding:8px;border:1px solid #ddd">有限支持</td><td style="padding:8px;border:1px solid #ddd">传统 Skeletal Mesh</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">World Position Offset</td><td style="padding:8px;border:1px solid #ddd">支持但有性能边界</td><td style="padding:8px;border:1px solid #ddd">限制 WPO 幅度 / 预计算</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">磁盘占用</td><td style="padding:8px;border:1px solid #ddd">2-3× 增长</td><td style="padding:8px;border:1px solid #ddd">共享 DDC / 按需流式加载</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">碰撞检测</td><td style="padding:8px;border:1px solid #ddd">独立数据</td><td style="padding:8px;border:1px solid #ddd">Simple/Complex 碰撞手动配置</td></tr>
+          </table></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Nanite 5.5 三大进步：Skeletal Mesh 从实验到稳定（Compute Skin Cache + Cluster LOD）、Foliage 专属路径解决 Masked 材质开销、Texture Color 绘制突破顶点色限制。核心限制：半透明不支持、Masked 昂贵、Morph Target 有限、磁盘 2-3×。选型：静态环境 → Nanite；角色面部/布料 → 传统 Skeletal Mesh；透明物体 → 传统光栅化。"</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q233 -->
@@ -2375,6 +2427,53 @@
             <li><strong>仍需降噪</strong>：硬件解决的是"能 trace"，每像素采样数仍有限，ReSTIR/NRD/DLSS Ray Reconstruction 仍是必需品</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Blackwell 三件套：Mega Geometry 解决实例爆炸、DMM 解决置换细节、OMM 解决 Alpha Test。它们共同让路径追踪从'干净场景'扩展到'真实游戏场景'，但降噪和后处理仍是核心。"</div>
+      </div>
+    </div>
+
+    <!-- Q258 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q258</div>
+        <div style="flex:1">
+          <div class="q-title">UE5.5 Path Tracer 生产化里程碑：从实验到 Production-Ready 的技术差距如何弥合？与离线渲染器（Arnold/Octane）的质量对齐策略？Lumen 60Hz HWRT 的关键优化路径是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>UE5.5 Path Tracer 生产化的关键改进：</strong>
+          <ul>
+            <li><strong>物理正确性</strong>：共享 UE5 的光线追踪架构，但使用独立的路径追踪代码——不做实时渲染的近似妥协，直接模拟光传输方程的全局光照、反射折射、材质交互</li>
+            <li><strong>Production-Ready 标志</strong>：支持所有其他 Production-Ready 功能（Sky Atmosphere、Volumetric Clouds、Substrate 材质），Linux 支持，与 Movie Render Queue 深度集成</li>
+            <li><strong>渐进式累积</strong>：相机静止时持续累积采样（Progressive Sampling），达到目标采样数后自动降噪——从噪声到清晰的全过程可见</li>
+            <li><strong>时空降噪器（实验性）</strong>：UE5.5 Movie Render Graph 新增 Spatio-Temporal Denoiser，为线性序列提供高质量降噪——对标 OIDN/Optix Denoiser</li>
+          </ul>
+          <strong>与离线渲染器的质量对齐策略：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">UE5 Path Tracer</td><td style="padding:8px;border:1px solid #ddd">Arnold / Octane</td><td style="padding:8px;border:1px solid #ddd">差距与策略</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质模型</td><td style="padding:8px;border:1px solid #ddd">Substrate BSDF 分层</td><td style="padding:8px;border:1px solid #ddd">OSL / Open Shading Language</td><td style="padding:8px;border:1px solid #ddd">Substrate Beta 逐步覆盖 Legacy 材质全部特性</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">光线传输</td><td style="padding:8px;border:1px solid #ddd">BDPT + Next Event Estimation</td><td style="padding:8px;border:1px solid #ddd">BDPT / MLT / VCM</td><td style="padding:8px;border:1px solid #ddd">UE5 覆盖 90% 场景；复杂 caustics 仍是差距</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">采样效率</td><td style="padding:8px;border:1px solid #ddd">GPU DXR + 时空降噪</td><td style="padding:8px;border:1px solid #ddd">CPU 分布式 / GPU OptiX</td><td style="padding:8px;border:1px solid #ddd">GPU 加速使 UE5 在交互式预览中领先</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">动画渲染</td><td style="padding:8px;border:1px solid #ddd">MRG + 逐帧累积</td><td style="padding:8px;border:1px solid #ddd">Farm 分布式渲染</td><td style="padding:8px;border:1px solid #ddd">UE5 单机 GPU 可达准实时；Arnold 需要渲染农场</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">几何支持</td><td style="padding:8px;border:1px solid #ddd">Nanite + Skeletal Mesh + Landscape</td><td style="padding:8px;border:1px solid #ddd">Alembic / USD / 几何体</td><td style="padding:8px;border:1px solid #ddd">UE5 优势在于游戏资产直接可用，无需导出</td></tr>
+          </table>
+          <strong>Lumen 60Hz HWRT 关键优化路径：</strong>
+          <ol>
+            <li><strong>Surface Cache 优先</strong>：直接光照优先从 Surface Cache（预计算的表面辐照度缓存）读取，仅对 Cache 未覆盖的区域使用光线追踪——大幅减少光线数量</li>
+            <li><strong>Screen Probe Gather 优化</strong>：Screen Space Probe 密度自适应——在间接光照变化剧烈的区域加密 Probe，平坦区域稀疏——减少光线发射总量</li>
+            <li><strong>HWRT 加速结构</strong>：利用 RTX 50 的 Mega Geometry（分区 TLAS）和 Opacity Micromap——减少 BVH 遍历时间和 Alpha Test 开销</li>
+            <li><strong>Async Compute 重叠</strong>：Lumen 的光线追踪 Pass 与光栅化 Pass 在 Async Compute Queue 上重叠执行——隐藏延迟</li>
+            <li><strong>辐射缓存（Radiance Cache）</strong>：将前帧的间接光照结果缓存为球谐函数（SH）系数，当前帧复用 + 时序滤波——减少每帧需要追踪的新光线</li>
+          </ol>
+          <strong>面试加分点：</strong>"UE5.5 的 Path Tracer Production-Ready 意味着游戏引擎第一次提供与离线渲染器质量对标的路径追踪——虽然采样效率仍有差距，但 GPU 加速 + 游戏资产直接可用是独特优势。Lumen 60Hz 的关键是'Surface Cache + Screen Probe + Radiance Cache'三级缓存减少光线数量，配合 Async Compute 隐藏延迟。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"UE5.5 三大渲染里程碑：Path Tracer 生产化（物理正确 + MRG 集成 + 时空降噪）、Lumen 60Hz（Surface Cache + Screen Probe + Radiance Cache 三级缓存 + HWRT 加速）、Substrate Beta（BSDF 分层替代 Legacy 材质）。与 Arnold 差距：复杂 caustics 和 MLT 采样策略，但 GPU 交互式预览是 UE5 独有优势。"</div>
       </div>
     </div>
   </section>
@@ -3614,6 +3713,58 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"OpenPBR 定参数规范、MaterialX 定图结构、ASM 接 Substance。共性是 BSDF 分层+金属粗糙度，差异在生态和表达力。引擎支持 USD/MaterialX 是为了跨工具资产标准化和协作效率，但翻译和性能 fallback 是落地难点。"</div>
       </div>
     </div>
+
+    <!-- Q259 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q259</div>
+        <div style="flex:1">
+          <div class="q-title">UE5 Substrate 材质框架：从 Experimental 到 Beta 的核心改进？Slab BSDF 分层组合如何解决传统材质的表达力瓶颈？与 Legacy Material 的性能对比和迁移策略？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Substrate 核心理念——BSDF 分层组合：</strong>
+          <ul>
+            <li><strong>传统材质的问题</strong>：Legacy Material 用一个固定的着色模型（Default Lit / Subsurface / Cloth / Clear Coat）——每种模型硬编码在 Shader 中，无法组合（如"金属 + 清漆 + 次表面"需要 Custom Shader）</li>
+            <li><strong>Substrate 方案</strong>：将材质拆解为独立的"Slab"——每个 Slab 是一个独立的 BSDF 模块（Dielectric Slab / Metal Slab / Clear Coat Slab / Subsurface Slab / Fuzz Slab），美术可以自由组合叠加</li>
+            <li><strong>组合方式</strong>：Slab 之间通过权重混合（Layer Mix）或垂直堆叠（Vertical Layering）——类似 Photoshop 图层但物理正确</li>
+            <li><strong>表达力突破</strong>：车漆 = Dielectric Base + Metal Flake + Clear Coat；皮肤 = Dielectric + Subsurface + Fuzz（绒毛）；珍珠 = Dielectric + Thin Film Iridescence</li>
+          </ul>
+          <strong>UE5.5 Beta 关键改进（vs Experimental）：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">改进项</td><td style="padding:8px;border:1px solid #ddd">Experimental (5.2-5.4)</td><td style="padding:8px;border:1px solid #ddd">Beta (5.5)</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Legacy 兼容</td><td style="padding:8px;border:1px solid #ddd">部分特性缺失</td><td style="padding:8px;border:1px solid #ddd">全部 Legacy 特性支持</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">平台覆盖</td><td style="padding:8px;border:1px solid #ddd">仅 PC DX12</td><td style="padding:8px;border:1px solid #ddd">全部 UE 部署平台</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Path Tracer</td><td style="padding:8px;border:1px solid #ddd">部分支持</td><td style="padding:8px;border:1px solid #ddd">完全支持（与实时渲染质量一致）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Shader 性能</td><td style="padding:8px;border:1px solid #ddd">未优化</td><td style="padding:8px;border:1px solid #ddd">正在进行实时优化</td></tr>
+          </table>
+          <strong>性能对比与迁移策略：</strong>
+          <ul>
+            <li><strong>性能开销</strong>：Substrate 的多层 BSDF 比 Legacy 单一模型慢 1.5-3×（取决于 Slab 数量）——Beta 正在优化但尚未达到 Legacy 的实时性能</li>
+            <li><strong>迁移路径</strong>：UE5.5 提供"Legacy → Substrate"自动转换工具——将 Default Lit 自动映射为 Dielectric Slab，Clear Coat 映射为 Clear Coat Slab</li>
+            <li><strong>混合使用</strong>：项目中可以同时使用 Legacy 和 Substrate 材质——Legacy 用于性能敏感路径（移动端/VR），Substrate 用于 Look Dev 和过场动画</li>
+            <li><strong>线性生产就绪</strong>：Beta 状态意味着"线性材质生产已就绪"——Look Dev 美术可以用 Substrate 做高质量外观开发，但实时游戏中的全面应用仍需等待 GA</li>
+          </ul>
+          <strong>Slab 类型一览：</strong>
+          <ul>
+            <li><strong>Dielectric Slab</strong>：非金属电介质——标准的金属粗糙度工作流（Base Color + Roughness + Metallic）</li>
+            <li><strong>Metal Slab</strong>：纯金属——F0 色调 + 粗糙度</li>
+            <li><strong>Clear Coat Slab</strong>：清漆层——薄介电层覆盖在 Base 之上（车漆、钢琴漆）</li>
+            <li><strong>Subsurface Slab</strong>：次表面散射——皮肤、蜡、牛奶</li>
+            <li><strong>Fuzz Slab</strong>：绒毛层——织物纤维、桃子表皮</li>
+            <li><strong>Thin Film Slab</strong>：薄膜干涉——肥皂泡、油膜、珍珠</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Substrate = BSDF 的乐高积木。传统材质是硬编码模型（Default Lit / Clear Coat 等），Substrate 把材质拆成独立 Slab（Dielectric / Metal / Clear Coat / Subsurface / Fuzz / Thin Film），美术自由组合。5.5 Beta 改进：全部 Legacy 特性 + 全平台 + Path Tracer 完整支持。性能比 Legacy 慢 1.5-3×，适合 Look Dev 和过场动画，实时游戏应用等 GA。"</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q235 -->
@@ -4213,6 +4364,49 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"VSM = 虚拟纹理思想做阴影。解决 CSM 分辨率浪费和级联接缝：按需 page 分配、无级联边界。三机制：Page Table 虚拟→物理映射、GPU-Driven Cull 只渲染缺失 page、Nanite 协同提供稳定 LOD。挑战是 page fault 抖动和特殊材质 fallback。"</div>
       </div>
     </div>
+
+    <!-- Q260 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q260</div>
+        <div style="flex:1">
+          <div class="q-title">UE5.5 MegaLights "光照领域的 Nanite"：如何实现数百动态阴影光源的实时渲染？与 Cluster Forward+/Deferred 的多光源方案对比？Light Function Atlas 如何加速光源函数？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MegaLights 核心原理——"光照的虚拟化"：</strong>
+          <ul>
+            <li><strong>问题</strong>：传统多光源方案（Cluster Forward+/Deferred）在每个 Cluster 中遍历所有光源——数百光源时每个像素需要评估 50+ 光源，着色开销 O(lights × pixels)</li>
+            <li><strong>MegaLights 方案</strong>：反转遍历顺序——先按光源重要性排序，为每个像素只选择 Top-K 最重要光源（通常 K=4-8），然后做延迟着色</li>
+            <li><strong>重要性评估</strong>：基于光源距离、衰减范围、是否被遮挡（Shadow Ray）快速排序——不是暴力遍历所有光源，而是用 BVH/Cluster 加速结构快速找到影响当前像素的光源</li>
+            <li><strong>阴影处理</strong>：每个光源的阴影不再用独立 Shadow Map——使用 Ray Traced Shadow（硬件光线追踪）或 ReSTIR Diagnostics 的重要性采样——数百光源也能实时阴影</li>
+          </ul>
+          <strong>与 Cluster Forward+/Deferred 多光源方案对比：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">方案</td><td style="padding:8px;border:1px solid #ddd">光源上限</td><td style="padding:8px;border:1px solid #ddd">着色复杂度</td><td style="padding:8px;border:1px solid #ddd">阴影方案</td><td style="padding:8px;border:1px solid #ddd">适用场景</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Cluster Forward+</td><td style="padding:8px;border:1px solid #ddd">~100</td><td style="padding:8px;border:1px solid #ddd">O(cluster × lights)</td><td style="padding:8px;border:1px solid #ddd">CSM / Per-Light Shadow Map</td><td style="padding:8px;border:1px solid #ddd">移动端/跨平台</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Cluster Deferred</td><td style="padding:8px;border:1px solid #ddd">~100-200</td><td style="padding:8px;border:1px solid #ddd">O(cluster × lights) 但 G-Buffer 复用</td><td style="padding:8px;border:1px solid #ddd">Per-Light Shadow Map</td><td style="padding:8px;border:1px solid #ddd">PC/主机，不支持 MSAA</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">MegaLights</td><td style="padding:8px;border:1px solid #ddd">500+</td><td style="padding:8px;border:1px solid #ddd">O(pixels × K) K=4-8</td><td style="padding:8px;border:1px solid #ddd">RT Shadow / 重要性采样</td><td style="padding:8px;border:1px solid #ddd">PC/主机 + RTX 硬件</td></tr>
+          </table>
+          <strong>Light Function Atlas 加速机制：</strong>
+          <ul>
+            <li><strong>问题</strong>：Light Function（光源函数材质）在每个像素为每个光源重新计算——数百光源 × Light Function = 着色器爆炸</li>
+            <li><strong>方案</strong>：将所有 Light Function 预烘焙到一张纹理图集（Atlas）——运行时只需一次纹理采样获取 Light Function 值，而非调用 Shader 计算</li>
+            <li><strong>优势</strong>：支持彩色 Light Function、支持与 MegaLights 协同——数百光源各自有独立 Light Function 也能高效运行</li>
+            <li><strong>限制</strong>：动态 Light Function（逐帧变化的材质）需要每帧重新烘焙 Atlas——适合静态/半静态光源图案（百叶窗投影、霓虹灯图案）</li>
+          </ul>
+          <strong>面试加分点：</strong>"MegaLights 的核心洞察是'不是每个光源都影响每个像素'——通过重要性排序 + Top-K 选择，把 O(lights × pixels) 降为 O(pixels × K)。配合 RT Shadow 解决数百光源的阴影问题，Light Function Atlas 解决光源函数开销。这是'Nanite for Lights'——光照美术不再受性能预算约束。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"MegaLights = 光照虚拟化。核心：重要性排序 + Top-K 选择（O(lights×pixels) → O(pixels×K)），500+ 动态阴影光源实时。vs Cluster Forward+/Deferred：光源上限 10×+，但需要 RTX 硬件做 RT Shadow。Light Function Atlas 把光源函数预烘焙为纹理图集，支持彩色 + MegaLights 协同。是'光照领域的 Nanite'——解放光照美术。"</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q236 -->
@@ -4708,6 +4902,56 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li>竞技/低延迟场景 → 关闭 MFG，只用基础超分或 TAAU</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"超分进入 ML+Transformer 时代。FSR 4 是 AMD 首次 ML 化；DLSS 4 MFG 把插帧推到 4× 但延迟增大；Transformer 超分比 CNN 有更稳定边缘和更好语义，但成本更高。竞技游戏慎用 MFG。"</div>
+      </div>
+    </div>
+
+    <!-- Q261 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q261</div>
+        <div style="flex:1">
+          <div class="q-title">实时路径追踪的时空降噪（Spatio-Temporal Denoising）：与 NRD/DLSS Ray Reconstruction 的技术演进？SVGF/BMFR 等经典算法的原理与局限？AI 降噪如何超越传统滤波器？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么路径追踪需要降噪？</strong>
+          <ul>
+            <li>实时路径追踪每像素只有 1-4 SPP（Samples Per Pixel）——噪声极大，直接呈现类似雪花屏</li>
+            <li>离线渲染器用 4096-65536 SPP 达到无噪声——实时需要 1000× 以上的降噪幅度</li>
+            <li>降噪不能只做空间模糊（会丢失细节）——需要利用时序信息（多帧累积）+ 空间信息（邻域滤波）+ 语义信息（G-Buffer 引导）</li>
+          </ul>
+          <strong>经典时空降噪算法演进：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">算法</td><td style="padding:8px;border:1px solid #ddd">核心思想</td><td style="padding:8px;border:1px solid #ddd">优势</td><td style="padding:8px;border:1px solid #ddd">局限</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">SVGF (2017)</td><td style="padding:8px;border:1px solid #ddd">时序累积 + G-Buffer 引导的联合双边滤波</td><td style="padding:8px;border:1px solid #ddd">简单高效，1ms 内完成</td><td style="padding:8px;border:1px solid #ddd">运动拖影、高频细节模糊</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">BMFR (2019)</td><td style="padding:8px;border:1px solid #ddd">将降噪建模为线性回归，用 G-Buffer 特征拟合辐射度</td><td style="padding:8px;border:1px solid #ddd">细节保留好于 SVGF</td><td style="padding:8px;border:1px solid #ddd">复杂场景拟合不稳定</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">NRD (NVIDIA)</td><td style="padding:8px;border:1px solid #ddd">REBLUR/SIGMA 多 Pass 滤波：时序 → 空间 → 判别式 blur</td><td style="padding:8px;border:1px solid #ddd">生产级质量，支持 REBLUR/SIGMA/RELAX 多模式</td><td style="padding:8px;border:1px solid #ddd">需要大量调参，不同信号类型需不同 preset</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">DLSS RR (2023)</td><td style="padding:8px;border:1px solid #ddd">Transformer 端到端学习：噪声输入 → 清晰输出</td><td style="padding:8px;border:1px solid #ddd">超越手工滤波器，保留语义细节</td><td style="padding:8px;border:1px solid #ddd">需要 Tensor Core，黑盒不可调</td></tr>
+          </table>
+          <strong>NRD 核心流程（生产级经典）：</strong>
+          <ol>
+            <li><strong>时序累积（Temporal Accumulation）</strong>：用 Motion Vector 将上一帧结果重投影到当前帧，与当前帧的 1 SPP 输入做指数加权平均——有效 SPP 从 1 增加到 10-50</li>
+            <li><strong>历史修复（History Fix）</strong>：检测重投影不可靠的区域（遮挡/运动剧烈），用邻域信息修复——减少拖影</li>
+            <li><strong>空间模糊（Spatial Blur）</strong>：G-Buffer 引导的联合双边滤波——仅在法线/深度/材质相似的邻域做模糊，保留边缘</li>
+            <li><strong>判别式模糊（Disocclusion Fix / Blur）</strong>：检测残留噪声区域做二次模糊，同时对已收敛区域保持锐利——自适应模糊强度</li>
+          </ol>
+          <strong>AI 降噪（DLSS Ray Reconstruction）如何超越传统滤波器：</strong>
+          <ul>
+            <li><strong>语义理解</strong>：传统滤波器只看数值相似性（深度/法线），AI 模型理解"这是金属表面反射"vs"这是漫反射噪声"——对物理正确的噪声模式有先验知识</li>
+            <li><strong>非局部信息</strong>：传统双边滤波只看局部 3×3/5×5 邻域，AI 模型通过注意力机制利用远处的干净区域修复当前噪声</li>
+            <li><strong>多信号融合</strong>：传统方案对 Diffuse/Specular/Shadow 分别降噪再合并，AI 模型端到端处理所有信号——避免合并处的伪影</li>
+            <li><strong>Transformer 架构</strong>：DLSS RR 使用 Transformer 而非 CNN——自注意力机制对长距离依赖建模更好，特别是在运动场景中保持时序稳定性</li>
+          </ul>
+          <strong>面试加分点：</strong>"降噪是实时路径追踪的'第二引擎'——没有好的降噪，1 SPP 的路径追踪完全不可用。NRD 是传统方案的巅峰（多 Pass + G-Buffer 引导），DLSS RR 用 Transformer 端到端学习超越手工滤波——核心优势是语义理解和非局部信息利用。未来趋势：AI 降噪 + 更多 SPP + 更好 BVH = 路径追踪游戏。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"时空降噪 = 路径追踪的必需品。演进：SVGF（联合双边滤波）→ BMFR（线性回归）→ NRD（REBLUR 多 Pass 生产级）→ DLSS RR（Transformer 端到端）。NRD 四步：时序累积 → 历史修复 → 空间模糊 → 判别式模糊。AI 优势：语义理解 + 非局部信息 + 多信号融合 + Transformer 长距离建模。1 SPP → 降噪 → 接近 4096 SPP 视觉质量。"</div>
       </div>
     </div>
   </section>
@@ -5241,6 +5485,59 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>Vulkan/WebGPU</strong> 的渐趋成熟使 PPLL 的跨平台可移植性大幅提升</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"OIT 四种主流：Depth Peeling（精确多 Pass）、A-Buffer（固定数组）、PPLL（动态链表，显存高但精确）、WBOIT（近似，极省带宽但有能量泄露）。选型看场景：粒子用 WBOIT，半透明玻璃用 Depth Peeling 2-3 层，复杂场景用 PPLL。2025 年趋势：Moment OIT 结合 WBOIT 减少泄露、Neural OIT 用 MLP 逼近 ground truth。"</div>
+      </div>
+    </div>
+
+    <!-- Q262 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q262</div>
+        <div style="flex:1">
+          <div class="q-title">Forward+ vs Deferred vs Path Tracer 三模式在 UE5 中的统一架构：如何共享 G-Buffer/材质/光照？场景适配策略（实时游戏/过场/电影级渲染）如何选择？Visibility Buffer 在三种模式中的角色是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag netease">网易</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>UE5 三种渲染模式的统一架构：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">Forward+ (Raster)</td><td style="padding:8px;border:1px solid #ddd">Deferred (Raster)</td><td style="padding:8px;border:1px solid #ddd">Path Tracer (DXR)</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">几何处理</td><td style="padding:8px;border:1px solid #ddd">VS + Rasterizer</td><td style="padding:8px;border:1px solid #ddd">VS + Rasterizer + G-Buffer</td><td style="padding:8px;border:1px solid #ddd">BVH Traversal + Ray Generation</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Visibility</td><td style="padding:8px;border:1px solid #ddd">Z-PrePass</td><td style="padding:8px;border:1px solid #ddd">G-Buffer（含 Visibility）</td><td style="padding:8px;border:1px solid #ddd">Ray Hit + G-Buffer</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">光照计算</td><td style="padding:8px;border:1px solid #ddd">Per-Pixel Cluster Light Loop</td><td style="padding:8px;border:1px solid #ddd">Deferred Light Pass（G-Buffer 读取）</td><td style="padding:8px;border:1px solid #ddd">Path Tracing积分（BDPT/NEE）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">材质支持</td><td style="padding:8px;border:1px solid #ddd">全部（含半透明/MSAA）</td><td style="padding:8px;border:1px solid #ddd">受限（G-Buffer 定长 → 材质变体爆炸）</td><td style="padding:8px;border:1px solid #ddd">全部（Substrate/任意 BSDF）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">MSAA</td><td style="padding:8px;border:1px solid #ddd">支持</td><td style="padding:8px;border:1px solid #ddd">不支持</td><td style="padding:8px;border:1px solid #ddd">不适用（采样即抗锯齿）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">带宽</td><td style="padding:8px;border:1px solid #ddd">低（无 G-Buffer）</td><td style="padding:8px;border:1px solid #ddd">高（G-Buffer 读写）</td><td style="padding:8px;border:1px solid #ddd">极高（BVH + Ray + 降噪）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">适用平台</td><td style="padding:8px;border:1px solid #ddd">全平台（含移动端）</td><td style="padding:8px;border:1px solid #ddd">PC/主机</td><td style="padding:8px;border:1px solid #ddd">PC + RTX 硬件</td></tr>
+          </table>
+          <strong>共享架构——UE5 如何统一三种模式：</strong>
+          <ul>
+            <li><strong>共享材质系统</strong>：Substrate BSDF 同时支持三种模式——同一材质在 Raster 和 Path Tracer 中产生一致结果（Path Tracer 作为 Ground Truth 验证 Raster 近似）</li>
+            <li><strong>共享 G-Buffer</strong>：Deferred 的 G-Buffer 和 Path Tracer 的 Ray Hit G-Buffer 使用相同的 layout——确保 Lumen/SSGI/SSR 等屏幕空间技术跨模式复用</li>
+            <li><strong>共享光源数据</strong>：Light Scene 统一管理——Point/Spot/Rect/Directional Light 在三种模式中同一数据源，只是采样方式不同</li>
+            <li><strong>共享后处理</strong>：Bloom/Tonemap/Color Grading/DOF/Motion Blur 完全共享——切换渲染模式不影响后处理链</li>
+          </ul>
+          <strong>Visibility Buffer 在三模式中的角色：</strong>
+          <ul>
+            <li><strong>Forward+</strong>：Z-PrePass 产生深度 Buffer → Cluster Light Culling 使用 → 前向着色</li>
+            <li><strong>Deferred</strong>：G-Buffer Pass 产生完整 Visibility（深度 + 法线 + 材质 ID + 等）→ Deferred Light Pass 读取</li>
+            <li><strong>Path Tracer</strong>：Ray Hit 产生 per-ray Visibility（Triangle ID + Barycentric + Instance ID）→ 着色阶段按需评估材质</li>
+            <li><strong>Nanite 的影响</strong>：Nanite 统一了 Forward+ 和 Deferred 的几何处理——Visibility Buffer Pass 替代传统 VS + Rasterizer，使两种模式的几何阶段完全一致</li>
+          </ul>
+          <strong>场景适配策略：</strong>
+          <ol>
+            <li><strong>实时游戏（60fps+）</strong>：Forward+（移动端/跨平台）或 Deferred（PC/主机 + Lumen）。Path Tracer 仅用于 Debug/Ground Truth 对比</li>
+            <li><strong>过场动画（30fps 容忍）</strong>：Deferred + Lumen HWRT + 部分 Path Tracer Pass（反射/阴影/GI 关键路径用 RT）</li>
+            <li><strong>电影级渲染（非实时）</strong>：Path Tracer Production-Ready + Movie Render Queue 逐帧累积 + 时空降噪</li>
+            <li><strong>Look Dev / 质量验证</strong>：Path Tracer 作为 Ground Truth → 调参 Deferred 使其视觉匹配 Path Tracer → 切换到 Forward+ 验证性能</li>
+          </ol></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"UE5 三模式统一架构：共享 Substrate 材质 + G-Buffer Layout + 光源数据 + 后处理链。Forward+（全平台/MSAA/低带宽）→ Deferred（PC/G-Buffer/材质受限）→ Path Tracer（RTX/物理正确/非实时）。Visibility Buffer 是三模式的共同抽象——Nanite 统一了几何阶段。选型：实时游戏 → Forward+/Deferred；过场 → Deferred + RT 关键路径；电影 → Path Tracer + MRG。"</div>
       </div>
     </div>
   </section>
@@ -11750,6 +12047,350 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>能力边界显式声明</strong>：System Prompt 中明确告知 Agent 它不能做什么——"你无权发送邮件/修改代码仓库/访问 production 数据库"——比"你只能做什么"更安全（正面清单容易遗漏）</li>
           </ul></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Agent 安全 = Prompt Injection 5 类攻击（Direct/Indirect/Data/Multi-Modal/Multi-Turn）× 五层纵深防御（输入隔离→指令优先级→工具网关→沙箱隔离→审计回滚）。最危险的是 Indirect Injection（RAG/网页数据投毒）和 Multi-Turn（分步瓦解）。核心设计原则：权限最小化 + JIT 动态授权 + 人工确认 P0 操作。关键：安全不是一层屏障，而是一个纵深体系。"</div>
+      </div>
+    </div>
+
+    <!-- Q263 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q263</div>
+        <div style="flex:1">
+          <div class="q-title">Nemotron 3 Hybrid Mamba-Transformer MoE 架构：Mamba-2 SSM 层如何实现 1M token 线性复杂度？Transformer 注意力层在混合架构中保留什么关键能力？三层交织（Mamba/MoE/Attention）的工程设计原理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>纯 Transformer 的长上下文瓶颈：</strong>
+          <ul>
+            <li>自注意力机制复杂度 O(n²)——1M token 的注意力矩阵需要 ~1TB 显存（BF16），完全不可行</li>
+            <li>即使 Flash Attention / Ring Attention 优化了计算，KV Cache 的显存占用仍然线性增长——1M token 的 KV Cache 约 100GB+</li>
+            <li>多智能体场景"上下文爆炸"：标准聊天 token 量的 15×（工具输出 + 推理步骤 + 对话历史），纯 Transformer 难以承受</li>
+          </ul>
+          <strong>Mamba-2 / SSM 层——线性复杂度长序列处理：</strong>
+          <ul>
+            <li><strong>状态空间模型（SSM）</strong>：将序列建模为连续动态系统 x'(t) = Ax(t) + Bu(t)，离散化后递推计算——每个 token 只需 O(1) 更新隐藏状态，序列复杂度 O(n)</li>
+            <li><strong>Mamba-2 的改进</strong>：引入选择性机制（Selective Scan）——SSM 的参数 A/B/Δ 随输入动态变化，使模型能"选择"记住哪些 token、遗忘哪些——解决传统 SSM 的信息瓶颈</li>
+            <li><strong>SSD（State Space Duality）</strong>：Mamba-2 证明 SSM 与注意力机制的对偶关系——SSM 可表示为一种结构化注意力，使其能用注意力框架理解和优化</li>
+            <li><strong>1M token 可行性</strong>：Mamba-2 层的隐藏状态固定大小（~16KB/层），1M token 的总状态仅 ~1.6GB——比 KV Cache 小 100×</li>
+          </ul>
+          <strong>Transformer 注意力层保留的关键能力——精确联想召回：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">能力</td><td style="padding:8px;border:1px solid #ddd">纯 SSM (Mamba)</td><td style="padding:8px;border:1px solid #ddd">Transformer Attention</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">长序列效率</td><td style="padding:8px;border:1px solid #ddd">O(n) ✅</td><td style="padding:8px;border:1px solid #ddd">O(n²) ❌</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">精确召回（Needle-in-Haystack）</td><td style="padding:8px;border:1px solid #ddd">弱 ❌</td><td style="padding:8px;border:1px solid #ddd">强 ✅</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">KV Cache 显存</td><td style="padding:8px;border:1px solid #ddd">固定 ✅</td><td style="padding:8px;border:1px solid #ddd">线性增长 ❌</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">长距离推理</td><td style="padding:8px;border:1px solid #ddd">好 ✅</td><td style="padding:8px;border:1px solid #ddd">好 ✅</td></tr>
+          </table>
+          <strong>三层交织设计（Nemotron 3 Super 架构）：</strong>
+          <ol>
+            <li><strong>Mamba-2 层（主体）</strong>：处理大部分序列——线性复杂度，高效处理超长上下文。负责时序建模和长程依赖</li>
+            <li><strong>Transformer Attention 层（关键深度交错）</strong>：在关键位置插入注意力层——保留精确召回能力，确保"大海捞针"任务的高保真检索。不是每层都有，而是间隔放置</li>
+            <li><strong>MoE 层（FFN 替代）</strong>：将 FFN 替换为专家池——扩大参数量而不增加计算量。12B 激活 / 120B 总参数 = 仅 10% 参数被激活</li>
+          </ol>
+          <strong>性能数据（Nemotron 3 Super）：</strong>
+          <ul>
+            <li>120B 总参数 / 12B 激活参数 → 吞吐量是上一代 5×+</li>
+            <li>1M token 上下文窗口在 RULER 基准上超越 GPT-OSS-120B 和 Qwen3.5-122B</li>
+            <li>对比 FP8：NVFP4 在 B200 上推理速度 4× 提升，显存需求大幅降低</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Hybrid Mamba-Transformer MoE = 取长补短。Mamba-2 SSM：O(n) 线性复杂度 + 固定隐藏状态 → 1M token 可行。Transformer Attention：精确联想召回 → 大海捞针不丢信息。MoE：10% 激活参数 → 120B 容量 / 12B 计算。三层交织：Mamba 做主体（效率）、Attention 做关键层（召回）、MoE 做 FFN（容量）。解决多智能体'上下文爆炸'和'思维税'。"</div>
+      </div>
+    </div>
+
+    <!-- Q264 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q264</div>
+        <div style="flex:1">
+          <div class="q-title">NVFP4 原生预训练 vs 后训练量化：4-bit 浮点格式如何在预训练阶段保持精度？与传统 INT4/FP8 量化的本质区别？量化感知训练（QAT）与 NVFP4 Native Training 的技术差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>后训练量化（PTQ）的根本问题：</strong>
+          <ul>
+            <li><strong>流程</strong>：FP16/BF16 全精度训练 → 训练后量化为 INT4/FP4 → 精度损失不可避免</li>
+            <li><strong>原因</strong>：模型在训练时从未见过低精度数值表示——权重和梯度的分布是在 FP16 假设下优化的，压缩到 4-bit 后激活值分布发生偏移</li>
+            <li><strong>典型损失</strong>：INT4 PTQ 通常损失 2-5% 准确率；FP8 PTQ 损失 ~1%；复杂任务（代码生成、数学推理）损失更大</li>
+            <li><strong>校准缓解</strong>：GPTQ/AWQ 等方法用校准数据集调整量化参数——减少但不能消除精度损失</li>
+          </ul>
+          <strong>NVFP4 原生预训练——"生于低精度"：</strong>
+          <ul>
+            <li><strong>核心思想</strong>：预训练的<em>大多数浮点乘加运算（MAC）</em>从第一个梯度更新就在 NVFP4 精度下运行——模型在训练过程中就学会了在 4-bit 算术约束下保持准确</li>
+            <li><strong>NVFP4 格式</strong>：NVIDIA 4-bit 浮点格式——4 位浮点（1 符号位 + 3 指数/尾数位）+ block-wise scaling factor（每 16 个元素共享一个 FP8 scale）——比 INT4 有更大的动态范围</li>
+            <li><strong>为什么 FP4 比 INT4 好</strong>：浮点格式有指数位 → 动态范围大 → 对权重的长尾分布更友好；INT4 只有 16 个均匀间距的值，无法表示大值和小值</li>
+            <li><strong>训练稳定性</strong>：原生 NVFP4 训练需要精心设计的数值稳定性方案——梯度缩放、损失缩放（Loss Scaling）、关键层保持高精度（如 Embedding / 最终输出层）</li>
+          </ul>
+          <strong>QAT vs NVFP4 Native Training 的本质区别：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">QAT (Quantization-Aware Training)</td><td style="padding:8px;border:1px solid #ddd">NVFP4 Native Pretraining</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">训练起点</td><td style="padding:8px;border:1px solid #ddd">已训练的 FP16 模型 → 插入伪量化节点 → 微调</td><td style="padding:8px;border:1px solid #ddd">从头预训练 → MAC 直接在 FP4 硬件运行</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">量化范围</td><td style="padding:8px;border:1px solid #ddd">通常仅量化权重/激活（梯度仍高精度）</td><td style="padding:8px;border:1px solid #ddd">大部分 MAC（含前向+反向梯度）在 FP4</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">训练量</td><td style="padding:8px;border:1px solid #ddd">微调（~1-5% 总训练量）</td><td style="padding:8px;border:1px solid #ddd">完整预训练（25T tokens）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">精度损失</td><td style="padding:8px;border:1px solid #ddd">~0.5-2%（优于 PTQ，劣于原模型）</td><td style="padding:8px;border:1px solid #ddd">~0%（与 FP8 持平或更优）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">硬件依赖</td><td style="padding:8px;border:1px solid #ddd">通用 GPU（伪量化在 FP16 上模拟）</td><td style="padding:8px;border:1px solid #ddd">Blackwell GPU（原生 FP4 Tensor Core）</td></tr>
+          </table>
+          <strong>Nemotron 3 的实际数据：</strong>
+          <ul>
+            <li>25T tokens 全量预训练，大部分 MAC 在 NVFP4 精度</li>
+            <li>10T 唯一 token（2.5× epoch），额外计算集中在推理和编码</li>
+            <li>NVFP4 checkpoint 可跨架构运行：Hopper / Blackwell / Ampere（通过专用量化内核）</li>
+            <li>B200 上推理速度比 FP8 快 4×，比 BF16 快 5×</li>
+          </ul>
+          <strong>面试加分点：</strong>"NVFP4 Native Training 不是'训练后压缩'而是'生于压缩'——模型从第一个梯度就适应 4-bit 算术。关键区别：QAT 是微调阶段的'补救'，Native Training 是预训练阶段的'原生'。FP4 比 INT4 好因为浮点有指数位 → 动态范围大 → 适合权重长尾分布。这是 Blackwell 时代的训练新范式。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"PTQ（后训练量化）→ QAT（量化感知微调）→ NVFP4 Native（原生预训练）= 量化精度递增三阶段。PTQ 损失 2-5%，QAT 损失 0.5-2%，NVFP4 Native ~0%。核心：从第一个梯度更新就在 4-bit 算术下训练 → 模型学会在低精度约束下保持准确。FP4 > INT4：浮点指数位 → 动态范围大。Blackwell 原生 FP4 Tensor Core 使训练成本大幅下降。"</div>
+      </div>
+    </div>
+
+    <!-- Q265 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q265</div>
+        <div style="flex:1">
+          <div class="q-title">Latent MoE 架构：Token 压缩后路由如何实现"4× 专家数量同成本"？与标准 MoE 的通信开销对比？Cache-Aware Routing 如何优化多智能体场景的 KV Cache 命中率？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准 MoE 的通信瓶颈：</strong>
+          <ul>
+            <li><strong>流程</strong>：Router 为每个 token 选择 Top-K 专家 → token 从模型全隐维度（如 d=8192）发送到选中的专家 → 专家计算 → 结果发回</li>
+            <li><strong>通信成本</strong>：每个 token 需要传输 d × K 个浮点数到不同 GPU（如果专家分布在多卡上）——All-to-All 通信量 = batch_size × seq_len × d × K</li>
+            <li><strong>扩展瓶颈</strong>：随着模型增大（d 增大）和专家数量增多（K 增大），通信量线性增长——成为分布式推理的主要瓶颈</li>
+            <li><strong>实际限制</strong>：DeepSeek-V3 用 256 个专家但每个 token 只激活 8 个——通信开销限制了专家粒度</li>
+          </ul>
+          <strong>Latent MoE——压缩后路由：</strong>
+          <ol>
+            <li><strong>Token 压缩</strong>：在路由前，将 token 嵌入从全隐维度 d 投影到低秩 latent 空间 d'（d' << d，如 d'=2048 vs d=8192）</li>
+            <li><strong>专家计算在 latent 空间</strong>：选中的专家在压缩后的 d' 维空间中做 FFN 计算——计算量降低 d/d' 倍</li>
+            <li><strong>结果投影回全维度</strong>：专家输出通过投影矩阵从 d' 恢复到 d——与残差连接合并</li>
+          </ol>
+          <strong>"4× 专家数量同成本"的数学原理：</strong>
+          <ul>
+            <li>标准 MoE 单专家计算量：O(d × d_ffn) ，其中 d_ffn 通常 = 4d</li>
+            <li>Latent MoE 单专家计算量：O(d' × d'_ffn) ，其中 d'_ffn = 4d'</li>
+            <li>如果 d' = d/4，则单专家计算量 = (1/4)² × 标准 = 1/16</li>
+            <li>加上投影开销 O(d × d') × 2（前后投影）≈ O(d²/4)</li>
+            <li>总成本：4 个 latent 专家 ≈ 4 × (1/16) + 投影开销 ≈ 1 个标准专家的成本</li>
+            <li><strong>实际效果</strong>：Nemotron 3 Super 在相同推理成本下激活 4× 更多专家——更细粒度的专业化</li>
+          </ul>
+          <strong>通信开销对比：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">标准 MoE</td><td style="padding:8px;border:1px solid #ddd">Latent MoE</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Token 传输维度</td><td style="padding:8px;border:1px solid #ddd">d = 8192</td><td style="padding:8px;border:1px solid #ddd">d' = 2048（1/4）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">All-to-All 通信量</td><td style="padding:8px;border:1px solid #ddd">B × S × d × K</td><td style="padding:8px;border:1px solid #ddd">B × S × d' × K'（K'=4K 但 d'=d/4 → 总量持平）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">专家粒度</td><td style="padding:8px;border:1px solid #ddd">粗（8-64 专家）</td><td style="padding:8px;border:1px solid #ddd">细（32-256 专家，同成本）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">专业化程度</td><td style="padding:8px;border:1px solid #ddd">每专家覆盖广泛语义</td><td style="padding:8px;border:1px solid #ddd">可激活 Python 语法 vs SQL 逻辑的专属专家</td></tr>
+          </table>
+          <strong>Cache-Aware Routing——多智能体场景优化：</strong>
+          <ul>
+            <li><strong>问题</strong>：多智能体/多轮对话中，相同前缀被多个请求复用——但标准 Router 可能把相同 token 路由到不同专家 → KV Cache 无法复用 → 缓存命中率低</li>
+            <li><strong>Cache-Aware Routing</strong>：路由决策不仅看 token 内容，还看"哪个专家的 KV Cache 已经 warm"——优先路由到已缓存专家 → 命中率提升 → 延迟降低</li>
+            <li><strong>权衡</strong>：路由质量（选最佳专家）vs 缓存效率（选已缓存专家）——通过温度参数调节，高前缀复用场景偏向缓存</li>
+            <li><strong>效果</strong>：多轮 Agent 场景延迟可降低 30-50%（NVIDIA 内部数据）</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"Latent MoE = 压缩后路由。标准 MoE 通信瓶颈：全维度 d 传输到专家 → 通信量 = B×S×d×K。Latent MoE：token 先投影到 d'=d/4 → 专家在压缩空间计算 → 投影回。4× 专家同成本：单专家计算量 (1/4)² = 1/16，4 个 = 1/4 标准 + 投影开销 ≈ 1 标准。Cache-Aware Routing：路由考虑 KV Cache warm 状态 → 多智能体场景延迟 -30-50%。更细专家粒度 = 更精准专业化。"</div>
+      </div>
+    </div>
+
+    <!-- Q266 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q266</div>
+        <div style="flex:1">
+          <div class="q-title">Multi-Token Prediction (MTP)：一次前向预测多个 token 如何同时改善训练和推理？共享权重设计 vs 独立预测头的优劣？MTP 内置推测解码与 EAGLE/Medusa 外置方案的对比？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>标准 LLM 训练的"短视"问题：</strong>
+          <ul>
+            <li>标准训练目标：给定前面所有 token，预测下一个 token——P(x_t | x_1, ..., x_{t-1})</li>
+            <li>问题：模型只学"猜下一个词"——不需要理解更长范围的结构和逻辑依赖</li>
+            <li>后果：Chain-of-Thought 推理中每一步只看局部——容易在多步推理中累积错误</li>
+          </ul>
+          <strong>MTP 训练优势——"看更远"：</strong>
+          <ul>
+            <li><strong>多 token 目标</strong>：给定当前位置，同时预测未来 K 个 token——P(x_{t+1}, x_{t+2}, ..., x_{t+K} | x_1, ..., x_t)</li>
+            <li><strong>训练收益</strong>：迫使模型内化更长范围的结构和逻辑依赖——不是猜"下一个可能的词"，而是预测"连贯的序列"</li>
+            <li><strong>量化提升</strong>：DeepSeek-V3 报告 MTP 在训练中提升 ~2.4% 准确率；Chain-of-Thought 任务收益更显著</li>
+            <li><strong>预测头设计</strong>：每个 MTP head 预测 offset=1, 2, ..., K 的 token——可以是独立参数或共享权重</li>
+          </ul>
+          <strong>共享权重 vs 独立预测头：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">设计</td><td style="padding:8px;border:1px solid #ddd">独立预测头</td><td style="padding:8px;border:1px solid #ddd">共享权重（Nemotron 3）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">参数量</td><td style="padding:8px;border:1px solid #ddd">K × d（每个 head 独立）</td><td style="padding:8px;border:1px solid #ddd">d（所有 head 共享）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">训练稳定性</td><td style="padding:8px;border:1px solid #ddd">各 head 可能学到不一致的捷径</td><td style="padding:8px;border:1px solid #ddd">head 间学习一致连续性</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">长 draft 质量</td><td style="padding:8px;border:1px solid #ddd">随 offset 增大而退化</td><td style="padding:8px;border:1px solid #ddd">更长 draft 保持一致性</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">参数开销</td><td style="padding:8px;border:1px solid #ddd">大（K=4 → +4d 参数）</td><td style="padding:8px;border:1px solid #ddd">最小（+d 参数）</td></tr>
+          </table>
+          <strong>MTP 内置推测解码 vs 外置方案（EAGLE/Medusa）：</strong>
+          <ul>
+            <li><strong>外置方案（EAGLE-3/Medusa-2）</strong>：训练一个独立的轻量 Draft Model → 生成 K 个候选 token → 主模型并行验证 → 接受/拒绝</li>
+            <li><strong>MTP 内置方案</strong>：MTP 预测头本身就是 Draft Model——不需要额外模型，一次前向同时生成主 token + K-1 个 draft token</li>
+            <li><strong>优势对比</strong>：
+              <table style="border-collapse:collapse;width:100%">
+                <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">EAGLE/Medusa</td><td style="padding:8px;border:1px solid #ddd">MTP 内置</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd">额外模型</td><td style="padding:8px;border:1px solid #ddd">需要（~0.5-1B 参数）</td><td style="padding:8px;border:1px solid #ddd">不需要</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd">Draft 质量</td><td style="padding:8px;border:1px solid #ddd">中（独立小模型）</td><td style="padding:8px;border:1px solid #ddd">高（与主模型共享表示）</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd">加速比</td><td style="padding:8px;border:1px solid #ddd">2-3×</td><td style="padding:8px;border:1px solid #ddd">最高 3×（Nemotron 3 数据）</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd">部署复杂度</td><td style="padding:8px;border:1px solid #ddd">高（需管理两个模型）</td><td style="padding:8px;border:1px solid #ddd">低（单模型内置）</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd">训练成本</td><td style="padding:8px;border:1px solid #ddd">额外训练 Draft Model</td><td style="padding:8px;border:1px solid #ddd">MTP 在预训练中自然获得</td></tr>
+              </table>
+            </li>
+          </ul>
+          <strong>MTP 在 RL 训练中的加速：</strong>
+          <ul>
+            <li>NVIDIA NeMo RL 将 Speculative Decoding 集成到 RL rollout 生成中——8B 推理模型加速 1.8× rollout、1.4× RL step</li>
+            <li>在 235B 规模预测 2.5× 加速——RL 训练成本大幅降低</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"MTP = 一举两得。训练：预测 K 个未来 token → 内化长程结构 → CoT 推理 +2.4%。推理：MTP head = 内置 Draft Model → 推测解码无需额外模型 → 3× 加速。共享权重设计 > 独立头：参数少 + 长 draft 一致 + 训练稳定。vs EAGLE/Medusa：无额外模型 + draft 质量高 + 部署简单。RL 训练也受益：rollout 加速 1.8×。"</div>
+      </div>
+    </div>
+
+    <!-- Q267 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q267</div>
+        <div style="flex:1">
+          <div class="q-title">Meta REFRAG 上下文工程：RAG 检索内容如何智能压缩实现 30× TTFT 加速和 16× 上下文扩展？RL 选择性扩展如何平衡精度与效率？与传统 Chunk 策略的本质区别？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RAG 上下文爆炸的两个核心问题：</strong>
+          <ul>
+            <li><strong>TTFT 二次方增长</strong>：LLM 首 token 生成时间（TTFT）随上下文长度呈二次方增长——10K token 的 RAG 检索结果导致 TTFT 从 200ms 飙到 2s+</li>
+            <li><strong>冗余计算</strong>：RAG 上下文是多个检索段落的拼接——段落间关联几乎为零，但注意力机制对所有 token 间的关联做计算，产生大量冗余</li>
+          </ul>
+          <strong>REFRAG 三步流程：</strong>
+          <ol>
+            <li><strong>上下文分块与压缩</strong>：
+              <ul>
+                <li>将检索到的长文档切成固定大小的 chunk（如每 chunk 64-128 token）</li>
+                <li>每个 chunk 经过轻量编码器（RoBERTa）得到 chunk embedding</li>
+                <li>投影层将 chunk embedding 映射到与 LLM token embedding 相同维度</li>
+                <li>LLM 不再处理每个原始 token，而是处理"压缩后的 chunk embedding"——如果 chunk 有 k 个 token，输入长度缩短约 k 倍</li>
+              </ul>
+            </li>
+            <li><strong>选择性扩展（RL 策略）</strong>：
+              <ul>
+                <li>压缩可能丢失关键信息——答案所在段落不能压缩</li>
+                <li>RL Agent 动态决定：哪些 chunk 保留原始 token（不压缩），哪些用压缩 embedding 替代</li>
+                <li>RL reward = 答案准确率 + 压缩率 → 在精度和效率间自动平衡</li>
+              </ul>
+            </li>
+            <li><strong>自回归保留</strong>：
+              <ul>
+                <li>在生成过程中，如果模型发现当前压缩 chunk 信息不足 → 触发"扩展"操作 → 临时展开为原始 token</li>
+                <li>类似"懒加载"——只在需要时加载完整信息</li>
+              </ul>
+            </li>
+          </ol>
+          <strong>与传统 Chunk 策略的本质区别：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">传统 RAG Chunk</td><td style="padding:8px;border:1px solid #ddd">REFRAG</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">上下文表示</td><td style="padding:8px;border:1px solid #ddd">原始 token（每个 token 一个 embedding）</td><td style="padding:8px;border:1px solid #ddd">压缩 embedding（每 chunk 一个 embedding）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">注意力复杂度</td><td style="padding:8px;border:1px solid #ddd">O(n²)（n = 总 token 数）</td><td style="padding:8px;border:1px solid #ddd">O(m² + m×n')（m = chunk 数，n' = 扩展 token 数）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">信息粒度</td><td style="padding:8px;border:1px solid #ddd">细粒度（每个 token 都可见）</td><td style="padding:8px;border:1px solid #ddd">自适应（关键 chunk 展开，非关键压缩）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">TTFT</td><td style="padding:8px;border:1px solid #ddd">随检索量二次方增长</td><td style="padding:8px;border:1px solid #ddd">30.85× 加速（实测）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">上下文容量</td><td style="padding:8px;border:1px solid #ddd">受限于模型窗口</td><td style="padding:8px;border:1px solid #ddd">16× 扩展（同窗口下）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">精度损失</td><td style="padding:8px;border:1px solid #ddd">无（信息完整）</td><td style="padding:8px;border:1px solid #ddd">~0%（RL 选择性扩展保护关键信息）</td></tr>
+          </table>
+          <strong>适用场景与局限：</strong>
+          <ul>
+            <li><strong>高吞吐低延迟场景</strong>：RAG、多轮对话、智能体、Web 级检索——REFRAG 表现突出</li>
+            <li><strong>局限</strong>：需要训练轻量编码器 + RL 策略——部署复杂度高于传统 RAG；压缩 embedding 的可解释性差</li>
+            <li><strong>与 Context Engineering 的关系</strong>：REFRAG 是 Context Engineering 的具体实现——不只是"检索什么"，而是"如何高效地将检索内容送入模型"</li>
+          </ul></div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"REFRAG = RAG 的上下文压缩。三步：chunk 编码压缩（k token → 1 embedding）→ RL 选择性扩展（关键 chunk 保留原始 token）→ 自回归按需展开。效果：30× TTFT 加速 + 16× 上下文扩展 + ~0% 精度损失。vs 传统 RAG：从'每个 token 都进注意力'变为'压缩 + 按需展开'。是 Context Engineering 的代表方案——不只是检索什么，更是如何高效送入模型。"</div>
+      </div>
+    </div>
+
+    <!-- Q268 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q268</div>
+        <div style="flex:1">
+          <div class="q-title">多智能体"上下文爆炸"与"思维税"：Nemotron 3 Super+Nano 分级部署如何解决？Multi-Teacher On-Policy Distillation (MOPD) 如何训练跨领域推理模型？级联 RL (Cascade RL) 的设计原理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag byteDance">字节</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>多智能体的两大成本危机：</strong>
+          <ul>
+            <li><strong>上下文爆炸（Context Explosion）</strong>：多智能体系统的 token 历史是标准聊天的 15×——工具输出、推理步骤、对话历史、Agent 间通信堆积。长时间任务导致"目标漂移"——Agent 逐渐失去与原始目标的对齐</li>
+            <li><strong>思维税（Thinking Tax）</strong>：每个子任务都使用大规模推理模型做 Chain-of-Thought——多智能体应用实际成本过高、运行缓慢。一个 10 步任务 × 每步 10K token 推理 = 100K token/任务</li>
+          </ul>
+          <strong>Super+Nano 分级部署策略：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">模型</td><td style="padding:8px;border:1px solid #ddd">参数</td><td style="padding:8px;border:1px solid #ddd">角色</td><td style="padding:8px;border:1px solid #ddd">适用场景</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Nemotron 3 Nano</td><td style="padding:8px;border:1px solid #ddd">30B 总 / 3B 激活</td><td style="padding:8px;border:1px solid #ddd">执行者</td><td style="padding:8px;border:1px solid #ddd">简单工具调用、单步代码生成、快速响应</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Nemotron 3 Super</td><td style="padding:8px;border:1px solid #ddd">120B 总 / 12B 激活</td><td style="padding:8px;border:1px solid #ddd">规划者</td><td style="padding:8px;border:1px solid #ddd">复杂多步规划、代码库理解、深度推理</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Nemotron 3 Ultra</td><td style="padding:8px;border:1px solid #ddd">550B 总 / 55B 激活</td><td style="padding:8px;border:1px solid #ddd">专家</td><td style="padding:8px;border:1px solid #ddd">专家级编码、数学竞赛、跨领域深度推理</td></tr>
+          </table>
+          <ul>
+            <li><strong>分级原则</strong>：简单任务用 Nano（低成本高吞吐），复杂任务升级到 Super/Ultra（高质量深度推理）</li>
+            <li><strong>成本控制</strong>：90% 的 Agent 步骤可以用 Nano 完成 → 整体成本降低 10×+</li>
+            <li><strong>1M 上下文窗口</strong>：Super/Ultra 支持 1M token → 解决上下文爆炸——长任务历史不需要截断或摘要</li>
+          </ul>
+          <strong>Multi-Teacher On-Policy Distillation (MOPD)：</strong>
+          <ol>
+            <li><strong>多教师训练</strong>：训练 10+ 专门教师模型——每个教师在特定领域（数学/代码/法律/推理）有专属训练管线</li>
+            <li><strong>On-Policy Rollout</strong>：学生模型（Ultra）自己生成 rollout（推理轨迹），而非用教师的轨迹——保证学生学到的是"自己能做到的"而非"模仿教师"</li>
+            <li><strong>教师评分</strong>：每个 rollout 由对应领域的教师模型评分——提供密集奖励信号（dense reward），而非简单的对/错</li>
+            <li><strong>异步流水线</strong>：学生 rollout 生成 → 教师评分 → 学生优化，三个阶段完全异步流水化——最大化 GPU 利用率</li>
+            <li><strong>迭代共进化</strong>：MOPD 训练完成后，用更新后的学生模型初始化新教师 → 下一轮 MOPD → 持续提升</li>
+          </ol>
+          <strong>级联 RL (Cascade RL) 设计原理：</strong>
+          <ul>
+            <li><strong>核心理念</strong>：不是一次性在所有难度上做 RL——而是从简单到复杂分级训练，每级只在上级收敛后启动</li>
+            <li><strong>级联结构</strong>：Level 1（基础推理）→ Level 2（多步推理）→ Level 3（复杂工具链）→ Level 4（自主探索）</li>
+            <li><strong>优势</strong>：避免"奖励稀疏"问题——直接在高难度任务上做 RL 时，模型几乎得不到正确奖励信号；级联确保每级都有足够的成功信号</li>
+            <li><strong>Nemotron-Cascade 成果</strong>：14B 模型在 IOI 2025 获银牌；30B MoE 模型（Cascade 2）在 IMO/IOI/ICPC World Finals 达到金牌水平</li>
+          </ul>
+          <strong>面试加分点：</strong>"多智能体的核心挑战不是'能不能做'而是'做得起吗'。Super+Nano 分级 = 90% 步骤用 Nano（3B 激活）→ 成本 10× 降低。MOPD = 多教师 On-Policy 蒸馏 → 学生在自己生成的轨迹上学习 → 跨领域深度推理。Cascade RL = 从简到难分级强化学习 → 解决奖励稀疏。三者结合：Nemotron-Cascade 2 在 IMO/IOI/ICPC 三大赛事达金牌——开源模型首次。"</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"多智能体两大成本：上下文爆炸（15× token）+ 思维税（每步用大模型 CoT）。解法三层：① 分级部署（Nano 执行 90% + Super 规划 + Ultra 专家 → 成本 10× 降低）；② MOPD 训练（10+ 领域教师 × On-Policy rollout × 异步流水线 × 共进化迭代）；③ Cascade RL（简单→复杂分级强化 → 解决奖励稀疏）。成果：Nemotron-Cascade 2 在 IMO/IOI/ICPC 三赛金牌。"</div>
       </div>
     </div>
   </section>
