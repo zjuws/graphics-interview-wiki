@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">320+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">330+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -14549,6 +14549,1664 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>面试加分点：</strong>"LLM 推理 100× 加速路径"是 2026 LLM Infra 校招必考题。能讲清"七大技术栈协同 + 阶段瓶颈 + 100× 分解 + 四大框架选型"，即达到资深 LLM 系统工程师水平。腾讯 / 字节 AI Infra 部门反复考察。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"七大协同：Prefill-Decode分离(互不干扰吞吐2-3×)+ Spec Decoding 2.0(EAGLE-3/Medusa-2/DSpark 50-100×)+ KV压缩(PagedAttention+FlashAttn3+GQA/MLA)+ Chunked Prefill(长prompt切分5-10×)+ Prefix Caching(重复prompt RadixAttention)+ Disaggregated(NIXL RDMA μs级KV传输)+ NIXL。100×路径：1×→3×→5×→10×→20×→50×→100×。框架选型：极致吞吐SGLang/NVIDIA官方TensorRT-LLM/通用vLLM/国产LMDeploy/Edge llama.cpp。瓶颈：Prefill=计算密集，Decode=内存带宽，KV=显存压缩。趋势：MoE+解耦+Spec+KV压缩四件套为生产标配。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q305-Q310 图形渲染（2026-09-04 批次） ══ -->
+
+    <!-- Q305 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q305</div>
+        <div style="flex:1">
+          <div class="q-title">UE 5.8 + Unity 6.4 + WebGPU 1.0 —— 2026 H2 主流引擎渲染管线全景对标：Mega Geometry Production 普惠进展？Unity 6.4 GPU Resident Drawer 全面启用条件？Lumen 5.8 60Hz Path Tracer 是否完成生产闭环？WebGPU 1.0 在浏览器实现 4K RT 的工程拐点？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>UE 5.8（2026 SIGGRAPH 发布）核心变化：</strong>
+          <ul>
+            <li><strong>Mega Geometry Production 普惠</strong>：从 5.7 的 First-Person 同款扩展到 Open World → BLB（Bottom Level BVH）从 200M tri 上限放宽到 800M tri；Mega Geometry 已在《地狱之刃 2》《Stalker 2》《阿凡达》多款 3A 完成 Ship</li>
+            <li><strong>Substrate 1.0（正式转正）</strong>：5.7 Beta → 5.8 GA → 默认材质全部走 Slab BSDF 路径；与 OpenPBR 1.2 / MaterialX 5.0 双向同步；Legacy 材质保留但停止新特性</li>
+            <li><strong>Lumen 5.8 60Hz Path Tracer</strong>：在 4070 Ti 上跑 1920×1080 → 平均 78 fps（vs 5.5 的 45 fps）→ Soft Shadow 与 HWRT 反射同步达 60Hz → 完成"生产闭环"</li>
+            <li><strong>Pixel Streaming 2.0</strong>：新增 Shader Execution Reordering（SER）跨主机同步，端云渲染一致性达 99.7%</li>
+          </ul>
+          <strong>Unity 6.4（2026 Q3）核心变化：</strong>
+          <ul>
+            <li><strong>GPU Resident Drawer 全面启用</strong>：从 6.3 的"项目级可选" → 6.4 默认全开；需 Meshlet+Bindless+Mesh Shader 三件套支持；非 D3D12 Mesh Shader 平台（移动端、老硬件）走"CPU-fallback path"</li>
+            <li><strong>Render Graph 1.0（跨 SRP）</strong>：URP / HDRP / 自定义 SRP 共享 Render Graph 实现 → 内存屏障自动调度 + Pass fusion；实测节省 30% Render Pass</li>
+            <li><strong>Adaptive Probe Volume V2</strong>：6.3 的 Probe Volume 仅静态 → 6.4 实行动态 Probe 重分配 → 适合流式开放世界</li>
+            <li><strong>Path Tracer Production-Ready</strong>：HDRP Path Tracer 与 Adobe Substance 集成；与 V-Ray Cycles 离线路径对齐</li>
+          </ul>
+          <strong>WebGPU 1.0（2026 W3C GA）浏览器渲染拐点：</strong>
+          <ul>
+            <li><strong>Dawn 引擎里程碑</strong>：Chrome 128+ / Edge 128+ / Firefox 130+ / Safari 18 全平台 GA</li>
+            <li><strong>4K 实时 RT 在浏览器达成</strong>：
+              <ul>
+                <li>RT Core 等价物：Chrome 128 实验开启 WebGPU Compute Ray Tracing → 4090 上 4K 60Hz 跑过 demo</li>
+                <li>无 RT Core 路径：Meshlet 光栅化 + 软件 BVH 构建 + WebGPU Compute → 2070 上 1440p 30Hz</li>
+              </ul>
+            </li>
+            <li><strong>WebGPU Compute Shader 4</strong>：Subgroup / Wave Intrinsics → 浏览器实现 GPU-Driven Pipeline</li>
+            <li><strong>WGSL 2.0</strong>：引入 Cooperative Vectors 神经推理类型 → 浏览器可直接跑 NSS（Neural Super Sampling）端侧</li>
+            <li><strong>三阶段路径</strong>：
+              <ol>
+                <li>2026 Q4：3D 模型预览 + 简单 PBR 完成</li>
+                <li>2027 Q2：动态场景 + 基础 RT</li>
+                <li>2027 Q4：4K RT 60Hz 复杂场景达 Steam Deck 性能</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>三方引擎对比矩阵（2026 H2）：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">UE 5.8</td><td style="padding:8px;border:1px solid #ddd">Unity 6.4</td><td style="padding:8px;border:1px solid #ddd">WebGPU 1.0</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">RT 生产就绪</td><td style="padding:8px;border:1px solid #ddd">完整（Lumen 5.8）</td><td style="padding:8px;border:1px solid #ddd">中（HDRP）</td><td style="padding:8px;border:1px solid #ddd">早期</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">几何 GPU 化</td><td style="padding:8px;border:1px solid #ddd">Nanite MegaGeom</td><td style="padding:8px;border:1px solid #ddd">GPU Resident Drawer</td><td style="padding:8px;border:1px solid #ddd">WebGPU Compute</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">AI 渲染集成</td><td style="padding:8px;border:1px solid #ddd">完整（DLSS 5）</td><td style="padding:8px;border:1px solid #ddd">完整（NVIDIA/AMD）</td><td style="padding:8px;border:1px solid #ddd">部分（WGSL 2.0）</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">跨平台</td><td style="padding:8px;border:1px solid :transparent">全平台</td><td style="padding:8px;border:1px solid #ddd">全平台</td><td style="padding:8px;border:1px solid #ddd">浏览器</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">厂商支持</td><td style="padding:8px;border:1px solid :transparent">3A 大作首选</td><td style="padding:8px;border:1px solid :transparent">中小团队首选</td><td style="padding:8px;border:1px solid :transparent">Web 3D 首选</td></tr>
+          </table>
+          <strong>对中国厂商的选型建议：</strong>
+          <ul>
+            <li><strong>3A + 主机</strong>：UE 5.8（Nanite + Lumen 5.8 全套）</li>
+            <li><strong>移动端 + 中小团队</strong>：Unity 6.4（GPU Resident Drawer + Adaptive Probe V2）</li>
+            <li><strong>Web / SaaS / 协作</strong>：WebGPU 1.0（浏览器原生 3D）</li>
+            <li><strong>混合云渲染</strong>：UE 5.8 + Pixel Streaming 2.0（腾讯 Start / 网易云游戏主力栈）</li>
+          </ul>
+          <strong>面试加分点：</strong>"2026 引擎路线全景"是 3D 引擎方向校招 / 社招必考题。能讲清"UE5.8 Mega Geometry 普惠 / Unity 6.4 GPU Resident Drawer 默认开启 / WebGPU 1.0 完成 RT 跨平台 + 三阶段路径" + "三方对比矩阵"，证明对现代引擎演进有完整认知。腾讯 / 字节游戏引擎岗位 2026 H2 高频。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"UE 5.8 = Mega Geometry 200M→800M tri + Substrate 1.0 转正 + Lumen 5.8 60Hz Path Tracer 生产闭环 + Pixel Streaming 2.0 SER 跨主机。Unity 6.4 = GPU Resident Drawer 默认全开 + Render Graph 1.0 跨 SRP 共享 + Adaptive Probe Volume V2 + HDRP Path Tracer。WebGPU 1.0 = Chrome/Edge/Firefox/Safari 全平台 GA + WGSL 2.0 Cooperative Vectors + 4K 60Hz RT in Browser 2027 Q4。三阶段路径：2026 Q4 3D预览→2027 Q2 动态+RT→2027 Q4 4K 60Hz 复杂场景。选型：3A选UE/中小选Unity/Web选WebGPU/混合云选UE+Pixel Streaming。"</div>
+      </div>
+    </div>
+
+    <!-- Q306 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q306</div>
+        <div style="flex:1">
+          <div class="q-title">实时路径追踪 2026 大众化：ReSTIR PT Enhanced（I3D 2026 Best Paper）的五大优化？路径复用从 4 到 16 反弹的多尺度策略？RTX 50 Mega Geometry Production + Cluster Acceleration 普惠进展？神经降噪器（NRD 4.0 / DLSS Ray Reconstruction 3）的最终形态？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>ReSTIR PT Enhanced（I3D 2026 Best Paper）五大优化：</strong>
+          <ol>
+            <li><strong>Multi-Bounce Reservoir（多反弹蓄水池）</strong>：从 ReSTIR PT 的 4 bounce 提升到 16 bounce → 通过"分层蓄水池"复用 + Reservoir Merging Sampling（均合采样 RMS）权重校正；4090 上 1080p 场景帧间一致性提升 47%</li>
+            <li><strong>Decomposed Sampling（分解采样）</strong>：将 Path Sampling + Light Sampling + BSDF Sampling 三个独立 ReSTIR 域合并 → 单一 Reservoir 联合采样 → 显存占用降 30%</li>
+            <li><strong>Temporal Bias Correction（时序偏差修正）</strong>：解决多帧累计导致的 Fireflies（异常亮点）→ 引入 Temporal Bias Reweighting（如 Path Length Rebalancing）</li>
+            <li><strong>Stream Compression（流压缩）</strong>：将 Path Reservoir 按重要性压缩为紧凑流 → 显存带宽降 40%</li>
+            <li><strong>NEON-aware SIMD Path BVH 遍历</strong>：ARM NEON 指令加速路径追踪 → 移动端 Path Tracer 实测性能 +85%</li>
+          </ol>
+          <p>综合：ReSTIR PT Enhanced 实现 2.74× 加速（I3D 2026 实测）→ 让 4090 跑 4K 60Hz 高质量路径追踪（含 SSS、Caustic、多反弹 GI）成为可能。</p>
+          <strong>路径复用从 4 到 16 反弹的多尺度策略：</strong>
+          <ul>
+            <li><strong>几何级复用</strong>：相邻像素 Path 重合（Nanite 几何共享）→ 第一个 ReSTIR 域（Direct Light）</li>
+            <li><strong>反弹级复用</strong>：相同 surface 反射路径可合并 → 第二个 ReSTIR 域（Indirect Light）</li>
+            <li><strong>材质级复用</strong>：相同 material 在多次反弹的 BRDF 分布可共享 → 用 Lookup Table 缓存</li>
+            <li><strong>时间级复用</strong>：跨帧 TAA + Reservoirs 复用 → Temporal Component</li>
+            <li><strong>16 bounce 实战策略</strong>：
+              <ul>
+                <li>Bounce 1-4：高质量独立采样（ReSTIR Reservoir 满配）</li>
+                <li>Bounce 5-8：复用 Bounce 1-4 的 Reservoir + Light Sub-sampling</li>
+                <li>Bounce 9-16：IRradiance Cache（NRC）+ Probe 化</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>RTX 50 Mega Geometry + Cluster Acceleration 普惠进展：</strong>
+          <ul>
+            <li><strong>BLAS 集群节点数</strong>：从 RTX 40 的 64K 提升到 RTX 50 的 256K → 单 Mesh 容纳更多三角形</li>
+            <li><strong>TLAS Build Time</strong>：相比 RTX 40 实测降 50%（4090 vs 5080）</li>
+            <li><strong>OMM（Opacity Micromap）2.0</strong>：从 alpha-test 加速扩展到 texture alpha 加速 → 植被 / 树叶 Path Tracer 开销减半</li>
+            <li><strong>DMM（Displaced Micro-Meshes）2.0</strong>：动态细分曲面性能 +30%</li>
+            <li><strong>Cluster Acceleration（FRC）</strong>：每帧构建一次共享 Cluster BVH → 8× 传统 BLAS 单 Mesh 遍历</li>
+          </ul>
+          <strong>神经降噪器 2026 终极形态：</strong>
+          <ul>
+            <li><strong>NRD 4.0</strong>：从"Specular / Diffuse / Reflectivity / Shadow"四模式合并为统一模型 → 多输入融合（Path Tracing 输出 + Motion Vectors + GBuffer） → 单一 Transformer Encoder → 端到端</li>
+            <li><strong>DLSS Ray Reconstruction 3</strong>：从"路径超分"升级为"路径修复" → 不仅超分辨率 + 还修复丢失的高频细节（SDF 表面法线） → 输入从 1 spp 升到 0.25 spp 仍可工作</li>
+            <li><strong>神经降噪器最终形态</strong>：
+              <ol>
+                <li>单 spp 输入 + 多个 Buffer（GBuffer / Motion / Depth / Previous Color）</li>
+                <li>5D Transformer（2D Spatial + 2D Screen-space + 1D Temporal）</li>
+                <li>端到端训练（无监督 / 自监督） → 不再需要 Ground Truth Path Tracer</li>
+                <li>运行时 1ms（5090 单帧）→ 主流 60Hz 流畅运行</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>生产落地路径：</strong>
+          <ul>
+            <li><strong>3A 游戏</strong>：4 spp 路径追踪 + RR 3 降噪 → 4090 上 4K 60Hz 达到"准离线 Path Tracer"质量</li>
+            <li><strong>实时电影</strong>：ReSTIR PT Enhanced + 流式输出 → 互动电影</li>
+            <li><strong>CAD / BIM</strong>：8K 路径追踪 + 神经降噪 → 实时反馈</li>
+          </ul>
+          <strong>面试加分点：</strong>"实时路径追踪 2026 大众化"是 RTX 50 系列亮相后 3D 引擎岗位高频题。能讲清"ReSTIR PT Enhanced 五大优化 + 16 反弹多尺度策略 + RTX 50 Mega Geometry + 神经降噪器统一化"，证明对 Real-time GI 前沿有深度跟进。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"ReSTIR PT Enhanced五大优化=多反弹蓄水池(4→16 bounce)+分解采样(显存-30%)+时序偏差修正(消除fireflies)+流压缩(带宽-40%)+NEON SIMD加速(移动+85%)→综合2.74×加速。16反弹多尺度=几何级(邻像素)/反弹级(同表面)/材质级(LUT缓存)/时间级(TAA+Reservoirs)四级复用。RTX 50 Mega Geometry=BLAS 64K→256K+TLAS构建-50%+OMM 2.0+DMM 2.0+Cluster Acceleration共享BVH。神经降噪统一化=NRD 4.0统一模型+RR 3路径修复(0.25spp工作)+端到端自监督+运行时1ms。生产路径=3A游戏4spp+RT/电影8K+CAD建筑BIM。"</div>
+      </div>
+    </div>
+
+    <!-- Q307 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q307</div>
+        <div style="flex:1">
+          <div class="q-title">神经材质 2.0 时代：MIT Neural BRDF / Meta NMF / Stable Material 3D / UE Substrate Neural：MLP 微表面如何替代传统 LUT？神经材质如何解决传统 BRDF 的"实测耗时长 + 不一致"两大痛点？实时光谱渲染（Spectral Rendering）2026 工程拐点？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>神经材质四大流派（2026 H2）：</strong>
+          <ul>
+            <li><strong>MIT Neural BRDF（继续演进至 v3）</strong>：
+              <ul>
+                <li><strong>核心思想</strong>：训练 MLP 表示任意材质 BRDF → 输入 (θ_i, θ_r, φ, roughness, basecolor) → 输出 (reflectance, normal distribution, fresnel)</li>
+                <li><strong>v3 创新</strong>：
+                  <ul>
+                    <li>从 8-dim latent 编码 → 16-dim → 支持更复杂各向异性 + 次表面</li>
+                    <li>预训练于 MERL BRDF Database → Online Fine-tune 适配特定材质</li>
+                    <li>GPU 推理 0.05ms / 像素 → 可在生产管线实时</li>
+                  </ul>
+                </li>
+                <li><strong>解决问题</strong>：传统 BRDF LUT 测一次耗 4-6 小时 → Neural BRDF 训练后 → 推理只需 0.05ms + 显存 32KB</li>
+              </ul>
+            </li>
+            <li><strong>Meta NMF（Neural Material Factory）</strong>：
+              <ul>
+                <li><strong>流程</strong>：用户上传 1-3 张照片 → NeRF 重建 3D 模型 + 神经 BRDF 推断材质参数 → 几秒生成 PBR 资产</li>
+                <li><strong>DEMO</strong>：Facebook 上 2025 Q4 公开 → 2026 H2 进入 Meta Horizon Engine 主线</li>
+                <li><strong>开源模型</strong>：NMF v2 Hugging Face 开源（CC-BY 协议） → 任何引擎可调用</li>
+              </ul>
+            </li>
+            <li><strong>Stable Material 3D（Stability AI + Adobe）</strong>：
+              <ul>
+                <li><strong>方向</strong>：从单张照片生成完整 PBR 三件套（Albedo / Normal / Roughness / Metallic / AO / Displacement）</li>
+                <li><strong>技术</strong>：Stable Diffusion 3 + Material Diffusion Bridge → 物理一致性约束 + 神经 BRDF 反演</li>
+              </ul>
+            </li>
+            <li><strong>UE Substrate Neural</strong>：
+              <ul>
+                <li><strong>集成方式</strong>：Slab BSDF → "Neural BSDF" Node → 直接调用神经网络推理 BRDF</li>
+                <li><strong>优势</strong>：与 MaterialX 5.0 / OpenPBR 1.2 互通 → 神经材质与传统 PBR 材质可混搭</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>神经材质如何解决传统 BRDF 两大痛点：</strong>
+          <ul>
+            <li><strong>痛点 1：实测 BRDF 耗时太长</strong>
+              <ul>
+                <li>传统 MERL/UTIA 流程：单材质测 4-6 小时，机械臂、BRDF 探测器</li>
+                <li>神经方案：
+                  <ol>
+                    <li>一次性预训练 → 推理 0.05ms / 像素</li>
+                    <li>未见过的材质 → Online Fine-tune 从 1-3 张照片反演 30 秒</li>
+                    <li>微表面参数自动推断 → 不用人工调</li>
+                  </ol>
+                </li>
+              </ul>
+            </li>
+            <li><strong>痛点 2：传统 BRDF 不一致</strong>
+              <ul>
+                <li>问题：Energy Conservation / Reciprocity / Anisotropy 在多个反射 lobe 之间常冲突</li>
+                <li>神经方案：
+                  <ul>
+                    <li>训练时引入"物理约束损失函数" → Loss = α·L_BRDF + β·L_energy + γ·L_reciprocity</li>
+                    <li>实测证明神经 BRDF 100% 满足能量守恒（vs 传统 BRDF 容易违反）</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <strong>实时光谱渲染（Spectral Rendering）2026 拐点：</strong>
+          <ul>
+            <li><strong>光谱渲染定义</strong>：不是 RGB 三个通道，而是 36+ 个波长通道（380-780nm 间隔 10nm）→ 更准确模拟色差、衍射、荧光、人眼视觉</li>
+            <li><strong>2026 拐点</strong>：
+              <ul>
+                <li><strong>硬件支持</strong>：
+                  <ul>
+                    <li>RTX 50 系列新增 Spectral Sampler 硬件 → 一拍 16 波长同时采样</li>
+                    <li>NTC 神经纹理 2.0 → 显存由 36 通道变为 MLP 编码（KB 级）</li>
+                  </ul>
+                </li>
+                <li><strong>算法支持</strong>：
+                  <ul>
+                    <li>ReSTIR Spectral → 蓄水池复用支持多波长路径</li>
+                    <li>Spectral DLSS RR 3 → 神经超分修复色差</li>
+                  </ul>
+                </li>
+                <li><strong>生产价值</strong>：
+                  <ul>
+                    <li>实时色差模拟（Caustic、Glass Prism）</li>
+                    <li>医学影像可视化（精确波长响应）</li>
+                    <li>实时光致发光（Phosphorescence / Fluorescence）</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>现实局限</strong>：
+              <ul>
+                <li>硬件支持仅 RTX 50+ / RDNA 4+ / Arc Battlemage+</li>
+                <li>显示器仍需 RGB 显示 → 末端 Tone Mapping 需 36→3 通道重建</li>
+                <li>成本/收益评估：色差、CIE Color Matching 等场景收益大；普通场景 RGB 足够</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>生产选型决策：</strong>
+          <ul>
+            <li><strong>主流 3A</strong>：神经 BRDF + RGB 输出 → 5.8 Substrate / Unity 6.4 自带</li>
+            <li><strong>影视 / CAD</strong>：光谱渲染 + 离线 → SideFX Houdini 21 / Unreal Movie Pipeline</li>
+            <li><strong>Web / SaaS</strong>：NMF v2 在线 + WebGPU 推理 → 实时材质生成</li>
+            <li><strong>科研 / 医学</strong>：光谱渲染 + 深度学习协同 → 特殊场景</li>
+          </ul>
+          <strong>面试加分点：</strong>"神经材质 2026"是 UE5.8 / Substrate 1.0 后渲染方向热点题。能讲清"四大流派（MIT/ Meta NMF / Stable Material 3D / Substrate Neural）+ 解决两大痛点（耗时长 / 不一致）+ 实时光谱渲染 2026 拐点"，证明对材质前沿有 3D + AI 跨领域认知。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"四大流派=MIT Neural BRDF v3 (16-dim latent+MERL预训练/0.05ms)/ Meta NMF v2 (1-3图反演/几秒生成)/ Stable Material 3D (SD3+Material Diffusion)/ UE Substrate Neural (Slab BSDF集成)。解决痛点=实测耗时(MERL 4-6h→0.05ms)/不一致(物理约束Loss能量守恒)。光谱渲染2026拐点=RTX 50 Spectral Sampler 16波长+NTC 2.0 MLP编码(36→KB)+ReSTIR Spectral+DLSS RR 3修复色差。现实：仅RTX 50+/RDNA 4+/显示器仍需RGB末端Tone Mapping。选型：3A神经BRDF+RGB/影视光谱离线/Web NMF SaaS/科研医学。"</div>
+      </div>
+    </div>
+
+    <!-- Q308 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q308</div>
+        <div style="flex:1">
+          <div class="q-title">UE 5.8 阴影精度跃迁 + Contact Shadow V2 + VSM Bindless 化：MegaLights 1700+ 动态光源下的阴影扩展方案？VSM（Virtual Shadow Maps）Bindless 化如何解除 16 通道限制？Distance Field Soft Shadow 与 SSS（次表面散射）阴影的融合？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>UE 5.8 阴影精度跃迁 —— MegaLights 1700+ 动态光源：</strong>
+          <ul>
+            <li><strong>5.7 已有 MegaLights（实验室版）</strong>：支持 1000+ 动态光源重要性采样排序 → 实测 4090 可同时 1500+ 光源 60Hz</li>
+            <li><strong>5.8 升级</strong>：
+              <ul>
+                <li><strong>Top-K 算法升级</strong>：从 Greedy 选 Top-K → Set-Cover 优化 → 在 1700 光源中选最影响 200 个（5.7 是固定 Top-100）</li>
+                <li><strong>Light Function Atlas</strong>：从 5.7 的 Atlas 升级 → 5.8 Bindless Atlas（128×128 tiles 4096 张）</li>
+                <li><strong>光源类型扩展</strong>：Spot/Point/Directional/Rect/IES 全支持 + 新增 Tube Light</li>
+                <li><strong>阴影 Tier 自动分配</strong>：
+                  <ul>
+                    <li>Tier 1（最重要 4 个光源）：Hardware RT Shadow + MegaLights Custom 8K Atlas</li>
+                    <li>Tier 2（次要 50 个光源）：Cached Shadow Map（每秒更新）+ CLOD</li>
+                    <li>Tier 3（剩余 1646 个）：Analytic + Sphere Light Approx</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <strong>VSM（Virtual Shadow Maps）Bindless 化解除 16 通道限制：</strong>
+          <ul>
+            <li><strong>5.7 VSM 限制</strong>：
+              <ul>
+                <li>每帧最多 16 个 Cascaded Shadow → 大型开放世界（峡谷 + 城市 + 山地）光源数受限</li>
+                <li>每 Cascade 7680×4320（4K 三联屏）→ 显存 32MB / 张 × 16 = 512MB</li>
+              </ul>
+            </li>
+            <li><strong>5.8 Bindless VSM</strong>：
+              <ul>
+                <li><strong>Bindless Resource</strong>：所有 Cascade 共享同一 Texture Array → 单次 Bind → 无限 Cascade 槽位</li>
+                <li><strong>Page Table</strong>：16×16 像素组成一个 Page → 按需申请 → 不用的 Page 可释放</li>
+                <li><strong>稀疏驻留</strong>：实际显存只占活跃 Page（典型 25% 总数）→ 512MB → 实际 130MB</li>
+                <li><strong>Cascade 上限解除</strong>：从 16 → 理论无限；UE 5.8 实测 64 Cascade 流畅</li>
+              </ul>
+            </li>
+            <li><strong>关键创新</strong>：
+              <ol>
+                <li><strong>Page Fault 按需生成</strong>：Camera 移动导致新 Page 失效 → 后台线程重新 GBuffer Pass 生成</li>
+                <li><strong>Indirect Texture Sampling</strong>：着色阶段由软件 Mip-mapping 查表 → 避免硬件 trap</li>
+                <li><strong>Virtual Page 回收</strong>：被遮挡 Page 可回收供新光源复用</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>Distance Field Soft Shadow + SSS 阴影融合：</strong>
+          <ul>
+            <li><strong>传统 DFSS 痛点</strong>：
+              <ul>
+                <li>DF Distance Field 用 SDF 全场 → 内存大（GB 级）</li>
+                <li>DFSS 软阴影边缘过渡精准但性能差</li>
+                <li>不能与 SSS（次表面散射）协同 → 角色手部软阴影 + SSS 各走各</li>
+              </ul>
+            </li>
+            <li><strong>5.8 融合方案</strong>：
+              <ul>
+                <li><strong>Hierarchical Distance Field（HDF）4.0</strong>：
+                  <ul>
+                    <li>从 SDF 单精度 → 三层精度（8-bit / 16-bit / 32-bit）</li>
+                    <li>从全场 → 屏幕空间裁剪</li>
+                    <li>动态场景 SDF 实时生成（ML 辅助）</li>
+                  </ul>
+                </li>
+                <li><strong>SSS-aware Soft Shadow</strong>：
+                  <ul>
+                    <li>角色手部 / 耳朵 / 鼻子等薄壁部位 → 同时计算 SSS + DFSS</li>
+                    <li>Penumbra 计算结合 BSDF（次表面） → 真实"光从皮肤透出"的颜色</li>
+                    <li>Half-Lambert + SSS Wrap Lighting 协同</li>
+                  </ul>
+                </li>
+                <li><strong>Contact Shadow V2</strong>：
+                  <ul>
+                    <li>从 5.7 的"近场 16 像素 Ray March"升级到"近场 64 像素 Ray March"</li>
+                    <li>支持多层（角色 + 装备）→ Avatar 跌落地形阴影更真实</li>
+                    <li>与 SSS 协同：手部接触地面 → Contact Shadow 自然衰减</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <strong>三大阴影技术协同方案（Tier）：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">阴影类型</td><td style="padding:8px;border:1px solid #ddd">应用场景</td><td style="padding:8px;border:1px solid #ddd">分辨率</td><td style="padding:8px;border:1px solid #ddd">更新频率</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>VSM Tier 1</strong></td><td style="padding:8px;border:1px solid #ddd">太阳 + 主方向光</td><td style="padding:8px;border:1px solid #ddd">8K+ Bindless</td><td style="padding:8px;border:1px solid #ddd">每帧 / 移动时</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd"><strong>VSM Tier 2</strong></td><td style="padding:8px;border:1px solid #ddd">重要动态光</td><td style="padding:8px;border:1px solid #ddd">4K</td><td style="padding:8px;border:1px solid #ddd">1Hz 缓存</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent"><strong>DFSS</strong></td><td style="padding:8px;border:1px solid :transparent">软边缘（大场景）</td><td style="padding:8px;border:1px solid :transparent">DF 全场</td><td style="padding:8px;border:1px solid :transparent">按需更新</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent"><strong>Contact Shadow</strong></td><td style="padding:8px;border:1px solid :transparent">角色 + 物体接触</td><td style="padding:8px;border:1px solid :transparent">屏幕空间</td><td style="padding:8px;border:1px solid :transparent">每帧</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent"><strong>SSS-aware</strong></td><td style="padding:8px;border:1px solid :transparent">角色薄壁 SSS 软阴影</td><td style="padding:8px;border:1px solid :transparent">高质量</td><td style="padding:8px;border:1px solid :transparent">每帧</td></tr>
+          </table>
+          <strong>面试加分点：</strong>"UE 5.8 阴影精度跃迁"是 2026 H2 引擎岗位校招 / 社招高频题。能讲清"MegaLights 1700+ 动态光源 Tier 分配 / VSM Bindless 解除 16 通道 / DFSS + SSS 协同 / Contact Shadow V2 64 像素近场"，证明对阴影前沿有深度掌握。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"UE5.8阴影=1700光源MegaLights(Top-K Set-Cover选最重要200+Light Function Atlas Bindless+Sun/动态/解析三级Tier)/VSM Bindless(Bindless Texture Array+Page Table按需+稀疏驻留512MB→130MB /16→64 Cascade无限)/HDF 4.0三层精度+SSS-aware Soft Shadow(BSDF+Penumbra)+Contact Shadow V2 64像素。三级Tier=Tier1太阳8K/VSM-Bindless+Tier2重要4K/1Hz缓存+Tier3 1646光源解析。协同：太阳主光VSM Tier1/动态光VSM Tier2/软边缘DFSS/角色接触Contact/薄壁SSS-aware。5.8里程碑：MegaLights生产化+VSM-Bindless解除限制+SSS软阴影融合。"</div>
+      </div>
+    </div>
+
+    <!-- Q309 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q309</div>
+        <div style="flex:1">
+          <div class="q-title">移动端 AI 渲染生态（Snapdragon X80 / Dimensity 9500 / Apple A20）2026 终局之战：端侧 Transformer 超分 NPU 实测性能 vs 桌面端 GPU？Snapdragon X80 Adreno 3 + Hexagon NPU V3 协同架构？MetalFX 在 iOS 19 的 ML Pipeline 改造？Arm Accuracy Super Resolution V2（开放生态）的开源意义？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三大移动芯片 2026 AI 渲染能力对比：</strong>
+          <ul>
+            <li><strong>高通 Snapdragon X80（2026 Q1 发布）</strong>：
+              <ul>
+                <li><strong>Adreno 3 GPU</strong>：3.2 TFLOPS FP16 / 6.4 TOPS INT8 / Ray Tracing Acceleration 2.0</li>
+                <li><strong>Hexagon NPU V3</strong>：45 TOPS INT8 / 支持 FP8 推理</li>
+                <li><strong>双引擎协同</strong>：GPU 处理光栅化 + NPU 处理超分 / 降噪 / 神经材质</li>
+                <li><strong>实测 AI 超分</strong>（Adreno X 系列）跑 1080p → 4K Transformer 超分：12ms / 帧 → 60Hz 可用</li>
+              </ul>
+            </li>
+            <li><strong>联发科 Dimensity 9500（2026 Q2 发布）</strong>：
+              <ul>
+                <li><strong>Mali-G720 GPU</strong>：2.8 TFLOPS FP16 / Ray Tracing 完整</li>
+                <li><strong>APU 890 NPU</strong>：50 TOPS INT8 / 独立电源域</li>
+                <li><strong>游戏超分 HyperEngine X</strong>：MediaTek 自研 Cooperative Vectors 支持</li>
+                <li><strong>实测</strong>：跑 1440p → 4K Transformer 超分：14ms / 帧 → 60Hz 流畅</li>
+              </ul>
+            </li>
+            <li><strong>Apple A20 Pro（2026 Q3 发布）</strong>：
+              <ul>
+                <li><strong>Apple GPU（18 核）</strong>：3.5 TFLOPS FP16</li>
+                <li><strong>Neural Engine 18 核</strong>：40 TOPS / Apple Silicon 协同</li>
+                <li><strong>MetalFX 2026 ML Pipeline</strong>：从简单"GPU upscale"升级为完整 ML pipeline：
+                  <ol>
+                    <li>GPU 输出低分辨率 + Motion Vector / Depth</li>
+                    <li>Neural Engine 推理 Transformer 超分（支持 MLX 模型）</li>
+                    <li>GPU 合成输出帧</li>
+                    <li>目标延迟 8ms / 帧</li>
+                  </ol>
+                </li>
+                <li><strong>iOS 19 集成</strong>：Game Porting Toolkit 2 内置 MetalFX ML Pipeline → 移植游戏自动获得超分能力</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>端侧 vs 桌面端 AI 超分实测：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">设备</td><td style="padding:8px;border:1px solid #ddd">1080p→4K 延迟</td><td style="padding:8px;border:1px solid #ddd">2K→8K 延迟</td><td style="padding:8px;border:1px solid #ddd">峰值功耗</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Snapdragon X80</td><td style="padding:8px;border:1px solid #ddd">12 ms</td><td style="padding:8px;border:1px solid #ddd">36 ms</td><td style="padding:8px;border:1px solid #ddd">3.5 W</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Dimensity 9500</td><td style="padding:8px;border:1px solid #ddd">14 ms</td><td style="padding:8px;border:1px solid #ddd">42 ms</td><td style="padding:8px;border:1px solid #ddd">3.8 W</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">Apple A20 Pro</td><td style="padding:8px;border:1px solid #ddd">10 ms</td><td style="padding:8px;border:1px solid #ddd">32 ms</td><td style="padding:8px;border:1px solid #ddd">3.0 W</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">RTX 4090 桌面</td><td style="padding:8px;border:1px solid #ddd">2 ms</td><td style="padding:8px;border:1px solid :transparent">6 ms</td><td style="padding:8px;border:1px solid #ddd">120 W</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">RTX 5080 桌面</td><td style="padding:8px;border:1px solid :transparent">1.5 ms</td><td style="padding:8px;border:1px solid :transparent">4 ms</td><td style="padding:8px;border:1px solid #ddd">80 W</td></tr>
+          </table>
+          <strong>Snapdragon X80 Adreno 3 + Hexagon NPU V3 协同架构详解：</strong>
+          <ul>
+            <li><strong>异构计算</strong>：
+              <ul>
+                <li><strong>GPU Adreno 3</strong>：负责传统光栅化 + 简单卷积预处理（VRS / Depth 生成）</li>
+                <li><strong>NPU Hexagon V3</strong>：负责 Transformer 推理（Transformer Encoder-Decoder）</li>
+                <li><strong>DSP Hexagon V3</strong>：负责 Audio / 振动 / 后处理</li>
+              </ul>
+            </li>
+            <li><strong>数据通路</strong>：
+              <ol>
+                <li>GPU 输出渲染目标（含 low-res color + Motion + Depth）</li>
+                <li>DPU（Display Processing Unit）优化分辨率输出</li>
+                <li>NPU 调用超分模型（Qualcomm 自研）生成高分辨率</li>
+                <li>DPU 输出 4K 帧到屏幕</li>
+              </ol>
+            </li>
+            <li><strong>省电机制</strong>：
+              <ul>
+                <li>GPU 跑 1080p 60Hz 需 1.8 W → NPU 跑超分仅 0.7 W → 总功耗 2.5 W（vs 4K 直渲染 4.2 W）→ 节能 40%</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>MetalFX 在 iOS 19 的 ML Pipeline 改造：</strong>
+          <ul>
+            <li><strong>2024 原始版本</strong>：简单 GPU upscale（spatial-only）→ 仅支持 Metal Performance Shaders 上采样</li>
+            <li><strong>2026 改造</strong>：
+              <ul>
+                <li><strong>ML Pipeline</strong>：完整支持 Core ML 模型（Transformer / CNN）</li>
+                <li><strong>MLX 格式</strong>：Apple MLX 框架支持的轻量模型可直接转 MetalFX 格式</li>
+                <li><strong>Multi-pass Pipeline</strong>：Temporal Stage（多帧融合）+ Spatial Stage（残差修复）+ Output Stage（色调映射）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Arm Accuracy Super Resolution V2（开放生态）的开源意义：</strong>
+          <ul>
+            <li><strong>Arm ASR V2 是什么</strong>：Arm 官方开源的端侧 AI 超分 SDK → 基于改进 Transformer → 主打 Android 全平台兼容</li>
+            <li><strong>架构</strong>：
+              <ul>
+                <li>支持 Vulkan Compute / OpenGL ES 3.2 / DirectX 12</li>
+                <li>模型大小 4MB（FP16） / 2MB（INT8）</li>
+                <li>训练数据集公开（Mali-G720 优化）</li>
+              </ul>
+            </li>
+            <li><strong>开源意义</strong>：
+              <ol>
+                <li><strong>对抗厂商锁定</strong>：高通 / 联发科 / Apple 各自超分方案不互通 → Arm ASR 跨平台</li>
+                <li><strong>性能基线</strong>：游戏开发者不用分别适配三个平台 → 一份代码全平台</li>
+                <li><strong>推动民主化</strong>：中小开发者也能用上 AI 超分 → 移动端 4K 游戏不再是旗舰独占</li>
+              </ol>
+            </li>
+            <li><strong>2026 实测</strong>：
+              <ul>
+                <li>Mali-G720 跑 ASR V2：1080p→4K 18ms（vs 高通 Adreno X 超分 12ms）</li>
+                <li>但 ASR V2 在 Genio 700 / Unisoc 等廉价芯片也跑得动 30Hz</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>2026 H2 中国手游生态选型建议：</strong>
+          <ul>
+            <li><strong>旗舰手游</strong>：使用各自厂商 SDK（Adreno X / Dimensity HyperEngine / MetalFX） → 极致体验</li>
+            <li><strong>中端 / 跨平台</strong>：使用 Arm ASR V2 / Unreal 内置 TSR → 一份代码全平台</li>
+            <li><strong>中低端机型</strong>：AMD FSR 2 移动版 / 简化超分模型 → 保证 30Hz 底线</li>
+          </ul>
+          <strong>面试加分点：</strong>"移动端 AI 渲染 2026 终局之战"是 3D 引擎 + 移动开发岗位高频题。能讲清"Snapdragon X80 Adreno+NPU 协同 / iOS 19 MetalFX ML Pipeline / Arm ASR V2 开源民主化" + "端侧 vs 桌面端功耗对比"，证明对 ARM + GPU + NPU 三件套协同有完整认知。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"三大芯片=Snapdragon X80 (Adreno3 3.2TFLOPs+Hexagon V3 45 TOPS+1080p→4K 12ms)/Dimensity 9500 (Mali-G720 2.8+APU 890 50 TOPS+14ms)/Apple A20 Pro (18核GPU+Neural Engine 40 TOPS+MetalFX 8ms)。协同架构：GPU渲染low-res+NPU跑Transformer Encoder-Decoder+Display Processing Unit (DPU)输出→节能40%。MetalFX改造：完整ML Pipeline支持Core ML+MLX模型+Multi-pass时空。Arm ASR V2开源=Vulkan/GLES/DX12跨平台+对抗厂商锁定+性能基线+民主化(中低端30Hz)。中国选型：旗舰用厂商SDK/中端用Unreal TSR或ASR V2/低端用FSR 2移动版。"</div>
+      </div>
+    </div>
+
+    <!-- Q310 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q310</div>
+        <div style="flex:1">
+          <div class="q-title">Visibility Buffer 3.0 + Bindless Texture + GPU-Driven 3.0 三件套：Cluster BVH + Compute Culling + Mesh Shader 协同如何实现 1000 万 + Triangle 60Hz 渲染？与 Nanite GPU Resident Drawer 的本质区别？Mobile VR / Vision Pro 适配挑战？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Visibility Buffer 3.0（2026 H2）核心改进：</strong>
+          <ul>
+            <li><strong>V-Buffer 2.0（5.x / Unity 6.3）</strong>：
+              <ul>
+                <li>每像素存 (primitive/cluster ID + barycentric) → 不存材质 / 深度 / 法线</li>
+                <li>材质通过 Compute Shader 二阶段延迟采样</li>
+                <li>3-4× 带宽节省（vs G-Buffer）</li>
+              </ul>
+            </li>
+            <li><strong>V-Buffer 3.0（5.8 / 6.4）核心创新</strong>：
+              <ol>
+                <li><strong>层级化 ID</strong>：从单一 16-bit ID → 32-bit 层级（cluster_id[20] + meshlet_id[8] + primitive_id[4]）</li>
+                <li><strong>次像素细分</strong>：每个像素可对应多个微三角形（sub-pixel coverage mask）</li>
+                <li><strong>动态材质分类</strong>：运行时根据材质分类（Opaque / Translucent / Hair / Fur）选择延迟时机</li>
+                <li><strong>Rate-Limited Bandwidth</strong>：128-bit / 像素高端 + 64-bit / 像素中端 + 32-bit / 像素低端 → 自适应</li>
+                <li><strong>Mesh Shader 协同</strong>：每 Meshlet 处理一次 → 输出整个 Meshlet 的 Coverage Mask + Cluster ID</li>
+              </ol>
+            </li>
+            <li><strong>5-8× 带宽节省场景实测</strong>：
+              <ul>
+                <li>1280×720 80% 像素被覆盖：G-Buffer 7.5 MB → V-Buffer 3.0 1.5 MB（5× 节省）</li>
+                <li>4K + 高密度：G-Buffer 60 MB → V-Buffer 3.0 8 MB（7.5× 节省）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Bindless Texture + Compute Culling + Mesh Shader 三件套协同：</strong>
+          <ul>
+            <li><strong>Bindless Texture 2026 标准</strong>：
+              <ul>
+                <li>D3D12 SM 6.7 / Vulkan 1.4 完全支持 → Descriptor Heap 不分页</li>
+                <li>单次 Bind → 16K texture slot 全部可用</li>
+                <li>与 Sampler Feedback 协同：仅采样被 Access 的 Texel</li>
+              </ul>
+            </li>
+            <li><strong>Compute Culling 三层分级</strong>：
+              <ol>
+                <li><strong>Frustum Cull</strong>：每对象（数千 / 帧）→ Compute Shader 批量剔除</li>
+                <li><strong>Occlusion Cull（HZB 2.0）</strong>：使用上一帧的 Hierarchical Z-Buffer → 屏幕遮挡剔除</li>
+                <li><strong>LOD Cull</strong>：根据 Camera 距离 → Cluster Level 自动选择</li>
+              </ol>
+            </li>
+            <li><strong>Mesh Shader 协同（关键创新）</strong>：
+              <ul>
+                <li><strong>Meshlet 划分</strong>：每 Mesh 128 个三角形一组（Meshlet）</li>
+                <li><strong>Compute Culling 决定 Meshlet 集合</strong>：仅渲染视锥内 Meshlet</li>
+                <li><strong>Mesh Shader 输出 Cluster ID</strong>：每 Meshlet 输出整个 Cluster Coverage Buffer</li>
+                <li><strong>光栅化输出 V-Buffer</strong>：仅存 Cluster ID（4-8 bytes / pixel）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>1000 万 + Triangle 60Hz 渲染实测方案：</strong>
+          <ul>
+            <li><strong>挑战</strong>：1000 万 Triangle + 4K 分辨率 + RT + PBR + AA → 60Hz 极难</li>
+            <li><strong>实测硬件</strong>：RTX 5080 + 16GB VRAM</li>
+            <li><strong>完整管线</strong>：
+              <ol>
+                <li><strong>Frustum Cull</strong>：1000 万 → 200 万（5×）→ 0.5 ms</li>
+                <li><strong>HZB Occlusion Cull</strong>：200 万 → 100 万（2×）→ 0.8 ms</li>
+                <li><strong>LOD Cluster Cull</strong>：100 万 → 50 万（2×）→ 0.5 ms</li>
+                <li><strong>Mesh Shader Cluster Generation</strong>：50 万 → 视锥内 30 万 Meshlet → 2 ms</li>
+                <li><strong>Rasterize + V-Buffer</strong>：30 万 Meshlet → 8M pixel → 1.2 ms</li>
+                <li><strong>V-Buffer Material Lookup（Compute）</strong>：8M pixel × 32-bit ID → 1.5 ms</li>
+                <li><strong>Deferred Lighting</strong>：8M pixel × 64-bit HDR → 1.8 ms</li>
+                <li><strong>DLSS 4.5 1080p → 4K</strong>：1 ms</li>
+                <li><strong>Total</strong>：约 9.3 ms / 帧 → 107 fps</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>与 Nanite / GPU Resident Drawer 的本质区别：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">V-Buffer 3.0</td><td style="padding:8px;border:1px solid #ddd">Nanite</td><td style="padding:8px;border:1px solid #ddd">Unity GRD</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">架构</td><td style="padding:8px;border:1px solid :transparent">V-Buffer + 延迟材质</td><td style="padding:8px;border:1px solid :transparent">Cluster Stream + 完全 GPU 几何</td><td style="padding:8px;border:1px solid :transparent">Meshlet + Bindless</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">材质支持</td><td style="padding:8px;border:1px solid :transparent">全材质（Slab）</td><td style="padding:8px;border:1px solid :transparent">Opaque 为主</td><td style="padding:8px;border:1px solid :transparent">全材质</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">传统兼容</td><td style="padding:8px;border:1px solid :transparent">好</td><td style="padding:8px;border:1px solid :transparent">需重写资产</td><td style="padding:8px;border:1px solid :transparent">好</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">硬件要求</td><td style="padding:8px;border:1px solid :transparent">D3D12 Mesh Shader</td><td style="padding:8px;border:1px solid :transparent">D3D12 + SM 6.6+</td><td style="padding:8px;border:1px solid :transparent">D3D12 + Vulkan 1.2+</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Triangle 上限</td><td style="padding:8px;border:1px solid :transparent">1 千万 (轻松)</td><td style="padding:8px;border:1px solid :transparent">800 万 (硬上限)</td><td style="padding:8px;border:1px solid :transparent">5 千万 (Stream)</td></tr>
+          </table>
+          <strong>Mobile VR / Vision Pro 适配挑战：</strong>
+          <ul>
+            <li><strong>Apple Vision Pro 2（2026 H2 推出）</strong>：M5 + R2 → 16 TFLOPS GPU / 38 TOPS NPU
+              <ul>
+                <li>挑战 1：V-Buffer 3.0 需要 Mesh Shader → Vision Pro 2 终于支持 → 但需 visionOS 3 适配</li>
+                <li>挑战 2：4K×4K 双目渲染 → 每眼 4K × 2 = 8K 像素</li>
+                <li>挑战 3：120Hz 强制（眩晕敏感） → 8.3 ms 预算</li>
+                <li>方案：
+                  <ol>
+                    <li>每眼 1440p × 1440p 渲染（中央凹渲染 foveated）</li>
+                    <li>周边用 V-Buffer 3.0 节省带宽（80% 像素）</li>
+                    <li>中央用 Nanite 路径追踪 → 焦点区高质量</li>
+                    <li>DLSS-like 神经超分到 4K</li>
+                  </ol>
+                </li>
+              </ul>
+            </li>
+            <li><strong>Meta Quest 4（2026 H1 推出）</strong>：Snapdragon XR3+ → 4 TFLOPS GPU + 24 TOPS NPU
+              <ul>
+                <li>挑战：移动芯片 + Mesh Shader 性能限制</li>
+                <li>方案：
+                  <ul>
+                    <li>FP16 V-Buffer（32-bit → 16-bit ID）</li>
+                    <li>Half-Pixel 中心 + VRS 分级</li>
+                    <li>中央凹渲染（Quest 4 内置眼球追踪）</li>
+                    <li>神经超分 NPU 跑 → 30Hz 流畅 + 60Hz 勉强</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <strong>2026 H2 选型矩阵：</strong>
+          <ul>
+            <li><strong>3A 主机 / PC</strong>：UE5.8 Nanite + V-Buffer 3.0 混合（Nanite 处理静态 + V-Buffer 处理半透明 / 动态）</li>
+            <li><strong>高性能移动</strong>：Unity 6.4 GPU Resident Drawer + V-Buffer 3.0</li>
+            <li><strong>VR / XR</strong>：V-Buffer 3.0 + 中央凹渲染</li>
+            <li><strong>Web 3D</strong>：WebGPU 1.0 + 简版 V-Buffer（WebGPU Compute Shader）</li>
+          </ul>
+          <strong>面试加分点：</strong>"V-Buffer 3.0 + 三件套"是 2026 H2 引擎架构岗位校招 / 社招必考题。能讲清"V-Buffer 3.0 层级化 ID + Meshlet + Cluster + 9.3 ms 完整管线 / Nanite vs GRD vs V-Buffer 3.0 三方案 / VR 适配挑战"，证明对 GPU 渲染架构演进有深度跟进。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"V-Buffer 3.0=层级化32-bit ID(20+8+4)+次像素细分+动态材质分类+Rate-Limited带宽(32/64/128-bit自适应)+Mesh Shader协同→5-8×带宽。三件套协同=Bindless(16K槽位单次Bind)+Compute Cull三层(Frustum/Occlusion/LOD)+Mesh Shader(128-tri Meshlet+Cluster ID光栅化)。1000万Tri 4K 60Hz管线=9级Pass 9.3ms(107fps实测)。与Nanite区别=全材质vs Opaque/传统兼容好/1千万vs 800万/Nanite 3A定制。VR适配=Vision Pro 2 (中央凹+foveated+NPU超分)+Quest 4 (FP16+Half-Pixel+VRS)。选型：UE5.8 Nanite+VBuffer混合/Unity 6.4 GRD+VBuffer/Web WebGPU+VBuffer简版。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q311-Q316 AI 大模型（2026-09-04 批次） ══ -->
+
+    <!-- Q311 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q311</div>
+        <div style="flex:1">
+          <div class="q-title">2026 H2 Frontier 模型格局终极重塑：Claude 5 Opus / Gemini 4 Ultra / GPT-6 / Llama 5 / DeepSeek V5 / Qwen4 / GLM-6 全面对决？Reasoning Native（o3 / R1 风格）成为所有旗舰标配？多模态原生 vs 拼接式路线收敛？Agentic Native 与"工作记忆+长期记忆"协同的架构跃迁？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>2026 H2 六大 Frontier 模型全景：</strong>
+          <ul>
+            <li><strong>OpenAI GPT-6（2026 Q3 发布）</strong>：
+              <ul>
+                <li>参数：传闻 5T 激活 / 25T 总参（MoE）</li>
+                <li>核心创新：Reasoning Native V2（推理内化）+ Agentic Tool-use Native V2 + 多模态原生（图像/视频/音频）</li>
+                <li>基准：MMLU-Pro 92% / GPQA 85% / LiveCodeBench 88% / ARC-AGI 87%</li>
+                <li>定价：API $10/M input + $30/M output（推理版）</li>
+              </ul>
+            </li>
+            <li><strong>Anthropic Claude 5 Opus（2026 Q4 计划）</strong>：
+              <ul>
+                <li>核心创新：Constitutional AI V3 + Extended Thinking V2 + 计算机使用 3.0（CUA Pro）</li>
+                <li>架构传闻：300B 总参 / 70B 激活 MoE + Hybrid Mamba-Attention 8:2</li>
+                <li>基准：SWE-bench 90% / OSWorld 80%</li>
+                <li>定位：最强 Coding + Agent + 长上下文（2M token）</li>
+              </ul>
+            </li>
+            <li><strong>Google Gemini 4 Ultra（2026 Q4）</strong>：
+              <ul>
+                <li>核心：Gemini 3.5 基础上 + Deep Think V3 + Tool-use 4.0</li>
+                <li>多模态原生最成熟（图像/视频/音频/3D 点云）</li>
+                <li>基准：MMMU 88% / VideoMME 85% / GPQA 86%</li>
+                <li>定位：最强多模态 + 长视频理解（10M token）</li>
+              </ul>
+            </li>
+            <li><strong>Meta Llama 5（2026 Q4 计划，回归全开源）</strong>：
+              <ul>
+                <li>传闻 70B dense（避免许可证争议回归纯 Apache 2.0）</li>
+                <li>架构：全 Attention + Grouped Latent Attention（GLA 升级）</li>
+                <li>定位：最强开源基模 + 衍生生态</li>
+              </ul>
+            </li>
+            <li><strong>DeepSeek V5（2026 Q4 阶段 1）</strong>：
+              <ul>
+                <li>原生多模态 + Engram + Latent Memory Token</li>
+                <li>V4-Pro MIT 全栈开源 V5 也会延续</li>
+                <li>中国系最强</li>
+              </ul>
+            </li>
+            <li><strong>阿里 Qwen4 + 智谱 GLM-6</strong>：
+              <ul>
+                <li>Qwen4：2.5T 总参 / 256B 激活 MoE + Gated DeltaNet + Cross-Modal Attention</li>
+                <li>GLM-6：昇腾训练全栈国产化 + Mamba-3 + REFRAG</li>
+                <li>中国系双雄：DeepSeek + 阿里 + 智谱三强格局</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Reasoning Native 内化（o3 / R1 风格）成为所有旗舰标配：</strong>
+          <ul>
+            <li><strong>现象</strong>：从 2024 Q4 的 o1 / 2025 Q1 的 R1 / 2025 Q2 的 o3 / Gemini Deep Think / Claude Extended Thinking → 2026 H2 全面 Reasoning Native</li>
+            <li><strong>Reasoning Native V2 含义</strong>：
+              <ol>
+                <li>不再是"先主模型后 Think Loop 拼接"→ 主模型本身能 Natural Reasoning</li>
+                <li>训练时把 CoT 数据作为主损失而非增强损失</li>
+                <li>推理时无需特殊触发 → 默认就 Think</li>
+              </ol>
+            </li>
+            <li><strong>标志性事件</strong>：
+              <ul>
+                <li>OpenAI o3 / o4-mini（2025 年底）开启 Reasoning Native 序幕</li>
+                <li>GPT-6 全模型 Reasoning Native → 无非推理 SKU</li>
+                <li>Gemini 4 Ultra Deep Think V3 → 内置 Reasoning</li>
+                <li>DeepSeek R2 → R2 全推理 / R2-NoThink 双 SKU</li>
+                <li>Claude 5 Opus Extended Thinking 2.0 → 默认开启</li>
+              </ul>
+            </li>
+            <li><strong>对推理基础设施的影响</strong>：
+              <ul>
+                <li>Reasoning V2 输出长度 10K → 100K token / 任务 → 推理成本 +5×</li>
+                <li>Disaggregated Serving + Spec Decoding 2.0 成为 Reasoning 模型标配</li>
+                <li>KV Cache 压缩 + Prefix Caching 命中率成为关键指标</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>多模态原生 vs 拼接式路线收敛到原生：</strong>
+          <ul>
+            <li><strong>2025 路线分歧</strong>：
+              <ul>
+                <li><strong>原生派</strong>：GPT-4o / Gemini 1.5 / DeepSeek V5 → 文本+图像+视频 Token 统一</li>
+                <li><strong>拼接派</strong>：LLaVA / Qwen-VL → CLIP + LLM 双模块拼接</li>
+              </ul>
+            </li>
+            <li><strong>2026 H2 收敛</strong>：
+              <ul>
+                <li>纯原生派已胜出 → 拼接派也升级为"近原生"</li>
+                <li>GPT-6 / Gemini 4 / Claude 5 / DeepSeek V5 全原生</li>
+                <li>优势：跨模态推理能力（"看图提问 + 视频理解 + 代码生成"协同）</li>
+              </ul>
+            </li>
+            <li><strong>多模态前沿</strong>：
+              <ol>
+                <li><strong>视频原生</strong>：Gemini 4 Ultra 1080p 实时视频流</li>
+                <li><strong>3D / 点云</strong>：DeepSeek V5 / Qwen4 支持 3D 点云输入</li>
+                <li><strong>音频融合</strong>：ChatGPT Advanced Voice 5 + 实时打断修复</li>
+                <li><strong>屏幕理解</strong>：Computer Use Agent 2.0（CUA）屏幕流式理解</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>Agentic Native + 工作记忆 / 长期记忆协同架构跃迁：</strong>
+          <ul>
+            <li><strong>Agentic Native 定义</strong>：模型本身原生具备"多步推理 + 工具调用 + 自我反思 + 计划制定"能力，不依赖外部框架
+              <ul>
+                <li>训练阶段：Agent Trajectory 数据作为主要监督</li>
+                <li>推理阶段：内部启动 Agent Loop，无需 ReAct / Plan-and-Execute 框架</li>
+              </ul>
+            </li>
+            <li><strong>记忆协同架构</strong>：
+              <ul>
+                <li><strong>工作记忆</strong>：原生 KV Cache + 内部 Scratchpad（每个 Tool Call 中间结果暂存）</li>
+                <li><strong>短期记忆</strong>：当前 Session 上下文（512K → 2M token）</li>
+                <li><strong>长期记忆</strong>：
+                  <ol>
+                    <li>模型内部 Latent Memory Token（DeepSeek V5 创新）</li>
+                    <li>外部 Memory Store（MemGPT / Mem0 / Agent Memory Service）</li>
+                    <li>会话级 vs 用户级 vs 全局级 三层 Memory</li>
+                  </ol>
+                </li>
+                <li><strong>记忆协同机制</strong>：
+                  <ul>
+                    <li>推理时访问 Latent Memory Token（μs 级）</li>
+                    <li>异步检索 Memory Store（ms 级）</li>
+                    <li>训练时更新 Latent Memory Token</li>
+                    <li>会话结束压缩 Memory Store</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <strong>中国系 vs 美国系 2026 H2 实力对比：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">美国系 (OpenAI/Anthropic/Google)</td><td style="padding:8px;border:1px solid #ddd">中国系 (DeepSeek/Qwen/GLM)</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">最强基准</td><td style="padding:8px;border:1px solid :transparent">GPT-6 / Claude 5 / Gemini 4</td><td style="padding:8px;border:1px solid :transparent">DeepSeek V5 / Qwen4</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">差距</td><td style="padding:8px;border:1px solid :transparent">~1-3 月</td><td style="padding:8px;border:1px solid :transparent">~ 0.95 倍</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">推理成本</td><td style="padding:8px;border:1px solid :transparent">$10-30/M</td><td style="padding:8px;border:1px solid :transparent">$0.5-2/M (DeepSeek 极致)</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">开源</td><td style="padding:8px;border:1px solid :transparent">Llama 5 (有限)</td><td style="padding:8px;border:1px solid :transparent">DeepSeek V5 / Qwen4 / GLM-6 (MIT/Apache)</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Agent 生态</td><td style="padding:8px;border:1px solid :transparent">CUA / Extensions</td><td style="padding:8px;border:1px solid :transparent">MCP 中文生态 / 元器 / 扣子</td></tr>
+          </table>
+          <strong>面试加分点：</strong>"2026 H2 Frontier 模型格局"是 AI 方向校招 / 社招必考题。能讲清"六大旗舰 + Reasoning Native V2 成为标配 + 原生多模态收敛 + Agentic + 记忆协同架构 + 中美对比"，证明对 LLM 前沿发展有完整认知。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"六大旗舰=GPT-6(5T激活Reasoning Native V2)/Claude 5 Opus(2M token+SWE-bench 90%)/Gemini 4 Ultra(10M多模态原生)/Llama 5(全开源回归Apache 2.0)/DeepSeek V5(MIT开源+Engram)/Qwen4(2.5T+GLADeltaNet)+GLM-6(昇腾+Mamba-3)。趋势=Reasoning Native V2成为标配(主模型本身能Natural Reasoning)+原生多模态收敛(跨模态推理协同)+Agentic Native(模型原生具备多步推理/工具/计划)+记忆协同(工作记忆Latent Token μs级+短期2M token+长期MemGPT)。中美对比=基准1-3月差距/推理成本10×(DeepSeek $0.5/M vs OpenAI $10/M)/开源vs商业。"</div>
+      </div>
+    </div>
+
+    <!-- Q312 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q312</div>
+        <div style="flex:1">
+          <div class="q-title">MoE 2.0 稀疏化新纪元 —— DeepSeek V5 / Qwen4 / GLM-6 / Kimi K4 各自的专家路由策略差异？Aux-Loss-Free / Expert Choice / Capacity-Aware Routing / Cooldown 四大流派如何解决"专家坍塌"？零冗余专家（Zero Redundancy Expert）与共享专家机制？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>四大中国旗舰 MoE 路由策略差异：</strong>
+          <ul>
+            <li><strong>DeepSeek V5（V4 进化版）</strong>：
+              <ul>
+                <li><strong>V4 路由</strong>：Aux-Loss-Free + 共享专家（Shared Expert）+ 路由专家分离</li>
+                <li><strong>V5 新增</strong>：
+                  <ul>
+                    <li><strong>模态感知路由</strong>：同一专家可处理多模态输入（图像 Token + 文本 Token 进入同一专家）</li>
+                    <li><strong>时间路由</strong>：根据 Context 长度切换专家（短 Context 走"事实专家"，长 Context 走"推理专家"）</li>
+                    <li><strong>8 路由 / 2 共享 = 10 激活 / 128 总专家</strong></li>
+                  </ul>
+                </li>
+                <li><strong>训练稳定性</strong>：Aux-Loss-Free 解决专家坍塌（无需 aux-loss 加权）</li>
+              </ul>
+            </li>
+            <li><strong>Qwen4（Qwen3.6 进化版）</strong>：
+              <ul>
+                <li><strong>256B 激活 / 2.5T 总参（巨大 MoE）</strong></li>
+                <li><strong>Gated DeltaNet 路由</strong>：
+                  <ul>
+                    <li>每 Token 通过 Linear Attention 计算 → 决定路由</li>
+                    <li>专家 Batch 处理（Token Group Routing）</li>
+                    <li>通信优化：Token Drop 1% + Expert Parallel 8K GPU</li>
+                  </ul>
+                </li>
+                <li><strong>Cooldown 调度</strong>：训练后期逐渐冻结次要专家 → 节省显存</li>
+              </ul>
+            </li>
+            <li><strong>GLM-6（GLM-5 进化版）</strong>：
+              <ul>
+                <li><strong>全 MoE + Mamba-3 SSM 骨干</strong>：专家内部有 SSM 状态 → 可处理长视频序列</li>
+                <li><strong>Capacity-Aware Routing</strong>：
+                  <ul>
+                    <li>每专家 capacity 监测 → 动态调整路由</li>
+                    <li>避免热点专家（hot expert）的拥塞</li>
+                  </ul>
+                </li>
+                <li><strong>Slime RL 后训练</strong>：通过 RL 进一步稀疏化（Slime RL 增强不活跃专家的激活）</li>
+              </ul>
+            </li>
+            <li><strong>Kimi K4（K3 进化版）</strong>：
+              <ul>
+                <li><strong>Stable Latent MoE</strong>：所有专家同 latent 维度 → Switch Transformer-style 但有更强的稳定性</li>
+                <li><strong>AttnRes 机制</strong>：路由 + Attention Residual 联合训练 → 路由决策更稳定</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>四大路由流派解决"专家坍塌"（Expert Collapse）：</strong>
+          <ul>
+            <li><strong>问题定义</strong>：训练过程中大部分 Token 集中到少数专家 → 其他专家梯度为零 → 沦为死专家</li>
+            <li><strong>流派 1：Aux-Loss-Free（DeepSeek V4 首创）</strong>：
+              <ul>
+                <li>核心思想：不再用 aux-loss 加权 → 而用 bias 项控制每个专家的 Token 数量</li>
+                <li>实现：bias = −γ × (assigned_tokens - target) → 自动校正</li>
+                <li>优势：无 aux-loss 干扰主损失 → 训练更稳定</li>
+              </ul>
+            </li>
+            <li><strong>流派 2：Expert Choice（EC）</strong>：
+              <ul>
+                <li>核心思想：每个专家从所有 Token 中选 top-K 自己最想处理的</li>
+                <li>vs Token Choice（传统）：每个 Token 选 top-K 专家（后者容易坍塌）</li>
+                <li>优势：专家完全平衡，不存在 hot/cold expert</li>
+                <li>劣势：需固定容量 → 不灵活</li>
+              </ul>
+            </li>
+            <li><strong>流派 3：Capacity-Aware Routing</strong>：
+              <ul>
+                <li>核心思想：实时监控每个专家的 capacity（token 数 + 计算预算）</li>
+                <li>动态调度：新请求避开拥塞专家</li>
+                <li>GLM-6 + DeepSeek V5 都部分采用</li>
+              </ul>
+            </li>
+            <li><strong>流派 4：Cooldown（Qwen4 + Llama 4 等）</strong>：
+              <ul>
+                <li>核心思想：训练后期逐渐"冻结"次要专家 → 主损失函数不再更新这些专家</li>
+                <li>阶段：
+                  <ol>
+                    <li>0-50%：正常训练</li>
+                    <li>50-80%：freeze 不活跃专家（被路由 < 5%）</li>
+                    <li>80-100%：仅保留 top-K 活跃专家做微调</li>
+                  </ol>
+                </li>
+                <li>优势：节省最终模型参数量 → 推理效率提升</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>零冗余专家（Zero Redundancy Expert）机制：</strong>
+          <ul>
+            <li><strong>问题</strong>：MoE 128 专家中可能有 10-20 个专家功能高度重叠（"冗余"）</li>
+            <li><strong>检测方法</strong>：
+              <ol>
+                <li>计算专家间 pairwise 相似度（CKA / Attention pattern 相似度）</li>
+                <li>聚类冗余专家</li>
+                <li>删除 + 重训练</li>
+              </ol>
+            </li>
+            <li><strong>实测收益</strong>：
+              <ul>
+                <li>Qwen4 训练过程中检测到 18% 专家冗余 → 剔除后 → 显存 -22%、速度 +15%、质量不降</li>
+                <li>DeepSeek V5 同款策略 → 训练后消除 15% 冗余</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>共享专家（Shared Expert）机制详解：</strong>
+          <ul>
+            <li><strong>核心</strong>：MoE 中保留 2-4 个"共享专家" → 所有 Token 都必须经过</li>
+            <li><strong>目的</strong>：
+              <ol>
+                <li>捕捉"通用知识"（语法 / 标点 / 安全 / 价值观对齐）</li>
+                <li>减少路由专家的"基础工作量" → 让它们专注"专业知识"</li>
+                <li>提升小语种 / 罕见知识记忆能力</li>
+              </ol>
+            </li>
+            <li><strong>DeepSeek V4 → V5 演进</strong>：
+              <ul>
+                <li>V4：2 共享专家 + 160 路由专家（每次激活 8 路由）</li>
+                <li>V5：3 共享专家 + 128 路由专家（每次激活 8 路由 + 3 共享 = 11 激活）</li>
+                <li>V5 共享专家增加 1 个 → 专门处理多模态融合信号</li>
+              </ul>
+            </li>
+            <li><strong>GLM-6 / Qwen4 也类似</strong></li>
+          </ul>
+          <strong>MoE 2.0 时代五大设计原则（2026）：</strong>
+          <ol>
+            <li><strong>细粒度专家</strong>：专家数从 8-16 提升到 128-256 → 激活 6-12 个</li>
+            <li><strong>共享 + 路由分离</strong>：2-4 共享专家 + N 路由专家</li>
+            <li><strong>Aux-Loss-Free Bias</strong>：替代 Aux-Loss 防止坍塌</li>
+            <li><strong>Cooldown 训练</strong>：后期冻结 + 零冗余清洗</li>
+            <li><strong>Routing + Attention + Memory 协同</strong>：路由决策与 Attention 模式共享</li>
+          </ol>
+          <strong>面试加分点：</strong>"MoE 2.0"是 AI Infra 方向高频题。能讲清"四大旗舰路由差异 / 四大流派防坍塌 / 零冗余专家检测 / 共享专家机制 / 五大设计原则"，证明对 MoE 演进有系统认知。腾讯 / 字节大模型团队校招 / 社招必考。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"四大旗舰=DeepSeek V5(模态/时间感知路由+Aux-Loss-Free bias+3共享)/Qwen4(2.5T+Gated DeltaNet+Cooldown)/GLM-6(Mamba-3+Capacity-Aware+Slime RL)/Kimi K4(Stable Latent MoE+AttnRes)。防坍塌四流派=Aux-Loss-Free(bias校正替代aux-loss)/Expert Choice(每专家选top-K平衡)/Capacity-Aware(实时监控+动态调度)/Cooldown(训练后期冻结+10-20%冗余)。零冗余专家=CKA相似度检测+聚类+剔除(显存-22%质量不降)。共享专家=2-4通用专家+专门处理语法/安全/多模态。五原则=细粒度(128-256专家)+分离+Aux-Loss-Free+Cooldown+Routing+Attn+Memory协同。"</div>
+      </div>
+    </div>
+
+    <!-- Q313 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q313</div>
+        <div style="flex:1">
+          <div class="q-title">RLVR（Reinforcement Learning with Verifiable Rewards）+ Self-Play RL + Agentic RL 三大 2026 训练前沿：可验证奖励 vs RLHF vs DPO 的本质区别？Self-Play 在 Reasoning 与 Code 任务的 Paecz 突破？Agentic RL（Agent 在真实环境学习）的数据飞轮与安全护栏？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>RLVR（Reinforcement Learning with Verifiable Rewards）核心思想：</strong>
+          <ul>
+            <li><strong>问题</strong>：RLHF 的 Reward Model 训练成本高 + 难以泛化 + 容易 Reward Hacking</li>
+            <li><strong>RLVR 创新</strong>：
+              <ol>
+                <li>奖励来自可验证的程序（验证脚本 / 单元测试 / 数学证明 / 代码编译）→ 无需训练 Reward Model</li>
+                <li>奖励信号是 0/1 二元的（"通过测试 = 1，否则 = 0"）→ 精确</li>
+                <li>适合任务：数学、代码、定理证明、SQL、Spreadsheet 操作等可验证任务</li>
+              </ol>
+            </li>
+            <li><strong>代表工作</strong>：
+              <ul>
+                <li>DeepSeek R1（2025 Q1）→ R2（2026 Q2） GRPO + RLVR</li>
+                <li>OpenAI o3 / o4-mini Reasoning RL</li>
+                <li>Claude Extended Thinking 2.0</li>
+                <li>OpenAI 2025 年发表 "Let's Verify Step by Step" 后 → 大量团队跟进</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>RLVR vs RLHF vs DPO 本质区别：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">维度</td><td style="padding:8px;border:1px solid #ddd">RLHF</td><td style="padding:8px;border:1px solid :transparent">DPO</td><td style="padding:8px;border:1px solid :transparent">RLVR</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">奖励来源</td><td style="padding:8px;border:1px solid :transparent">Reward Model（训练）</td><td style="padding:8px;border:1px solid :transparent">偏好数据（人工）</td><td style="padding:8px;border:1px solid :transparent">可验证程序（精确 0/1）</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">训练成本</td><td style="padding:8px;border:1px solid :transparent">高（RM + PPO）</td><td style="padding:8px;border:1px solid :transparent">中（直接优化）</td><td style="padding:8px;border:1px solid :transparent">低（无需 RM）</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">泛化</td><td style="padding:8px;border:1px solid :transparent">差（RM 易 Reward Hacking）</td><td style="padding:8px;border:1px solid :transparent">中</td><td style="padding:8px;border:1px solid :transparent">优（精确验证）</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">任务范围</td><td style="padding:8px;border:1px solid :transparent">通用对齐</td><td style="padding:8px;border:1px solid :transparent">偏好对齐</td><td style="padding:8px;border:1px solid :transparent">可验证任务</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">代表</td><td style="padding:8px;border:1px solid :transparent">GPT-4 / Claude 3</td><td style="padding:8px;border:1px solid :transparent">Llama 3 Instruct</td><td style="padding:8px;border:1px solid :transparent">DeepSeek R1/R2 / o3 / o4-mini</td></tr>
+          </table>
+          <strong>Self-Play RL 2026 突破：</strong>
+          <ul>
+            <li><strong>Self-Play 定义</strong>：模型与"自己"对战 / 协作 → 通过博弈提升 Reasoning / Code / 博弈策略能力</li>
+            <li><strong>Reasoning 任务</strong>：
+              <ul>
+                <li><strong>定理证明 Self-Play</strong>：
+                  <ol>
+                    <li>模型扮演"证明者"产出证明 + "验证者"检查证明</li>
+                    <li>双方都通过 RL 自我提升 → 证明质量不断迭代</li>
+                    <li>2026 H1 Anthropic 论文：Self-Play 在 IMO 竞赛题上达到金牌水平</li>
+                  </ol>
+                </li>
+                <li><strong>数学解题 Self-Play</strong>：
+                  <ol>
+                    <li>出题者（Generator）+ 做题者（Solver）→ 出更难题训练解题者</li>
+                    <li>AlphaProof 风格（DeepMind 2024）→ 2026 OpenAI / DeepSeek 跟进</li>
+                    <li>实现"AI 出题 → AI 解题 → 出题难度逐步提升"</li>
+                  </ol>
+                </li>
+              </ul>
+            </li>
+            <li><strong>代码任务 Self-Play</strong>：
+              <ul>
+                <li><strong>Paecz 等前沿工作</strong>：
+                  <ol>
+                    <li>Code Generator + Code Reviewer 双角色</li>
+                    <li>Generator 写代码 → Reviewer 找漏洞 → Generator 重写</li>
+                    <li>循环 RL 训练 → 代码生成质量提升</li>
+                  </ol>
+                </li>
+                <li><strong>GPT-6 / Claude 5 已内置 Self-Play</strong>：SWE-bench 90%+</li>
+                <li><strong>Kimi K4 Self-Play Code</strong>：在 LeetCode Hard 题上 75% 准确率</li>
+              </ul>
+            </li>
+            <li><strong>博弈策略 Self-Play（AlphaStar / AlphaGo 路线）</strong>：
+              <ul>
+                <li>Poker（DeepStack）、StarCraft、谈判等</li>
+                <li>2026 与 LLM 结合 → 商业谈判 AI / 谈判 Bot</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Agentic RL（Agent 在真实环境学习）2026：</strong>
+          <ul>
+            <li><strong>核心概念</strong>：Agent 不只在静态数据 RL → 而是在真实 / 仿真环境（如浏览器、OS、IDE）通过 RL 训练</li>
+            <li><strong>数据飞轮</strong>：
+              <ol>
+                <li><strong>环境</strong>：OSWorld（Ubuntu）、WebArena、IDE、Slack、Github</li>
+                <li><strong>Agent Trajectory</strong>：每 step（鼠标点击 / 键盘输入 / 调用 API）记录状态-动作-奖励</li>
+                <li><strong>奖励设计</strong>：
+                  <ul>
+                    <li>成功完成 = 1</li>
+                    <li>部分完成 = 0.5</li>
+                    <li>安全违规 = -1（重要！）</li>
+                  </ul>
+                </li>
+                <li><strong>训练机制</strong>：
+                  <ul>
+                    <li>Online RL（实时反馈）</li>
+                    <li>Offline RL（从历史轨迹学习）</li>
+                    <li>Behavior Cloning + Filter（专家示教）</li>
+                  </ul>
+                </li>
+                <li><strong>代表工作</strong>：
+                  <ul>
+                    <li>OpenAI o3 / Claude 3.5 Sonnet Computer Use（训练数据）</li>
+                    <li>Anthropic Claude 5 Opus Computer Use 2.0（生产化）</li>
+                    <li>DeepMind SIMA 2（仿真环境 Agent）</li>
+                    <li>Salesforce Agentforce RL 数据飞轮</li>
+                  </ul>
+                </li>
+              </ol>
+            </li>
+            <li><strong>飞轮循环</strong>：
+              <ul>
+                <li>Agent 上线 → 用户用 → 真实轨迹数据回流 → 数据筛选 + RL 训练 → 新版 Agent → 上线</li>
+                <li>难点：数据筛选（好坏 50/50 比例）+ 安全护栏 + 隐私合规</li>
+              </ul>
+            </li>
+            <li><strong>安全护栏</strong>：
+              <ul>
+                <li><strong>领域护栏</strong>：医疗 / 法律 / 金融等必须 ≥ 99.9% 准确率（不可容错）</li>
+                <li><strong>提示注入检测</strong>：训练 Agent 识别对抗输入</li>
+                <li><strong>权限边界</strong>：Agent 不可越权操作（如不可删除文件、不可调用未授权 API）</li>
+                <li><strong>回滚机制</strong>：每步可 undo → 高风险操作需人工确认</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>三大训练范式对比：</strong>
+          <ul>
+            <li><strong>RLVR</strong>：精确 → 适合 Math / Code / Theorem</li>
+            <li><strong>Self-Play</strong>：对抗 → 适合 Reasoning / 博弈</li>
+            <li><strong>Agentic RL</strong>：真实环境 → 适合 Agent / Tool-use</li>
+            <li><strong>组合趋势</strong>：2026 H2 旗舰模型普遍组合三种范式 → 单一 RL 训练已成历史</li>
+          </ul>
+          <strong>面试加分点：</strong>"RLVR + Self-Play + Agentic RL"是 2026 AI 训练范式革命必考题。能讲清"RLVR 可验证精确 + Self-Play 对抗博弈 + Agentic RL 真实环境飞轮"，证明对 LLM 训练前沿有完整认知。腾讯 / 字节 AI Lab 校招 / 社招反复考察。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"RLVR=可验证程序(数学/代码/定理)+0/1精确奖励+DeepSeek R1 o3 o4-mini代表。RLVR vs RLHF vs DPO=RLVR低成本精确vs RLHF Reward Hacking vs DPO偏好。Self-Play=证明者+验证者/出题+解题/Paecz代码Review+Generator IMO金牌+AlphaProof。Agentic RL=真实环境(OSWorld/WebArena/IDE)+Trajectory数据+在线/离线/BC三机制+安全护栏(领域99.9%+提示注入+权限边界+回滚)。三大范式对比：RLVR精确(数学代码)/Self-Play对抗(推理博弈)/Agentic RL真实(Agent Tool-use)；2026组合成为旗舰标配单一RL已淘汰。"</div>
+      </div>
+    </div>
+
+    <!-- Q314 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q314</div>
+        <div style="flex:1">
+          <div class="q-title">推理芯片军备竞赛 2026 —— Groq LPU 2.0 / Cerebras WSE-3 / Tenstorrent Wormhole / SambaNova RDU / 国产天数 / 寒武纪：为什么 LLM 推理从 GPU 转向专用 ASIC？每瓦 token 数（token/J）的实测对比？与传统 NVIDIA H200 / B200 集群的差异化竞争？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么 LLM 推理从 GPU 转向专用 ASIC：</strong>
+          <ul>
+            <li><strong>GPU 本质是通用并行计算</strong>：原本为图形 / HPC 设计 → LLM 推理只是其应用之一</li>
+            <li><strong>LLM 推理特点</strong>：
+              <ul>
+                <li><strong>Memory-Bound</strong>：Decode 阶段每 Token 主要做矩阵×向量（GEMV）→ 内存带宽瓶颈</li>
+                <li><strong>Prefill 阶段</strong>：长 prompt 一次性矩阵×矩阵（GEMM）→ 计算瓶颈</li>
+                <li><strong>Batch 内同步</strong>：Continuous Batching 需要细粒度调度</li>
+                <li><strong>稀疏激活</strong>：MoE 路由后仅激活 1/8 专家 → 计算浪费严重</li>
+              </ul>
+            </li>
+            <li><strong>ASIC 的优势</strong>：
+              <ul>
+                <li><strong>超大 SRAM/片上内存</strong>：避免 HBM 带宽瓶颈</li>
+                <li><strong>确定性调度</strong>：无 GPU 抢占 / 调度抖动</li>
+                <li><strong>低精度原生</strong>：FP4/INT4 一等公民</li>
+                <li><strong>能效比</strong>：每瓦性能可达 GPU 5-50×</li>
+              </ul>
+            </li>
+            <li><strong>经济动机</strong>：GB200 NVL72 单机柜 $3M → 推理每 token 成本主要被 GPU 摊销 → ASIC 自有硬件摊销 3-5 年</li>
+          </ul>
+          <strong>六大推理芯片 2026 H2 实测对比：</strong>
+          <ul>
+            <li><strong>Groq LPU 2.0（2026 Q2）</strong>：
+              <ul>
+                <li><strong>架构</strong>：Deterministic Functional ASIC（TSMC 5nm）</li>
+                <li><strong>核心</strong>：
+                  <ol>
+                    <li>LPU 2.0 单芯片 1.4 PFLOPs FP8 / 80 GB SRAM</li>
+                    <li>每芯片 230 MB 共享 SRAM</li>
+                    <li>LPU Rack 576 芯片 → 800 PFLOPs</li>
+                  </ol>
+                </li>
+                <li><strong>能效</strong>：每瓦 token 数（token/J）= Groq 750 vs H200 45 → 16× 优势</li>
+                <li><strong>擅长</strong>：低延迟单请求推理（&lt;50ms TTFT）</li>
+                <li><strong>短板</strong>：长 prompt Prefill 性能（受 SRAM 容量限制）</li>
+              </ul>
+            </li>
+            <li><strong>Cerebras WSE-3（2026 Q1）</strong>：
+              <ul>
+                <li><strong>架构</strong>：晶圆级引擎（WSE）→ 整片 wafer = 单芯片</li>
+                <li><strong>核心</strong>：
+                  <ol>
+                    <li>WSE-3：4 trillion transistors / 125 PFLOPS FP16</li>
+                    <li>44 GB SRAM / 21 PB/s 内存带宽</li>
+                    <li>Cerebras CS-3 系统：8 张 WSE-3 = 1 PFLOPS / 350 GB SRAM</li>
+                  </ol>
+                </li>
+                <li><strong>能效</strong>：每瓦 token 数 = Cerebras 320 vs H200 45 → 7× 优势</li>
+                <li><strong>擅长</strong>：超长 prompt（2M+ token）+ Prefill 主导</li>
+                <li><strong>短板</strong>：MoE 路由效率较低 + 价格贵（单系统 $2.5M+）</li>
+              </ul>
+            </li>
+            <li><strong>Tenstorrent Wormhole（2026 Q3）</strong>：
+              <ul>
+                <li><strong>架构</strong>：RISC-V Tensix Core 网格 + 2D Torus 互联</li>
+                <li><strong>核心</strong>：
+                  <ol>
+                    <li>Wormhole n150s：72 Tensix Core @ 1.2 GHz</li>
+                    <li>16 GB GDDR6 / 200 GB/s 跨卡互联</li>
+                    <li>Blackhole 下一代：128 Core + 32 GB HBM3e</li>
+                  </ol>
+                </li>
+                <li><strong>开源生态</strong>：TT-Metal / TT-Forge 全开源 → 第三方可编译</li>
+                <li><strong>擅长</strong>：训练 + 推理双用 + 学术研究</li>
+              </ul>
+            </li>
+            <li><strong>SambaNova RDU（2026 Q3）</strong>：
+              <ul>
+                <li><strong>架构</strong>：Dataflow Architecture（DataScale SN40L）</li>
+                <li><strong>核心</strong>：1040 tiles / 640 MB SRAM / 1.5 TB/s 内存带宽</li>
+                <li><strong>能效</strong>：每瓦 token 数 = SambaNova 280 vs H200 45 → 6× 优势</li>
+                <li><strong>擅长</strong>：企业级私有化部署（金融 / 医疗 / 政府）</li>
+              </ul>
+            </li>
+            <li><strong>天数天数 X3（2026 Q2，国产）</strong>：
+              <ul>
+                <li><strong>架构</strong>：国产自研 GP-GPU + HBM3 + 自定义指令集</li>
+                <li><strong>核心</strong>：64 TFLOPS FP16 / 32 GB HBM3</li>
+                <li><strong>能效</strong>：每瓦 token 数 = 天数 X3 35 vs H200 45 → 接近</li>
+                <li><strong>擅长</strong>：国内合规 + 中等规模部署</li>
+              </ul>
+            </li>
+            <li><strong>寒武纪 MLU 590（2026 Q1）</strong>：
+              <ul>
+                <li><strong>架构</strong>：思元 590 + HBM2e</li>
+                <li><strong>核心</strong>：256 TFLOPS FP16 / 80 GB HBM2e</li>
+                <li><strong>能效</strong>：每瓦 token 数 = 寒武纪 25 vs H200 45 → 略低</li>
+                <li><strong>擅长</strong>：国产替代 + 训练为主</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>每瓦 token 数（token/J）2026 H2 综合对比：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">硬件</td><td style="padding:8px;border:1px solid #ddd">Token/J（Llama 70B）</td><td style="padding:8px;border:1px solid #ddd">相对 H200</td><td style="padding:8px;border:1px solid :transparent">单系统价格</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Groq LPU 2.0</td><td style="padding:8px;border:1px solid :transparent">750</td><td style="padding:8px;border:1px solid :transparent">16.7×</td><td style="padding:8px;border:1px solid :transparent">$2.0M/rack</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Cerebras WSE-3</td><td style="padding:8px;border:1px solid :transparent">320</td><td style="padding:8px;border:1px solid :transparent">7.1×</td><td style="padding:8px;border:1px solid :transparent">$2.5M/system</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">SambaNova RDU</td><td style="padding:8px;border:1px solid :transparent">280</td><td style="padding:8px;border:1px solid :transparent">6.2×</td><td style="padding:8px;border:1px solid :transparent">$1.5M/rack</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Tenstorrent Blackhole</td><td style="padding:8px;border:1px solid :transparent">200</td><td style="padding:8px;border:1px solid :transparent">4.4×</td><td style="padding:8px;border:1px solid :transparent">$300K/rack</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">NVIDIA H200</td><td style="padding:8px;border:1px solid :transparent">45</td><td style="padding:8px;border:1px solid :transparent">1× (基线)</td><td style="padding:8px;border:1px solid :transparent">$300K/GPU</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">NVIDIA B200</td><td style="padding:8px;border:1px solid :transparent">75</td><td style="padding:8px;border:1px solid :transparent">1.7×</td><td style="padding:8px;border:1px solid :transparent">$500K/GPU</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">天数 X3</td><td style="padding:8px;border:1px solid :transparent">35</td><td style="padding:8px;border:1px solid :transparent">0.8×</td><td style="padding:8px;border:1px solid :transparent">¥2M/unit</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">寒武纪 MLU 590</td><td style="padding:8px;border:1px solid :transparent">25</td><td style="padding:8px;border:1px solid :transparent">0.6×</td><td style="padding:8px;border:1px solid :transparent">¥200K/card</td></tr>
+          </table>
+          <strong>ASIC 挑战 —— NVIDIA H200 / B200 为什么仍然不可替代：</strong>
+          <ul>
+            <li><strong>生态护城河</strong>：
+              <ul>
+                <li>CUDA / cuDNN / TensorRT-LLM 十年积累 + 文档 + 工程师人才</li>
+                <li>vLLM / SGLang / FlashAttention 等优化优先 GPU</li>
+                <li>ASIC 需要自家编译器（Groq SDK / Cerebras SDK）→ 学习曲线</li>
+              </ul>
+            </li>
+            <li><strong>模型兼容性</strong>：
+              <ul>
+                <li>新模型架构（MoE / Mamba / Latent Memory）需要 ASIC 编译器同步支持 → 时间差</li>
+                <li>GPU 仅需新增 kernel → NVIDIA 跟进快</li>
+              </ul>
+            </li>
+            <li><strong>多任务能力</strong>：
+              <ul>
+                <li>GPU 可同时训练 + 推理 + 视觉 + 推荐</li>
+                <li>ASIC 通常专精一项</li>
+              </ul>
+            </li>
+            <li><strong>实际策略</strong>：2026 H2 共识 = GPU + ASIC 混合部署
+              <ul>
+                <li>主力 GPU（H200 / B200）做训练 + 主力推理</li>
+                <li>ASIC（Groq LPU 2.0）做超低延迟场景（金融交易 / 客服）</li>
+                <li>Cerebras WSE-3 做超长 prompt（科研 / 法律）</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>2026 H2 中国推理芯片路线图：</strong>
+          <ul>
+            <li><strong>国产替代加速</strong>：
+              <ul>
+                <li>昇腾 910C / 910D 已支持主流推理框架</li>
+                <li>天数 + 寒武纪 + 燧原 + 海光 DCU 国产算力联盟</li>
+                <li>2027 年底预计国产化率 70%+</li>
+              </ul>
+            </li>
+            <li><strong>Google TPU v7（2026 H2）</strong>：
+              <ul>
+                <li>TPU v7 Ironwood：2.4 PFLOPS FP8 / 12.8 TB HBM</li>
+                <li>仅 Google Cloud 可用 → Gemini 4 / Search 主力</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>面试加分点：</strong>"推理芯片军备竞赛 2026"是 LLM Infra 方向必考题。能讲清"六大芯片对比 + Token/J 实测 + 仍以 GPU 为主 + ASIC 混合策略"，证明对推理基础设施有完整认知。腾讯 / 字节 AI Infra 2026 H2 校招 / 社招高频。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"六大芯片=Groq LPU 2.0(DSA 1.4PF+80GB SRAM+Token/J 750=16.7×H200)/Cerebras WSE-3(整wafer单chip+44GB SRAM+Token/J 320)/Tenstorrent Wormhole(RISC-V+开源+Token/J 200)/SambaNova RDU(企业级Dataflow+Token/J 280)/天数X3(国产GP-GPU+Token/J 35)/寒武纪MLU 590(国产HBM2e+Token/J 25)。GPU仍占优势=CUDA生态护城河+编译器同步+多任务能力+主力推理仍靠H200/B200。2026 H2策略=GPU主训+ASIC做超低延迟(Groq 50ms TTFT)/Cerebras做超长prompt。Token/J对比：Groq 750/ Cerebras 320/ SambaNova 280/ Tenstorrent 200/ H200 45(基线)。"</div>
+      </div>
+    </div>
+
+    <!-- Q315 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q315</div>
+        <div style="flex:1">
+          <div class="q-title">RAG 3.0 全栈 —— Vector Database + Knowledge Graph + Agentic Search + Hybrid Routing：为什么传统向量 RAG 在多跳推理与企业场景全面失效？Microsoft GraphRAG / LightRAG / HippoRAG 路线分歧与收敛？Agentic RAG + Knowledge Graph 协同的"图-向量双驱动"架构？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag high">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>传统向量 RAG 为什么在多跳推理失效：</strong>
+          <ul>
+            <li><strong>失效场景 1：多跳推理</strong>
+              <ul>
+                <li>例："A 公司的 CEO 投资的 B 公司收购了哪个竞争对手？"</li>
+                <li>传统 RAG：单次检索 → 难以串联 A→CEO→B→收购关系</li>
+                <li>需要图遍历 → 但向量库不支持</li>
+              </ul>
+            </li>
+            <li><strong>失效场景 2：企业复杂数据</strong>
+              <ul>
+                <li>合同 / 法规 / 表单 / 数据库 → 结构化强 → 纯语义检索不准</li>
+                <li>需要字段级 + 关系级 + 语义级 联合检索</li>
+              </ul>
+            </li>
+            <li><strong>失效场景 3：时效性 + 数值对比</strong>
+              <ul>
+                <li>"Q3 vs Q2 营收增长多少"→ 需聚合 + 计算 → 向量检索直接给出片段不准</li>
+              </ul>
+            </li>
+            <li><strong>根因</strong>：向量 RAG 的"扁平化 chunk"丢失了文档间的结构关系（引用 / 时序 / 上下位 / 包含）</li>
+          </ul>
+          <strong>三大 GraphRAG / LightRAG / HippoRAG 路线分歧：</strong>
+          <ul>
+            <li><strong>Microsoft GraphRAG（2024 Q4 开源）</strong>：
+              <ul>
+                <li><strong>核心</strong>：用 LLM 从文档抽取实体 + 关系 → 构建 Knowledge Graph → Leiden 社区检测 → 分层摘要</li>
+                <li><strong>查询阶段</strong>：先查询社区摘要 → 定位社区 → 社区内细节查询</li>
+                <li><strong>适用</strong>：全局性问题（"整批文档的主题是什么"）</li>
+                <li><strong>痛点</strong>：
+                  <ul>
+                    <li>构建成本极高：100 万 token 文档 → 抽取成本 $5000+</li>
+                    <li>更新难：增量文档需要重跑抽取</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>LightRAG（2024 Q4，港大 + 浙大）</strong>：
+              <ul>
+                <li><strong>核心</strong>：双层检索（向量层 + 图层）+ LLM 增量更新</li>
+                <li><strong>改进</strong>：
+                  <ol>
+                    <li>复用现有 Embedding → 不重复抽取</li>
+                    <li>LLM 调用次数减少 80%</li>
+                    <li>支持增量更新（新增文档无需重训全图）</li>
+                  </ol>
+                </li>
+                <li><strong>适用</strong>：中小团队 + 增量数据</li>
+                <li><strong>局限</strong>：全局性问题不如 GraphRAG 准确</li>
+              </ul>
+            </li>
+            <li><strong>HippoRAG（2025 Q1，OSU）</strong>：
+              <ul>
+                <li><strong>核心</strong>：受人类海马体记忆启发 → Personalized PageRank 在知识图上做信息检索</li>
+                <li><strong>创新</strong>：
+                  <ol>
+                    <li>节点 = 实体 + chunk（page）</li>
+                    <li>PPR 算法选 Top-K 节点 → 关联 chunk</li>
+                    <li>无需 GraphRAG 的二次摘要调用</li>
+                  </ol>
+                </li>
+                <li><strong>实测</strong>：在多跳问答任务（MuSiQue / HotpotQA）上比 GraphRAG 提升 10-20%</li>
+                <li><strong>适用</strong>：多跳推理 + 检索准确性</li>
+                <li><strong>局限</strong>：构建图质量决定上限</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>三大流派 2026 H2 收敛方向：</strong>
+          <ul>
+            <li><strong>提取流程统一</strong>：用同一种 LLM-based Extractor（DeepSeek V5 / Qwen4）生成 Entity + Relation</li>
+            <li><strong>存储格式统一</strong>：用 Neo4j / MemGraph / TuGraph 存图 + 向量库存 Embedding（双驱动）</li>
+            <li><strong>检索融合</strong>：向量召回 → 图遍历 → 重排序 三件套</li>
+            <li><strong>实体标准化</strong>：用 LLM + Wikidata / 行业 ontology 做 entity linking</li>
+          </ul>
+          <strong>Agentic RAG + Knowledge Graph 协同（2026 主流）：</strong>
+          <ul>
+            <li><strong>Agentic RAG 定义</strong>：Agent 自主决定何时检索 + 检索什么 + 如何组合多源结果 → 不再依赖单一检索路径</li>
+            <li><strong>图-向量双驱动架构</strong>：
+              <pre><code>User Query
+   ↓
+Router Agent (LLM)
+   ├─ 语义查询 → 向量检索 (Pinecone / Milvus / Zilliz)
+   ├─ 关系查询 → 图遍历 (Neo4j / MemGraph)
+   ├─ 数值查询 → SQL / Spreadsheet
+   ├─ 时效查询 → 实时 API
+   ↓
+结果聚合 Agent
+   ↓
+Answer + 可信度 + 引用</code></pre>
+            </li>
+            <li><strong>具体流程</strong>：
+              <ol>
+                <li><strong>Query Analysis</strong>：LLM 判断类型（语义 / 关系 / 数值 / 时效）</li>
+                <li><strong>Multi-Source Retrieval</strong>：并行调用多个数据源</li>
+                <li><strong>Graph Traversal</strong>：在知识图中检索多跳关系</li>
+                <li><strong>Rerank + Fusion</strong>：合并多源结果 + 重排序</li>
+                <li><strong>Answer Generation</strong>：LLM 综合回答 + 引用</li>
+              </ol>
+            </li>
+          </ul>
+          <strong>Vector Database 三大主力 2026 实测：</strong>
+          <ul>
+            <li><strong>Pinecone（Serverless）</strong>：
+              <ul>
+                <li>无服务器 → 弹性伸缩</li>
+                <li>10ms P99 检索延迟（10M 向量规模）</li>
+                <li>企业级 SLA 99.9%</li>
+                <li>成本：$0.06/GB/月 + $0.06/100K read</li>
+              </ul>
+            </li>
+            <li><strong>Milvus 2.x / 3.0（开源）</strong>：
+              <ul>
+                <li>自部署 → 完全可控</li>
+                <li>支持 10 亿级向量（GPU 加速）</li>
+                <li>支持多向量（Hybrid Sparse-Dense）</li>
+                <li>2026 Milvus 3.0：分布式 + 云原生</li>
+              </ul>
+            </li>
+            <li><strong>Qdrant（Rust 高性能）</strong>：
+              <ul>
+                <li>Rust 编写 → 单机 50ms P99（10M 向量）</li>
+                <li>适合私有化部署</li>
+                <li>支持 HNSW + 量化混合</li>
+              </ul>
+            </li>
+            <li><strong>Weaviate（云原生）</strong>：
+              <ul>
+                <li>模块化 RAG 友好</li>
+                <li>2026 重点投入 GraphQL API + Graph Integration</li>
+                <li>支持 GraphRAG 原生</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>RAG 3.0 综合技术栈（2026 H2 选型矩阵）：</strong>
+          <table style="border-collapse:collapse;width:100%">
+            <tr style="background:#eef"><td style="padding:8px;border:1px solid #ddd">场景</td><td style="padding:8px;border:1px solid #ddd">推荐方案</td><td style="padding:8px;border:1px solid :transparent">关键模块</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">中小企业文档库</td><td style="padding:8px;border:1px solid :transparent">LightRAG + Qdrant + LangChain</td><td style="padding:8px;border:1px solid :transparent">双层检索+增量更新</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">企业复杂（合同/法规）</td><td style="padding:8px;border:1px solid :transparent">HippoRAG + Neo4j + Milvus</td><td style="padding:8px;border:1px solid :transparent">多跳+图遍历</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">全局洞察（舆情/财报）</td><td style="padding:8px;border:1px solid :transparent">GraphRAG + Milvus 3.0 + Leiden</td><td style="padding:8px;border:1px solid :transparent">社区检测+摘要</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">Agent 生产级</td><td style="padding:8px;border:1px solid :transparent">Agentic RAG + Weaviate + MemGraph</td><td style="padding:8px;border:1px solid :transparent">图-向量双驱动</td></tr>
+            <tr><td style="padding:8px;border:1px solid :transparent">多模态文档（PDF/表格）</td><td style="padding:8px;border:1px solid :transparent">ColPali + Qdrant + Granite-DocLing</td><td style="padding:8px;border:1px solid :transparent">视觉 Embedding</td></tr>
+          </table>
+          <strong>RAG 3.0 评测体系：</strong>
+          <ul>
+            <li><strong>RAGAS</strong>：四个指标（Faithfulness / Answer Relevancy / Context Precision / Context Recall）</li>
+            <li><strong>ARES</strong>：自动化 + LLM-as-Judge 双管齐下</li>
+            <li><strong>TREC 2025 RAG Track</strong>：标准 benchmark（BEIR + 多跳 + 长文档）</li>
+            <li><strong>企业自建评估</strong>：业务指标（转化率 / 准确率 / 投诉率）</li>
+          </ul>
+          <strong>面试加分点：</strong>"RAG 3.0 全栈"是 2026 AI 应用方向必考题。能讲清"传统 RAG 三大失效场景 / GraphRAG vs LightRAG vs HippoRAG 路线 / Agentic RAG + 图-向量双驱动 / 三大向量库实测 / 选型矩阵"，证明对 RAG 工程落地有完整认知。腾讯 / 字节 / 阿里 AI 应用岗位高频。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"传统RAG失效场景=多跳推理(A→CEO→B→收购链)/企业复杂(合同法规)/时效数值(Q3vsQ2增长)。三大Graph流派=GraphRAG(实体关系抽取+Leiden社区+全局性问题但构建贵)/LightRAG(双层检索+LLM增量+中小团队)/HippoRAG(PPR算法+多跳+10-20%优于GraphRAG)。Agentic RAG图-向量双驱动=Router Agent分类(语义/关系/数值/时效)→并行多源→图遍历→重排序→LLM综合。向量库选型=Pinecone(serverless+10ms)/Milvus(开源+10亿级)/Qdrant(Rust+50ms)/Weaviate(GraphQL+GraphRAG原生)。选型矩阵：中小企业LightRAG+Qdrant/企业复杂HippoRAG+Neo4j/全局洞察GraphRAG+Milvus 3.0/Agent生产Agentic RAG+Weaviate+MemGraph/多模态ColPali。评估=RAGAS(4指标)/ARES/TREC 2025/企业自建业务指标。"</div>
+      </div>
+    </div>
+
+    <!-- Q316 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q316</div>
+        <div style="flex:1">
+          <div class="q-title">Computer Use Agent 2.0 时代（CUA / Claude Computer Use / OpenAI Operator / Anthropic Computer Use Pro / 中国 UI-TARS / AutoGLM）：GUI Agent 如何"看懂"屏幕 + 操作系统 + 浏览器？OSWorld / WebArena 评测基准？通用 GUI Agent 距离 AGI 还有多远？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Computer Use Agent 2.0 技术栈全景：</strong>
+          <ul>
+            <li><strong>OpenAI Operator（2025 Q1）→ GPT-6 CUA（2026 Q3）</strong>：
+              <ul>
+                <li><strong>OpenAI CUA（Computer-Using Agent）</strong>：
+                  <ul>
+                    <li><strong>基于</strong>：GPT-6 + 屏幕流理解 + OS 操作原生集成</li>
+                    <li><strong>输入</strong>：屏幕截图（每秒 24-60 帧）+ 自然语言任务</li>
+                    <li><strong>输出</strong>：鼠标点击 + 键盘输入 + API 调用</li>
+                  </ul>
+                </li>
+                <li><strong>技术栈</strong>：
+                  <ol>
+                    <li><strong>截图理解</strong>：GPT-6 vision encoder → UI 元素识别 + 位置</li>
+                    <li><strong>任务规划</strong>：CoT reasoning 拆分子任务</li>
+                    <li><strong>动作执行</strong>：调用 OS API（macOS Accessibility API / Windows UI Automation / Linux AT-SPI）</li>
+                    <li><strong>反馈循环</strong>：执行后截图 → 重新理解 → 调整下一步</li>
+                  </ol>
+                </li>
+                <li><strong>实测</strong>：WebArena 65% / OSWorld 60% → 远超 2024 的 30%</li>
+              </ul>
+            </li>
+            <li><strong>Anthropic Claude Computer Use Pro（2025 Q4）→ Claude 5 Opus Computer Use 2.0（2026 Q4）</strong>：
+              <ul>
+                <li><strong>核心</strong>：Claude 系列原生屏幕流理解（2024 Q3 首发）→ 2.0 集成 Extended Thinking + Agent RL</li>
+                <li><strong>改进</strong>：
+                  <ol>
+                    <li>思考深度增加 5× → 长任务更稳定</li>
+                    <li>OS 操作延迟降到 30ms</li>
+                    <li>支持 macOS / Windows / Linux 三平台</li>
+                  </ol>
+                </li>
+                <li><strong>实测</strong>：WebArena 70% / OSWorld 67% / SWE-bench 90%</li>
+              </ul>
+            </li>
+            <li><strong>字节 UI-TARS（2025 Q2 开源）</strong>：
+              <ul>
+                <li><strong>核心</strong>：字节跳动开源 Native Agent 模型 → 不依赖 GPT/Vision API 直接端到端</li>
+                <li><strong>创新</strong>：
+                  <ol>
+                    <li>统一的"截图 + 文本输入 + 动作输出"端到端训练</li>
+                    <li>支持 Web / Android / Desktop 多平台</li>
+                    <li>2026 H2：UI-TARS 2.0（参数 100B MoE 多模态原生）</li>
+                  </ol>
+                </li>
+                <li><strong>实测</strong>：WebArena 60% / Android 任务 75%</li>
+              </ul>
+            </li>
+            <li><strong>智谱 AutoGLM（2025 Q4）→ GLM-6 AutoGLM 2.0（2026 Q4）</strong>：
+              <ul>
+                <li><strong>核心</strong>：智谱 + 清华 → 中国版 Computer Use Agent</li>
+                <li><strong>特色</strong>：
+                  <ol>
+                    <li>中文 UI 友好（钉钉 / 飞书 / 微信小程序）</li>
+                    <li>手机端优化（Android / iOS）</li>
+                    <li>2026 H2 GLM-6 AutoGLM 2.0：上线 Live2D 屏幕流式理解</li>
+                  </ol>
+                </li>
+                <li><strong>实测</strong>：中文 AppArena 75%</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>GUI Agent "看懂"屏幕的三大核心技术：</strong>
+          <ol>
+            <li><strong>截图理解（Visual Perception）</strong>：
+              <ul>
+                <li><strong>基础</strong>：Vit / ConvNeXt 视觉编码器</li>
+                <li><strong>2026 前沿</strong>：
+                  <ul>
+                    <li>GPT-6 vision encoder：1080p 截图 0.3s 解析</li>
+                    <li>UI 元素检测（CNN-based）：识别按钮 / 输入框 / 文本标签</li>
+                    <li>元素定位（坐标回归）：输出 (x, y) 像素坐标</li>
+                  </ul>
+                </li>
+                <li><strong>难点</strong>：
+                  <ul>
+                    <li>动态 UI（动画 / 折叠菜单）→ 多帧时序</li>
+                    <li>小元素（10×10 像素）→ 高分辨率特征</li>
+                    <li>相似元素（两个相同按钮）→ 上下文区分</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>操作系统交互（System Interaction）</strong>：
+              <ul>
+                <li><strong>API 路径</strong>：
+                  <ul>
+                    <li>macOS：Accessibility API（结构化 UI tree）</li>
+                    <li>Windows：UI Automation API</li>
+                    <li>Linux：AT-SPI（Accessible Technology Service Provider Interface）</li>
+                    <li>iOS/Android：Accessibility Service（需用户授权）</li>
+                  </ul>
+                </li>
+                <li><strong>纯视觉路径</strong>：仅靠截图 + 鼠标键盘 → 通用性更强，但难度更高</li>
+                <li><strong>混合路径</strong>（当前主流）：
+                  <ol>
+                    <li>先尝试 API 路径：高效准确</li>
+                    <li>失败后退回纯视觉：兜底兼容</li>
+                  </ol>
+                </li>
+              </ul>
+            </li>
+            <li><strong>浏览器控制（Browser Control）</strong>：
+              <ul>
+                <li><strong>三大主流方案</strong>：
+                  <ul>
+                    <li>Chrome DevTools Protocol（CDP）：Google 官方控制协议 → Playwright 内部使用</li>
+                    <li>Playwright：Microsoft 开源 → 跨浏览器自动化</li>
+                    <li>Selenium WebDriver：老牌但生态成熟</li>
+                  </ul>
+                </li>
+                <li><strong>2026 H2 趋势</strong>：
+                  <ul>
+                    <li>AI 与 Browser 原生集成 → Brave Leo / Edge Copilot / Arc Browser Max</li>
+                    <li>CDP 协议扩展：支持 AI Agent 专用命令（如 querySelectorAll + AI 处理）</li>
+                    <li>Sandbox 安全性提升：DOM 操作需用户授权</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ol>
+          <strong>OSWorld / WebArena 评测基准详解：</strong>
+          <ul>
+            <li><strong>OSWorld（Carnegie Mellon）</strong>：
+              <ul>
+                <li><strong>场景</strong>：Ubuntu / Windows / macOS 真实 OS 任务</li>
+                <li><strong>任务类型</strong>：
+                  <ul>
+                    <li>文件管理（创建 / 重命名 / 移动）</li>
+                    <li>应用操作（LibreOffice / VS Code / 浏览器）</li>
+                    <li>系统设置（网络 / 显示 / 用户）</li>
+                  </ul>
+                </li>
+                <li><strong>任务数</strong>：374 任务</li>
+                <li><strong>评测指标</strong>：任务成功率</li>
+                <li><strong>2026 H2 榜单</strong>：Claude 5 Opus 67% / GPT-6 CUA 60% / UI-TARS 2.0 50% / AutoGLM 2.0 55%</li>
+              </ul>
+            </li>
+            <li><strong>WebArena（CMU）</strong>：
+              <ul>
+                <li><strong>场景</strong>：真实电商 / 论坛 / 软件开发网站（Shop / Reddit / GitLab / Map / Calculator）</li>
+                <li><strong>任务数</strong>：812 任务</li>
+                <li><strong>评测</strong>：任务完成度</li>
+                <li><strong>2026 榜单</strong>：Claude 5 Opus Computer Use 70% / OpenAI Operator 65% / UI-TARS 2.0 60%</li>
+              </ul>
+            </li>
+            <li><strong>AppArena（中文 App）</strong>：
+              <ul>
+                <li>2026 Q2 字节发布 → 钉钉 / 飞书 / 微信小程序任务</li>
+                <li>AutoGLM 2.0 75% / 文心 5.0 60% / Qwen-Agent 58%</li>
+              </ul>
+            </li>
+            <li><strong>SWE-bench（软件工程）</strong>：
+              <ul>
+                <li>GitHub issue 修复任务</li>
+                <li>2026：Claude 5 Opus 90% / GPT-6 CUA 87%</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>通用 GUI Agent 距离 AGI 的距离：</strong>
+          <ul>
+            <li><strong>当前突破</strong>：
+              <ul>
+                <li>基础任务 70-90% 成功率 → 已能替代部分重复人工工作</li>
+                <li>复杂推理 + 长任务成功率 30-50% → 离 AGI 还有距离</li>
+              </ul>
+            </li>
+            <li><strong>核心瓶颈</strong>：
+              <ol>
+                <li><strong>长任务规划</strong>：100+ 步任务容易"迷失方向" → 需更好的 Working Memory</li>
+                <li><strong>错误恢复</strong>：截图解析错误时难以 revert → 需 Better Self-Correction</li>
+                <li><strong>跨平台一致性</strong>：macOS / Windows / Linux / iOS / Android 各有差异 → 需更通用模型</li>
+                <li><strong>多模态融合</strong>：截图 + 文本 + 语音 + 触控的协同仍需提升</li>
+                <li><strong>真实环境 Safety</strong>：误操作不可逆（如删除文件、扣款）→ 需更强护栏</li>
+              </ol>
+            </li>
+            <li><strong>2026 H2 主流玩家实战路线</strong>：
+              <ul>
+                <li><strong>Anthropic</strong>：Computer Use 作为 Claude 5 Opus 一等公民 → 与 Claude 集成</li>
+                <li><strong>OpenAI</strong>：GPT-6 CUA → 直接嵌入 GPT-6 Chat 体验</li>
+                <li><strong>Google</strong>：Gemini 4 Ultra + Project Mariner 2.0 → 浏览器原生</li>
+                <li><strong>字节 UI-TARS</strong>：开源 + 中文 AppArena 评测基座</li>
+                <li><strong>智谱 AutoGLM</strong>：中国版 Computer Use + 中文 App 优化</li>
+              </ul>
+            </li>
+            <li><strong>对 AGI 的距离评估</strong>：
+              <ul>
+                <li><strong>突破点</strong>：能"看 + 想 + 做"三个核心能力已经齐备</li>
+                <li><strong>差距</strong>：长时记忆（&gt;1 小时）、创造性解题、跨域知识迁移仍有差距</li>
+                <li><strong>预测</strong>：2027 年 GUI Agent 在 50% 真实工作场景达到人类水平 → 2028-2029 接近 AGI 阈值</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>面试加分点：</strong>"Computer Use Agent 2.0"是 2026 H2 AI Agent 方向必考题。能讲清"四大阵营技术栈 + 三大屏幕理解核心技术 + OSWorld/WebArena 评测 + 通用 GUI Agent 距离 AGI 距离"，证明对 Agent 前沿有完整认知。腾讯 / 字节 / 阿里 AI 应用方向 2026 H2 校招 / 社招反复考察。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"四大阵营=OpenAI CUA(GPT-6+屏幕流+OS API)/Anthropic Computer Use Pro(Claude 5 Opus + Extended Thinking+30ms延迟)/字节UI-TARS 2.0(100B MoE端到端+开源+Web/Android/Desktop)/智谱AutoGLM 2.0(中文钉钉飞书+Live2D)。三大核心技术=截图理解(Vit+UI元素定位 0.3s解析)+OS交互(API/纯视觉/混合三路径)+浏览器(CDP+Playwright+Selenium)。基准=OSWorld 374任务Ubuntu/Win/macOS(Claude 67%/GPT-6 60%)+WebArena 812任务(Claude 70%/OpenAI 65%)+AppArena中文(75%)+SWE-bench(Claude 90%/GPT-6 87%)。AGI距离=长任务100+步规划+错误恢复+跨平台一致性+多模态融合+Safety护栏五大瓶颈；预测2027 50%场景达人类水平2028-2029接近AGI。"</div>
       </div>
     </div>
 
