@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">330+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">344+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -16207,6 +16207,516 @@ Answer + 可信度 + 引用</code></pre>
           </ul>
           <strong>面试加分点：</strong>"Computer Use Agent 2.0"是 2026 H2 AI Agent 方向必考题。能讲清"四大阵营技术栈 + 三大屏幕理解核心技术 + OSWorld/WebArena 评测 + 通用 GUI Agent 距离 AGI 距离"，证明对 Agent 前沿有完整认知。腾讯 / 字节 / 阿里 AI 应用方向 2026 H2 校招 / 社招反复考察。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"四大阵营=OpenAI CUA(GPT-6+屏幕流+OS API)/Anthropic Computer Use Pro(Claude 5 Opus + Extended Thinking+30ms延迟)/字节UI-TARS 2.0(100B MoE端到端+开源+Web/Android/Desktop)/智谱AutoGLM 2.0(中文钉钉飞书+Live2D)。三大核心技术=截图理解(Vit+UI元素定位 0.3s解析)+OS交互(API/纯视觉/混合三路径)+浏览器(CDP+Playwright+Selenium)。基准=OSWorld 374任务Ubuntu/Win/macOS(Claude 67%/GPT-6 60%)+WebArena 812任务(Claude 70%/OpenAI 65%)+AppArena中文(75%)+SWE-bench(Claude 90%/GPT-6 87%)。AGI距离=长任务100+步规划+错误恢复+跨平台一致性+多模态融合+Safety护栏五大瓶颈；预测2027 50%场景达人类水平2028-2029接近AGI。"</div>
+      </div>
+    </div>
+
+    <!-- Q317 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q317</div>
+        <div style="flex:1">
+          <div class="q-title">开放世界流式渲染管线：World Partition / HLOD / 虚拟纹理（Virtual Texture）/ Nanite 流式加载如何协同工作？大世界无缝漫游的内存与 IO 预算怎么设计？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>开放世界流式渲染的分层体系：</strong>
+          <ul>
+            <li><strong>空间切分层 — World Partition</strong>：将大世界按 Grid Cell（如 256m×256m）切分为独立 Cell，运行时按玩家位置 + 加载半径异步加载/卸载。数据层与 Actor 层分离，编辑器"一世界"体验，运行时"多 Cell 流式"。关键参数：Loading Range、关闭距离（Flush Distance）、阻塞 vs 异步加载。</li>
+            <li><strong>远景层 — HLOD（Hierarchical LOD）</strong>：按 Cell 聚合成 Impostor/代理网格（合批静态网格 + 合并材质 → 单 Draw Call），LOD0(真实) → LOD1(合批简化) → LOD2( impostor 卡片/体素云 )。HLOD 层由 World Partition 自动驱动，加载顺序：先 Impostor 后真实网格（渐进增强）。</li>
+            <li><strong>材质层 — Virtual Texture（VT/RVT）</strong>：把超大纹理集（如 16K×16K 地形 splat + 光照贴图）切成 128×128 Page，按需经 Page Table 映射到物理纹理池。反馈缓冲（Feedback Buffer）记录每帧实际访问的 Page → 异步回读 → 调度磁盘 IO。Runtime Virtual Texture（RVT）进一步把地形 Lightmap/Detail 合成到虚拟页表，消除材质 Pass。</li>
+            <li><strong>几何层 — Nanite 流式</strong>：Nanite 自带 Clusters + Streaming：按屏幕误差（Pixel Error）确定每 Cluster 的 LOD， Cluster 数据按需从磁盘流式读入 GPU 显存池（FIFO/LRU），配合 Virtual Image（虚拟贴图存 Nanite 材质）实现"无限细节"。</li>
+          </ul>
+          <strong>四层协同（加载优先级金字塔）：</strong>
+          <ul>
+            <li>1. HLOD Impostor 秒进（远景轮廓）→ 2. Nanite Cluster 流入（中景几何）→ 3. VT Page 回填（材质细节）→ 4. Cell 完整加载（物理/AI/Actor）</li>
+            <li>统一预算（PC 16GB / 主机 8-12GB 参考）：几何流式池 2-3GB、VT 物理页池 512MB-1GB、HLOD 常驻 300-500MB、音频/资产预留 2GB+</li>
+            <li>IO 预算：NVMe 直通（DirectStorage）要求 >2GB/s 顺序读；每帧流式带宽峰值 50-100MB，需要 Priority Queue（近处 > 视线中心 > 远处）</li>
+          </ul>
+          <strong>工程难点：</strong>
+          <ul>
+            <li><strong>Pop-in 控制</strong>：加载半径 > 视距（雾/远景遮挡配合）；Impostor → 真实网格用 dither/dissolve 过渡；HLOD 合并后烘焙 AO/光照避免阴影突变</li>
+            <li><strong>内存抖动</strong>：流式池 LRU + 主线程阻塞读保护（异步 IO + GPU Copy Queue 上传）；帧内 IO 尖峰用 Rate Limit 平滑</li>
+            <li><strong>协作难题</strong>：Nanite 与 VT 双流式系统的 Page 优先级要统一调度，否则互相挤兑（UE 5.8 已做统一 Streaming Manager）</li>
+          </ul>
+          <strong>面试加分点：</strong>开放世界渲染是腾讯天美/光子、网易雷火大世界项目必考。加分点：①能画出"Cell → HLOD → Nanite → VT"四层金字塔及加载时序；②说出 DirectStorage + GPU 解压（GDeflate）对 IO 瓶颈的改变（CPU 解压 500MB/s → GPU 20GB/s）；③提到 UE5 World Partition 与传统 Level Streaming 的区别（自动化 vs 手工 Level 划分）；④知道自己项目里最痛的 streaming 卡顿案例（如纹理 Page 尖峰导致 hitch）及排查手段（Unreal Insights / PIX IO Trace）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"四层金字塔=World Partition(256m Cell 异步加载)+HLOD(合批→Impostor 远景)+VT(128px Page 按需回填)+Nanite(Cluster 屏幕误差 LOD 流式)。加载时序=Impostor 秒进→Nanite 中景→VT 细节→Cell 完整。预算=几何池 2-3GB+VT 池 512MB-1GB+IO 峰值 50-100MB/帧。难点=Pop-in(dither 过渡+雾遮挡)/内存抖动(LRU+异步 IO+Rate Limit)/双流式统一调度。DirectStorage+GDeflate 让 GPU 解压 20GB/s 替代 CPU 500MB/s。"</div>
+      </div>
+    </div>
+
+    <!-- Q318 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q318</div>
+        <div style="flex:1">
+          <div class="q-title">实时光线追踪的预算管理与 RT LOD：在 4K / 1spp（每像素 1 根光线）约束下，如何分配光线预算？BVH/BLAS 更新、Instance LOD、Denoiser 生态怎么配合？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么"1spp 预算"是核心约束：</strong>
+          <ul>
+            <li>RTX 50 级 GPU 每帧光追预算约 2-4ms（60Hz 游戏留 16.6ms 全帧），4K 下 8M 像素 → 每像素平均只能 1 根一级光线（反射/GI/阴影共享），二级反弹靠 Denoiser 重建</li>
+            <li>预算分配策略（引擎级）：先按效果权重给 Pass 定额 —— 阴影 0.3ms / 反射 1.2ms / GI 1.2ms / 半透明 0.3ms，再按画面显著性动态调整（水面反射帧自动加权）</li>
+          </ul>
+          <strong>光线预算优化技术栈：</strong>
+          <ul>
+            <li><strong>分辨率缩放</strong>：RT Pass 用 1/2 或 1/4 分辨率渲染（反射/GI 对低频不敏感）→ Denoiser 上采样；DLSS 4 配合下 RT 可以在 540p 内部分辨率运行再 AI 超分到 4K</li>
+            <li><strong>RT LOD（Instance Level）</strong>：TLAS 中每个 Instance 绑定高/低模双 BLAS，按屏幕大小 + 光线类型选几何（阴影用更低模，主视线反射用高模）；Nanite Fallback Mesh 即为 RT LOD 设计（自动生成代理网格）</li>
+            <li><strong>Half-Res + Temporal 复用</strong>：奇偶帧交替追不同像素/不同光源（Checkboard + 时序累积），等效 2spp 效果 1spp 成本</li>
+            <li><strong>Ray Budget 削减</strong>：最大反弹 1-2 次、透明跳过（Alpha Test 用 OMM 不发光线）、远处 miss 用 Sky Probe/环境探针兜底</li>
+          </ul>
+          <strong>加速结构（AS）更新策略：</strong>
+          <ul>
+            <li><strong>TLAS（场景级）</strong>：每帧重建（几千 Instance 可接受，1-2ms CPU/GPU）；或增量更新（只改 Transform 的 Instance 做 refit）</li>
+            <li><strong>BLAS（物体级）</strong>：静态几何只构建一次（构建成本摊销）；蒙皮/形变物体每帧 refit（快 5-10×，但质量下降）或 compaction 重建；分帧构建（每帧最多 N 个 BLAS rebuild，排队消化）</li>
+            <li><strong>2026 前沿</strong>：RTX Mega Geometry 的 DMM（Displaced Micro-Mesh）让高模直接进 BLAS，构建内存降 5-10×；OmmBatcher 让 Alpha Test 几何不再靠 Any-Hit Shader</li>
+          </ul>
+          <strong>Denoiser 生态配合：</strong>
+          <ul>
+            <li>1spp 信号噪声极大 → 降噪是"预算策略"的一部分而非附属：NRD 4.0（ReLAX/SIGMA/RELAX Diffuse-Specular 分解）→ DLSS Ray Reconstruction 3（神经降噪统一处理反射+GI+阴影，替代手调滤波链）</li>
+            <li>降噪器对输入信号有假设（法线/深度/运动向量 + 反射与漫反射分离），所以管线要输出 GBuffer-Extend 缓冲，材质 ID 一致性直接影响 ghosting</li>
+          </ul>
+          <strong>面试加分点：</strong>①能算账：4K 8M 像素 × 1spp = 8M 光线，RTX 50 ~200 GRays/s → 一级光线仅 0.04ms 理论，瓶颈其实在 AS 遍历的缓存缺失（BVH 随机访问 DRAM）；②提出"半分辨率 RT + 神经超分"是 2026 年 4K 60Hz 的标准答案；③知道 Refit vs Rebuild 的质量/性能权衡曲线；④给出自己项目动态调光追预算的例子（如竞速赛速度感优先砍反射 spp）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"1spp 预算=Pass 定额(阴影0.3/反射1.2/GI1.2ms)+画面显著性动态加权。优化四板斧=半分辨率+Denoiser 上采样/Instance RT LOD(Nanite Fallback)/奇偶帧 Checkboard 复用/反弹与 OMM 裁剪。AS 策略=TLAS 每帧重建或 refit、BLAS 静态一次构建+蒙皮 refit 5-10×快+分帧 rebuild。Denoiser 是预算一部分=NRD 4.0 分解滤波→DLSS RR 神经降噪统一。理论 8M 光线仅 0.04ms，真瓶颈=BVH 遍历 DRAM 缓存缺失。"</div>
+      </div>
+    </div>
+
+    <!-- Q319 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q319</div>
+        <div style="flex:1">
+          <div class="q-title">体积渲染与参与介质（Volumetric Rendering / Participating Media）：云、雾、体积光的 Ray Marching 实现原理？Froxel、深度分离、神经体积 2026 方案对比？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag mihoyo">米哈游</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>体积渲染物理基础（Radiative Transfer Equation 简化版）：</strong>
+          <ul>
+            <li>光线穿过介质经历：<strong>吸收（Absorption σa）</strong>、<strong>外散射（Out-scattering σs）</strong>、<strong>内散射（In-scattering，光源能量进入视线）</strong>。消光系数 σt = σa + σs，透射率 T = exp(-∫σt ds)</li>
+            <li>数值解 = Ray Marching 沿光线步进：每步累积透射率（Beer-Lambert）× 该点内散射（相位函数 Henyey-Greenstein 描述前向散射偏好）× 该点深度衰减的遮挡（阴影图查询）</li>
+          </ul>
+          <strong>实时方案演进：</strong>
+          <ul>
+            <li><strong>Froxel Volumetrics（UE Volumetric Fog 标准方案）</strong>：把视锥体切成 3D 纹理小格（Froxel = Frustum + Voxel，如 64×64×128），每帧半分辨率注入光照/密度 → 体积模糊（模拟多散射）→ 渲染时按像素前向投影采样。优点：一次 March 全屏共享，支持任意光源数量</li>
+            <li><strong>体积云（UE Volumetric Cloud / 地平线方案）</strong>：云密度用 3D 噪声解析合成（Perlin-Worley 2D 切片打包 128³ atlas）+ 高度场近似形状 → Ray March 每步查密度 + 多次散射近似（多 octave 光弹射近似项）+ 蓝噪声抖动步长 + 时序重投影降噪。质量关键：步长自适应（近处 8 步远处 4 步）+ 空盒跳步（Empty Space Skipping 用 128³ min-max 体素金字塔）</li>
+            <li><strong>God Ray / 体积光</strong>：屏幕空间径向模糊（廉价）/ Froxel 阴影图注入（标准）/ 光线追踪阴影（高质量）</li>
+            <li><strong>神经体积（2026）</strong>：NeRF 类 3D 网络压缩成实时友好结构 —— 3D Gaussian Splatting 体积雾/云已可运行时合成（GS 作为介质近似，Sorting 免去 Ray March）；NVIDIA 体积神经压缩（Volumetric NTC）把 512³ 云 atlas 压到 1/20 显存 + MLP 解码</li>
+          </ul>
+          <strong>性能与质量工程：</strong>
+          <ul>
+            <li>成本大头 = Ray March 步数 × 每步阴影查询：半分辨率 March + 时序重投影（TAA 复用历史）是标配；步数 32-64 步封顶</li>
+            <li>深度分离（Depth Splitting）：不透明物体前的介质用 Froxel，不透明之后的（雾后云）用低步数 Ray March，避免半分辨率排序问题</li>
+            <li>移动端：降维 2.5D（高度雾 + 径向模糊体积光）或预烘焙天光体积；米哈游管线常用"预积分多散射 LUT"把多 octave 散射查表化</li>
+          </ul>
+          <strong>面试加分点：</strong>①能手推透射率积分与 Beer-Lambert 定律，说清 HG 相位函数参数 g 的视觉影响（g 趋 1 前向散射强 → 逆光体积光）；②指出 Froxel 的 3D 纹理内存账（128³ RGBA16F ≈ 16MB）与半分辨率/FP16 压缩；③知道 Empty Space Skipping 的 min-max mipmap 结构；④能对比 GS 体积与传统 Ray March 的取舍（质量/带宽/动态光照支持）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"RTE 三要素=吸收+外散射+内散射，T=exp(-∫σt) Beer-Lambert，HG 相位函数 g 控制前向散射。方案=Froxel(视锥 3D 纹理一次 March 全屏共享)/体积云(Perlin-Worley 噪声+多散射近似+空盒跳步)/GS 神经体积(免 March 带宽换计算)。工程=半分辨率+时序重投影+蓝噪声抖动+自适应步长 32-64 步封顶。成本大头=步数×阴影查询，多散射用预积分 LUT 查表。移动端降维 2.5D 高度雾。"</div>
+      </div>
+    </div>
+
+    <!-- Q320 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q320</div>
+        <div style="flex:1">
+          <div class="q-title">屏幕空间技术族（SSR / SSGI / SSCS / SSAO）与光追混合策略：屏幕空间的先天缺陷如何用 Ray Tracing / 探针 / 距离场补齐？混合反射的三级 Fallback 怎么设计？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>屏幕空间技术族原理与通病：</strong>
+          <ul>
+            <li><strong>SSAO</strong>：深度/法线缓冲采样邻域估计遮蔽（HBAO/GTAO 演进），廉价稳定；缺陷：无屏幕外遮蔽、接触处光晕</li>
+            <li><strong>SSR（Screen Space Reflection）</strong>：对颜色+深度做射线步进（Hi-Z 加速：构造深度 mip 金字塔做粗步进+精化），时序复用累积；缺陷：<strong>屏幕外信息缺失</strong>（反射体看不到画面外的东西 → 反射突然消失/拖影）、背面不可见、单次反弹</li>
+            <li><strong>SSGI</strong>：屏幕空间随机采样估计间接光（SSDO/GTAO 变体）；缺陷同源——只有屏幕内弹射</li>
+            <li><strong>SSCS（屏幕空间接触阴影）</strong>：近距物体在 Shadow Map 分辨率不足时的高频阴影补充</li>
+            <li>共同先天缺陷：<strong>只用 G-Buffer 信息 → 屏幕外/被遮挡内容缺失 + 时序拖影（残影源自历史帧信息失效）</strong></li>
+          </ul>
+          <strong>混合策略——三级 Fallback（反射为例）：</strong>
+          <ul>
+            <li><strong>Tier 1 — SSR</strong>：屏幕空间 Hi-Z 步进（最廉价、最高频细节），成功即返回；置信度图（Screen Space Coverage）标记有效像素</li>
+            <li><strong>Tier 2 — 探针/距离场</strong>：SSR 失败像素 fallback 到 Light Probe / Reflection Probe（烘焙或实时 DDGI 探针插值）或 SDF Ray March（UE 距离场反射），提供屏幕外低频信息</li>
+            <li><strong>Tier 3 — 光线追踪</strong>：剩余像素发 RT 光线（半分辨率+降噪），Lumen/Surface Probe 体系下统一为"屏幕空间优先 → 探针收敛 → RT 收尾"的概率混合（Lumen 的 Screen Probe Gather 本质是该思想的收敛实现）</li>
+            <li>混合权重用<strong>每像素置信度（Confidence）</strong>驱动：SSR 命中年龄、探针距离、RT 噪声方差共同决定混合系数，时序累积平滑切换避免" popping "</li>
+          </ul>
+          <strong>时序拖影对策：</strong>
+          <ul>
+            <li>运动向量正确性（反射面用反射向量的 MV 而非表面 MV 的 Reprojection）、历史拒绝（法线/深度差异度检验）、历史裁剪（Clamp to Neighborhood AABB）</li>
+            <li>2026 趋势：SSR 逐渐被 Lumen/ReSTIR GI 类"统一 GI"吸收，纯 SSR 只保留在低配 Tier；但面试仍要求讲清 SSR 细节作为基础功</li>
+          </ul>
+          <strong>面试加分点：</strong>①能手写 Hi-Z 加速的粗步进-细化两段逻辑；②说清"反射面的时序重投影要沿反射方向找历史"这个高频细节坑；③给出三级 Fallback 的成本数据（SSR 0.8ms / 探针 0.2ms / RT 半分辨率 1.5ms 量级）；④提到 SSAO→GTAO 的数学改进（余弦加权积分更准）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"屏幕空间通病=只有 G-Buffer 信息→屏幕外缺失+时序拖影。三级 Fallback=SSR(Hi-Z 粗步进+精化,最廉价高频)→探针/SDF(屏幕外低频)→RT(收尾,半分辨率+降噪)，每像素 Confidence 驱动混合避免 popping。SSR 细节坑=反射面重投影沿反射方向找历史+历史拒绝/裁剪。SSAO 演进=HBAO→GTAO 余弦加权。2026 趋势=SSR 被 Lumen 统一 GI 吸收，纯 SSR 只留低配 Tier。"</div>
+      </div>
+    </div>
+
+    <!-- Q321 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q321</div>
+        <div style="flex:1">
+          <div class="q-title">TAA Ghosting（时序抗锯齿拖影）机理与对策：运动向量错误、历史失效、透射/粒子拖影的根因是什么？生产环境怎么系统性排查与修复？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>TAA 原理速览（拖影问题的前提）：</strong>
+            <ul>
+              <li>TAA = 每帧在像素内做亚像素抖动（Jitter）采样 → 用运动向量把历史帧颜色重投影到当前像素 → 时序累积平均（等效超采样 SSAA）→ 邻域裁剪防色彩偏移。质量依赖：<strong>历史有效性 + 重投影精度 + 裁剪策略</strong>三角，任何一角出问题就是 Ghosting</li>
+            </ul>
+            <strong>Ghosting 六大根因与对策：</strong>
+            <ul>
+              <li><strong>① 运动向量错误（最高频）</strong>：透明物体/粒子/逐材质 UV 滚动没有写 MV → 重投影错位。对策：透明 Pass 输出近似 MV（用速度合成/深度推算）、粒子用速度纹理；法线变化的变形体在 MV 中泄露旧位置 → 用"上一帧该像素对应表面"的 MV（Surface Motion）</li>
+              <li><strong>② 反射面重投影方向错误</strong>：反射内容应沿<strong>反射方向</strong>找历史，默认表面 MV 会拖出"反射残影"。对策：SSR/TAA 联合采样反射 MV（Reflected Velocity）</li>
+              <li><strong>③ 遮挡/内容变化历史失效</strong>：物体移出/新进入视锥，历史像素根本不存在或已过期。对策：历史拒绝（Normal/Depth/ID 一致性检验）+ Disocclusion 补偿（用低分辨率备用历史或邻域填充）</li>
+              <li><strong>④ 邻域裁剪不足/过强</strong>：裁剪弱→色彩偏移（漏光/闪），裁剪强→等效放弃时序信息（锯齿回归）。演进：AABB Clamp（YCoCg 空间收缩 3×3 邻域）→ 方差裁剪（Variance Clipping，γ 系数控制）→ 空间信息引导（先空间滤波估计均值方差再裁剪）</li>
+              <li><strong>⑤ 半透明/透射物体</strong>：场景颜色在 TAA 之后合成 → 透射边缘不走 TAA 抗锯齿；在 TAA 之前合成 → 拖影。主流做法：透射前合成 + 透射物体自己输出抖动 MV；UE TSR 的做法是透射分离通道单独时序处理</li>
+              <li><strong>⑥ 光照/曝光突变</strong>：闪光灯、爆炸、昼夜切换时历史亮度不匹配 → 长尾残影。对策：亮度自适应收敛（曝光变化率加速历史衰减）</li>
+            </ul>
+            <strong>生产排查方法论：</strong>
+            <ul>
+              <li>可视化调试：MV 缓冲可视化（错误 MV 一眼定位）、历史置信度图、裁剪前后对比开关</li>
+              <li>定位顺序：先查 MV（占 70% 案例）→ 再查历史拒绝条件 → 最后调裁剪参数；把"哪类材质/什么运动"作为复现要素记录（镜头旋转+角色贴墙移动是经典复现场景）</li>
+              <li>2026 替代方案：TSR（UE 时序超分，对低输入信噪比更稳）、DLSS/FSR 内置 TAA 替代（直接交给 AI 超分管时序），自研 TAA 主要在主机/中端平台保留</li>
+            </ul>
+            <strong>面试加分点：</strong>①能画出 TAA 数据流（Jitter→GBuffer→Shading→Reproject→Clip→Resolve）；②说出 Variance Clipping 的 γ 典型值与闪烁/拖影的跷跷板权衡；③有真实修 Ghosting 案例（如"角色披风在镜头旋转时残影 → 粒子 MV 缺失 → 补 Velocity Buffer 解决"）；④知道 TSR vs TAA 的差异点（历史补偿与空间收敛更强）。</div>
+          <div class="tip-box">💡 <strong>面试框架：</strong>"TAA 三角=历史有效性+重投影精度+裁剪策略，任一角失效即 Ghosting。六大根因=透明/粒子 MV 缺失(70% 案例)/反射面要沿反射方向重投影/遮挡历史失效(拒绝+邻域填充)/裁剪强弱跷跷板(AABB→Variance Clipping γ)/透射前后合成两难(分离通道)/曝光突变长尾。排查=MV 可视化先行→历史拒绝→裁剪参数。2026=TSR/DLSS 接管时序，自研 TAA 留中低配。"</div>
+      </div>
+    </div>
+
+    <!-- Q322 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q322</div>
+        <div style="flex:1">
+          <div class="q-title">G-Buffer 布局设计与带宽优化：材质爆炸（Material Explosion）下 G-Buffer 越来越肥怎么办？法线/材质参数编码、可变速率着色、Visibility Buffer 如何砍带宽？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么 G-Buffer 是延迟渲染的生命线：</strong>
+          <ul>
+            <li>延迟渲染先写 G-Buffer（几何+材质）再算光照，G-Buffer 读写带宽 = 全屏 × MRT 数量 × 2（写+读），4K 下每 +1 个 RTT（RGBA8）≈ 128MB/帧 级带宽，是移动端做不了传统 Deferred 的首因</li>
+          </ul>
+          <strong>典型 4K G-Buffer 账本（传统 UE 式 5-6 张 RT）：</strong>
+          <ul>
+            <li>RT0 Albedo RGBA8 + RT1 Normal RGBA8/16 + RT2 Roughness/Metallic/SAO/ID + RT3 自发光 + Depth 32f + MV/SSAO → 合计 25-30 bytes/pixel × 8.3M px × 2(读写) ≈ 400-500MB/帧，近 1/3 帧预算耗在 G-Buffer 往返</li>
+          </ul>
+          <strong>六大压缩武器：</strong>
+          <ul>
+            <li><strong>① 通道编码</strong>：法线八面体编码（Octahedral，2×16bit 替代 3×16/32bit，误差 <0.5°）；Roughness/Metallic 等标量塞进一个 RGBA8；AO 量化 8bit；自发光用共享 BC 压缩或只有 emissive 物体写</li>
+            <li><strong>② 材质 ID + 参数表（Attribute Buffer）</strong>：G-Buffer 只写 16/32bit Material ID，光照阶段按 ID 从 GPU 显存材质参数表取数（类似 SIGGRAPH 论文 Material ID Buffer / Stochastic Pruning 思路）——G-Buffer 体积砍 50%+，代价是光照 Pass 多一次间接查表</li>
+            <li><strong>③ VRS（可变速率着色）</strong>：G-Buffer 写入阶段按画面显著性调着色率（快速运动/景深边缘 1×2 或 2×2），带宽同步降低；与 Foveated（VR 中心凹）同理</li>
+            <li><strong>④ Visibility Buffer 路线</strong>：G-Buffer 只存 TriangleID + Barycentric（8 bytes/pixel）→ 光照阶段按 ID 拉顶点属性重算材质（材质求值延迟到需要它的像素）→ 材质爆炸场景 O(复杂材质) 变 O(像素)，Bandwidth 降 60-80%，代价是属性重算算力换带宽（Q310 已覆盖其 3.0 演进）</li>
+            <li><strong>⑤ 分辨率分层</strong>：低频通道（SSAO/漫反射 GI）半分辨率 + 上采样；高频（法线/深度）全分辨率 —— 混合分辨率 MRT</li>
+            <li><strong>⑥ 压缩格式</strong>：硬件层面按 Rate-Limited 32/64/128bit 自适应写 RT；DCC 无损压缩（部分主机 GPU 支持 RTT 压缩，压缩读带宽减半）</li>
+          </ul>
+          <strong>决策框架（面试答题主线）：</strong>
+          <ul>
+            <li>带宽是瓶颈（移动端/4K）→ 先通道编码+材质 ID（工程量小收益大）→ 再 VRS → 最后考虑 Vis-Buffer 重构；算力富余带宽紧张（如 Blackwell 大算力）→ Vis-Buffer 最优；场景材质简单 → 传统 4-RT 足够不要过度设计</li>
+            <li>验证手段：RenderDoc/PIX 带宽分析、D3D12 内存流量计数器、压缩前后帧时间差</li>
+          </ul>
+          <strong>面试加分点：</strong>①能手推八面体编码公式与误差来源；②给出自家项目 G-Buffer 逐通道字节账本（说明算过账）；③说清 Material ID 方案的隐患（ID 冲突/参数表 cache miss/透明排序）与 Vis-Buffer 的隐患（顶点重取与属性重算 CPU/GPU 协同）；④提到移动端 TBDR 架构（Apple/Adreno）的 tile memory 天然缓解 G-Buffer 带宽 —— 这是"为什么手机反而能 Deferred"的关键。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"G-Buffer 带宽=全屏×RTT×读写，4K 5-6 张 RT ≈ 400-500MB/帧。六武器=八面体法线编码+标量打包/材质 ID+参数表(砍 50%+)/VRS 显著性着色率/Vis-Buffer(8B/pixel 属性重算换带宽 60-80%)/混合分辨率 MRT/硬件 DCC 压缩。决策=先编码后 VRS 再重构，算力富余选 Vis-Buffer。移动端 TBDR tile memory 天然缓解——手机反而能 Deferred。"</div>
+      </div>
+    </div>
+
+    <!-- Q323 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q323</div>
+        <div style="flex:1">
+          <div class="q-title">跨层 KV 共享与注意力显存优化新范式：YOCO（You Only Cache Once）/ Cross-Layer Attention（CLA）/ MLA 与 MHA/GQA 的演进关系？KV Cache 显存还能怎么省？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>KV Cache 显存问题回顾（面试必先讲清的账本）：</strong>
+          <ul>
+            <li>KV Cache 大小 = 2（K+V）× 层数 L × 头数 H × 头维度 d × 序列长度 S × batch × 精度字节。例：Llama-70B 级（80 层/8 KV 头/128 维）128K 上下文 FP16 ≈ 40GB —— 长上下文时代 KV 超过权重本身，成为推理第一瓶颈</li>
+            <li>演进主线：MHA（全 KV）→ MQA（全部 Q 共享 1 组 KV，省 L×H 倍但质量降）→ GQA（分组共享，质量/显存折中，Llama2+/Qwen 主流）→ 2026 前沿：跨层共享与低秩压缩双路线</li>
+          </ul>
+          <strong>路线一：跨层 KV 共享（结构性省显存）：</strong>
+          <ul>
+            <li><strong>Cross-Layer Attention（CLA）</strong>：每 N 层（如 4-8 层）只保留一组 KV，中间层通过小投影把 KV 融到锚点层。KV 显存 ÷N，质量损失 <1%；Google Gemma 系列的局部共享（每 6 层共享）已是生产实践</li>
+            <li><strong>YOCO（You Only Cache Once，微软研究院）</strong>：架构级重构——前半部分用 Self-Decoder（线性注意力/SSM，无 KV Cache 或极小）+ 后半部分 Cross-Decoder（所有层共享同一份 KV Cache）。KV 显存随层数增加不再增长（只缓存一份），512K 上下文显存降数倍；"单份缓存、多层读取"的思想与 MLA 低秩压缩形成互补</li>
+            <li><strong>层间 KV 复用的代价</strong>：表达能力受限（所有层看同样的 KV）、训练稳定性需要精心设计（YOCO 用特殊的初始化与渐进训练）；适合长上下文/边缘端，不适合追求极致质量的旗舰</li>
+          </ul>
+          <strong>路线二：低秩压缩（信息论式省显存）：</strong>
+          <ul>
+            <li><strong>MLA（Multi-head Latent Attention，DeepSeek 系）</strong>：把 KV 投影到低秩潜空间（如 512 维 latent）再上采样，KV Cache 只存 latent —— 相当于每 token 存 576 维（512 latent + RoPE 专用 64 维）而非 L×H×d，DeepSeek-V3 相比 MHA 省 93% KV；配合吸收矩阵技巧让计算量不增</li>
+            <li><strong>MLA vs GQA 取舍</strong>：MLA 质量更优且压缩率更高，但推理 kernel（如 FlashAttention 的 MLA 特化版）生态仍在补齐；GQA 胜在工程简单、一切框架原生支持</li>
+          </ul>
+          <strong>配套手段（ orthogonal，可叠加）：</strong>
+          <ul>
+            <li>量化：KV FP8（无损级）→ FP4/Int4（激进，需 outlier 保护）；Sliding Window（窗口外 KV 丢弃，Mistral 式）+ StreamingLLM 注意力汇聚点（Sink Tokens）</li>
+            <li>系统层：PagedAttention（按页分配杜绝碎片）、KV 逐出策略（H2O/SnapKV 保留重要 token）、前缀复用（RadixAttention 跨请求共享系统 prompt KV）</li>
+          </ul>
+          <strong>面试加分点：</strong>①能现场算一个具体模型的 KV 显存账（面试官最爱的验证题）；②说清 MLA 的"吸收矩阵"为什么让 latent 投影可以融进 Q/K/V 投影从而零额外计算；③提到 YOCO 的 decode 加速红利（跨层共享 → 大 batch 时 KV 读取带宽减半，Decode 吞吐提升）；④知道 Gemma 3 / OLMo 2 的 CLA 实践数据。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"KV 账本=2×L×H×d×S×batch×bytes，128K 上下文可达 40GB 超权重。演进=MHA→MQA(极端省)→GQA(折中主流)→双路线：跨层共享(CLA 每 N 层一组 KV ÷N、YOCO Self-Decoder+共享 KV Cross-Decoder 层数无关)+低秩压缩(MLA latent 576 维省 93%+吸收矩阵零开销)。叠加手段=FP8 量化+PagedAttention+H2O 逐出+RadixAttention 前缀复用。选型=旗舰 MLA 质量优，工程生态 GQA 简单，长上下文/边缘 YOCO。"</div>
+      </div>
+    </div>
+
+    <!-- Q324 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q324</div>
+        <div style="flex:1">
+          <div class="q-title">长上下文扩展训练：位置编码外推（Position Interpolation / NTK-aware / YaRN）原理与区别？从 8K 扩到 1M 上下文的完整训练配方（数据配比 / 训练阶段 / 评测）是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题本质：RoPE 的"训练-推理长度失配"：</strong>
+          <ul>
+            <li>RoPE 用旋转矩阵给 q/k 注入相对位置，高频分量编码近距离、低频分量编码远距离。预训练只见过 8K 位置 → 直接推 128K 时低频旋转角度超出训练分布 → 注意力熵爆炸、困惑度崩塌（外推失败）</li>
+          </ul>
+          <strong>三代外推/内插方案对比：</strong>
+          <ul>
+            <li><strong>Position Interpolation（PI，Meta）</strong>：位置线性缩放 m → m·L_train/L_target，把 128K 的位置"压"进 8K 训练分布。代价：高频分辨率被压扁（近距 token 区分度下降），需要 1000 步左右微调恢复</li>
+            <li><strong>NTK-aware Scaling</strong>：不改位置而是改 RoPE 基频 b（10000 → 更大），按"高频内插、低频外推"非线性缩放——近距精度保住、远距平滑延伸；可近乎 zero-shot 外推数倍，微调后更稳</li>
+            <li><strong>YaRN（2023→2026 主流）</strong>：NTK 改进版 = 分频段插值（前 N 个高频维度用 PI、低频用 NTK 式）+ 注意力温度缩放（把随长度增长的注意力熵压回，log s 系数）+ 少量微调（400 步级）。相同微调预算下效果最好，Qwen/Llama 3.1 系的 128K→1M 扩展基本都基于 YaRN 思想</li>
+            <li><strong>2026 前沿</strong>：双段注意力（Global RoPE + Local SWA 分频处理，Gemma/Llama 4 式）、原生长上下文预训练（数据直接含长文档，DeepSeek/Qwen 旗舰不再做纯事后扩展）、DualChunk / FlashAttention 变体等系统层并行</li>
+          </ul>
+          <strong>8K → 1M 完整训练配方（工业级）：</strong>
+          <ul>
+            <li><strong>阶段化</strong>：①YaRN 改基频 + 注意力温度 → ②渐进加长续训（64K→256K→1M，每阶段数百步）→ ③长上下文 SFT（多文档问答/大海捞针合成数据）→ ④长推理链 RL（可选）</li>
+            <li><strong>数据配比（黄金比例）</strong>：长文本 : 短文本 ≈ 3:7~4:6（纯长文本训练会退化短文本能力）；长数据来源 = 书籍/代码仓库/多文档拼接 + 合成任务（跨文档检索、全文摘要、位置推理"大海捞针"多针变体）</li>
+            <li><strong>并行策略</strong>：1M 序列单卡放不下激活 → Ring Attention / Sequence Parallel（把序列切到多卡）、Context Parallel + ZeRO 组合；激活重计算必开</li>
+            <li><strong>评测体系</strong>：大海捞针 NIAH（多针/多跳变体）、RULER（超过训练长度的可控压力测试）、LongBench v2 / MRCR（真实任务）、短测回归（MMLU 等防退化）</li>
+          </ul>
+          <strong>面试加分点：</strong>①能解释"为什么 NTK 比.PI 好"——分频视角：高频维度管局部语义不能压，低频维度管远程才需要延伸；②给出 YaRN 的注意力温度公式直觉（softmax 熵随上下文长度增长 → 用 1/√(1/t·ln S) 补偿）；③说出业界踩坑：长上下文训练后指令遵循/数学退化 → 必须混短数据 + 回放；④知道 2026 旗舰已转向"原生长上下文 + MTP 助推"而非纯事后 YaRN。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"根因=RoPE 低频角度超出训练分布→注意力熵爆炸。三代=PI(线性压缩,高频受损)/NTK(改基频,高频内插低频外推,近 zero-shot)/YaRN(分频段插值+注意力温度缩放,主流最优)。配方=渐进 64K→256K→1M+长短 3:7 混比+大海捞针合成数据+Ring Attention 序列并行。评测=NIAH 多针/RULER 超长压测/短测回归防退化。2026 旗舰=原生长上下文预训练取代纯事后扩展。"</div>
+      </div>
+    </div>
+
+    <!-- Q325 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q325</div>
+        <div style="flex:1">
+          <div class="q-title">多模态大模型推理优化：Visual Token 压缩（FastV / PyramidDrop / Token Merging）为什么能砍 90% 视觉 token？VLM 推理与纯文本 LLM 的瓶颈差异在哪？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>先讲清 VLM 的 token 膨胀问题：</strong>
+          <ul>
+            <li>VLM（LLaVA/Qwen-VL/GPT-4V 类）管线 = ViT 编码图像 → 每个 patch 一个 token → 高分辨率下爆发：一张 672×672 图 = 576 token，OCR/文档场景多图可到 8K-32K 视觉 token，Prefill 时间与 KV 显存被视觉 token 主导（占 80%+）</li>
+          </ul>
+          <strong>Visual Token 压缩三大流派：</strong>
+          <ul>
+            <li><strong>① 深度剪枝（Depth Pruning）— FastV</strong>：核心发现：视觉 token 的注意力份额随层数加深急剧衰减（浅层占 60%+，深层 <10%），而文本 token 依赖它做深层推理。方案：第 2 层后按注意力分数丢弃低分视觉 token（砍 45%+），再在深层继续砍 → 总压缩 90% 视觉 token，质量几乎无损、推理加速 2×+。零训练、即插即用是它成为标配的原因</li>
+            <li><strong>② 输入端自适应（Resolution-wise）— PyramidDrop / Qwen-VL 的 NaViT 打包</strong>：按图像信息密度分配 token 预算（文档图多留、风景图少留），训练时就让模型适应变长/丢弃 → 训练-推理解耦更彻底</li>
+            <li><strong>③ 合并与聚类（Merging）— ToMe / TokenPacker</strong>：相似 token 双向匹配合并（保留信息但降计数），或把 patch 特征池化注入少量 query token（Q-Former 思想的轻量版）；信息有损但可控，适合视频流（时序上还可跨帧合并）</li>
+            <li>选择逻辑：零训练上线选 FastV；自训模型选 PyramidDrop（端到端最优）；视频/流式选 merging+跨帧压缩</li>
+          </ul>
+          <strong>VLM vs 纯文本 LLM 推理瓶颈差异：</strong>
+          <ul>
+            <li><strong>Prefill 更重</strong>：视觉 token 数量 >> 用户文本，TTFT 瓶颈更尖锐 → Chunked Prefill + 视觉 token 剪枝是第一优化对；ViT 编码本身也是 GPU 任务（可与 LLM Prefill 重叠异步）</li>
+            <li><strong>显存双 Cache</strong>：视觉编码器激活 + LLM KV；视觉 KV 同样吃 PagedAttention 管理（vLLM 已原生支持 VLM 事件）</li>
+            <li><strong>Decode 阶段视觉 token 无产出却占 KV 带宽</strong> → 剪枝对 Decode 吞吐的收益比纯文本场景更大（带宽省下的全是浪费的部分）</li>
+            <li><strong>多模态特有调度</strong>：图像/视频/音频多流交错，Prefill 顺序与注意力 mask 设计（图文交错 mask）影响 kernel 效率</li>
+          </ul>
+          <strong>面试加分点：</strong>①能解释 FastV 成立的机理（"视觉 token 浅层承载语义对齐、深层被文本 token 主导注意力"的注意力流分析）；②给出量化账：8K 视觉 token 砍 90% → Prefill 从 ~2s 到 ~0.4s、KV 省 70%+；③提到视频场景的时序冗余（相邻帧 token 相似度 >95% → 帧间合并收益最大）；④知道端侧 VLM（手机/车机）靠 token 压缩 + 小 ViT 才能实时运行。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"膨胀账本=672² 图 576 token、文档多图 8K-32K 视觉 token 占 KV 80%+。三流派=FastV 深度剪枝(注意力份额随层衰减,零训练砍 90% 加速 2×)/PyramidDrop 输入端自适应(训练时按密度分配)/ToMe 合并聚类(视频跨帧合并收益最大)。VLM 瓶颈差异=Prefill 被视觉 token 主导+ViT 编码可异步重叠+Decode 阶段视觉 KV 纯占带宽(剪枝收益放大)。选型=零训练 FastV/自训 PyramidDrop/视频 merging。"</div>
+      </div>
+    </div>
+
+    <!-- Q326 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q326</div>
+        <div style="flex:1">
+          <div class="q-title">长上下文 vs RAG 之争：1M 上下文模型会不会取代 RAG？两者的成本/精度/时延/隐私账本怎么算？2026 生产系统的混合架构（Long-Context RAG）长什么样？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>双方能力账本（面试核心），先按维度对比：</strong>
+          <table style="border-collapse:collapse;margin:8px 0;width:100%">
+            <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd">维度</th><th style="padding:8px;border:1px solid #ddd">长上下文（塞进 prompt）</th><th style="padding:8px;border:1px solid #ddd">RAG（检索注入）</th></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">精度</td><td style="padding:8px;border:1px solid #ddd">中段遗忘（Lost in the Middle）、噪声敏感，1M 实际有效利用率 ~70-80%</td><td style="padding:8px;border:1px solid #ddd">只给相关信息，信噪比高；受检索质量上限制约</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">时延</td><td style="padding:8px;border:1px solid #ddd">Prefill 与长度线性增长，1M token TTFT 秒级~分钟级（有 Prefix Cache 可缓解重复）</td><td style="padding:8px;border:1px solid #ddd">检索 ms 级 + 短 prompt TTFT 低；但多跳检索链路时延累积</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">成本</td><td style="padding:8px;border:1px solid #ddd">按 token 计费线性爆炸（1M 输入单价虽降但总量大）；自建则 GPU 显存/算力大头</td><td style="padding:8px;border:1px solid #ddd">向量库+reranker 成本远低于重复 prefill；知识更新无需重推全库</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">知识更新</td><td style="padding:8px;border:1px solid #ddd">文档变 → 重新注入（若非缓存命中则全量重算）</td><td style="padding:8px;border:1px solid #ddd">增量索引，秒级生效</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">隐私/权限</td><td style="padding:8px;border:1px solid #ddd">全量塞入难以做文档级权限过滤</td><td style="padding:8px;border:1px solid #ddd">检索层天然带 ACL 过滤（企业刚需）</td></tr>
+            <tr><td style="padding:8px;border:1px solid #ddd">多跳/聚合</td><td style="padding:8px;border:1px solid #ddd">全局聚合类问题（全文对比/计数/遍历）占优</td><td style="padding:8px;border:1px solid #ddd">多跳检索易漏（需 GraphRAG/Agentic 补）</td></tr>
+          </table>
+          <strong>"取代论"的理性判断：</strong>
+          <ul>
+            <li>长上下文解决"给得下"，RAG 解决"找得准 + 更得起 + 管得住"—— 三件事中后两件是工程刚需，故 <strong>长上下文不会取代 RAG，而是抬高 RAG 的注入水位</strong>：检索 Top-K 从 5 条变成 50 条，reranker 后全塞进去，召回兜底更厚</li>
+            <li>实践数据：Gemini/Claude 级 1M 模型在 NIAH 类检索任务接近满分，但 RULER/多跳推理仍明显衰减；企业文档库 TB 级（数亿 token）物理上不可能全量塞入</li>
+          </ul>
+          <strong>2026 生产混合架构（Long-Context RAG / Agentic 混合）：</strong>
+          <ul>
+            <li><strong>粗检 → 精排 → 大窗口整合</strong>：向量/图检索 Top-100 → reranker Top-20~50 → 直接注入长上下文窗口做全文整合推理（不再做脆弱的 chunk 拼接提示）</li>
+            <li><strong>Agentic 分工</strong>：Agent 自主决定"先检索还是先通读"——小文档直接读全文（长上下文），大库走检索工具链；Multi-hop 问题用 Agent 多轮检索而非一次性塞库</li>
+            <li><strong>成本优化组合</strong>：Prefix Caching（系统 prompt + 常用文档缓存命中 10×）、Prompt Caching 断点、检索裁剪 + 视觉 token 压缩（多模态 RAG）</li>
+            <li><strong>评测</strong>：长文档 QA 分档测（10K/100K/1M）、多跳指标（HotpotQA 类）、成本/时延 SLO 曲线，取"质量-成本"帕累托最优而非单点</li>
+          </ul>
+          <strong>面试加分点：</strong>①能背出账本表并给数字（如 1M token 输入自建 GPU 成本 vs 检索 ms 级）；②说出"Lost in the Middle"与位置偏差的缓解（重排序把黄金段放头尾）；③提出权限/合规是长上下文方案在企业落地的硬伤（很多面试官等这句话）；④知道 2026 共识架构名（Long-Context RAG / Agentic RAG 收敛）并给出自己项目的选择理由。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"账本=长上下文精度受中段遗忘限(有效~70-80%)+TTFT/成本线性爆炸+权限难过滤；RAG 找得准更得起管得住(ACL)但受检索上限制+多跳易漏。判断=不取代而是抬高注入水位(Top-5→Top-50 全文整合)。混合架构=粗检 Top-100→精排 Top-50→长窗整合+Agentic 自主决定读全文 vs 检索+Prefix Caching 兜成本。评测=分档长度 QA+多跳+成本 SLO 帕累托。"</div>
+      </div>
+    </div>
+
+    <!-- Q327 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q327</div>
+        <div style="flex:1">
+          <div class="q-title">自主 Agent 的可靠性工程：后台/并行 Agent（Background Agents）的失败恢复、状态持久化、任务中断续跑怎么设计？长时程任务的 Checkpoint 与监督体系是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么长时程 Agent 是 2026 的工程主战场：</strong>
+          <ul>
+            <li>Agent 从"一问一答工具调用"走向"数小时后台自主任务"（代码库级重构、数据流水线、端到端研究），失败模式从"答错"变成"跑偏几小时才崩"——可靠性工程（Reliability Engineering）成为与提示词/工具同级的必修课</li>
+          </ul>
+          <strong>状态持久化与 Checkpoint 设计（核心）：</strong>
+          <ul>
+            <li><strong>状态三件套</strong>：①任务状态机（计划步骤、当前步、依赖图）②上下文快照（消息历史、工具结果、文件/工作区变更）③预算与配额（token/时间/金钱消耗记录）。持久化到外部存储（DB/对象存储），Agent 进程死亡可重启</li>
+            <li><strong>Checkpoint 时机</strong>：每个工具调用成功后、每个子任务完成、上下文压缩前后；粒度权衡——每步存太重（IO + 恢复歧义），按子任务存恢复损失大。生产常用"事件溯源"：全量记录事件流，Checkpoint 只是事件的物化视图</li>
+            <li><strong>续跑语义</strong>：重启后 Agent 重新加载状态 + 一段"你之前做到哪"的恢复摘要（Summary Injection），而非回放全部历史（省 token）；幂等性靠工具层设计（所有写操作带幂等键/先读后写 diff）</li>
+          </ul>
+          <strong>失败恢复体系：</strong>
+          <ul>
+            <li><strong>失败分类</strong>：瞬时失败（网络/限流 → 指数退避重试）、系统性失败（工具持续报错 → 换路径）、语义性失败（任务跑偏 → 回滚到 checkpoint 或升级人工）</li>
+            <li><strong>Circuit Breaker + Budget Guard</strong>：同一工具连续失败 N 次熔断；token/时间预算超限强制收敛（输出已完成部分而非无限续跑）；"漂移检测"——定期自评当前进展与计划的偏差，偏差过大触发重新规划</li>
+            <li><strong>沙箱与回滚</strong>：文件/git 操作走可回滚沙箱（branch/快照），破坏性操作需确认门；云环境快照整机回滚</li>
+          </ul>
+          <strong>并行 Agent 编排与监督：</strong>
+          <ul>
+            <li><strong>并行模式</strong>：任务可拆 → 多 worker 并行（各自独立工作区/分支，避免写冲突）+ Orchestrator 合并；共享状态走黑板/消息队列而非共享内存上下文</li>
+            <li><strong>监督体系（Human-in-the-loop 分级）</strong>：自主级（只读任务全自动）、确认级（写操作闸门）、审批级（外发/付费动作）；异步通知（完成/失败/需决策）对接 IM</li>
+            <li><strong>可观测性</strong>：trace 级记录每次 LLM 调用/工具调用/状态变更（OpenTelemetry 语义约定），回放调试器支持"时间旅行"到任意 checkpoint 重跑分支</li>
+          </ul>
+          <strong>面试加分点：</strong>①能画出"状态机 + 事件溯源 + 恢复摘要"三层持久化图；②说出幂等键设计与"先 diff 后写"的工程细节（多数候选人答不出这层）；③给出漂移检测的落地（每 N 步让模型自评 + 独立 LLM judge 复核，双通道防自欺）；④知道成本维度：后台长任务的 token 消耗可达对话式 10-100×，预算护栏是产品级必需。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"状态三件套=任务状态机+上下文快照+预算配额，事件溯源全记录、Checkpoint 是物化视图。续跑=恢复摘要注入而非回放历史+工具幂等键+先 diff 后写。失败分级=瞬时退避重试/系统性换路径/语义性回滚升级。护栏=Circuit Breaker 熔断+Budget Guard 强收敛+漂移检测(自评+独立 judge 双通道)。并行=独立工作区+黑板共享+Orchestrator 合并。监督=只读自动/写闸门/外发审批三级。"</div>
+      </div>
+    </div>
+
+    <!-- Q328 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q328</div>
+        <div style="flex:1">
+          <div class="q-title">万卡集群大模型训练工程：并行策略（DP/TP/PP/EP/SP/CP）怎么组合？MFU 如何提升？硬件故障常态化下（万卡日均故障）的弹性训练与断点续训怎么做？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>并行策略五件套（组合拳逻辑）：</strong>
+          <ul>
+            <li><strong>DP（数据并行）</strong>：最基础，梯度 all-reduce；配 ZeRO 1/2/3 分片优化器状态/梯度/参数，显存换通信</li>
+            <li><strong>TP（张量并行）</strong>：单层矩阵切多卡（Megatron 列/行切分），通信高频，只能限在 NVLink 域内（机内 8 卡）</li>
+            <li><strong>PP（流水线并行）</strong>：按层切到多卡，1F1B/ZeroBubble 调度流水线气泡；跨机友好（通信量小），但需要 micro-batch 填充</li>
+            <li><strong>EP（专家并行）</strong>：MoE 专属，专家分布多卡 + all-to-all token 分发；2026 旗舰全 MoE → EP 成为必选项，与 DP/TP 正交组合</li>
+            <li><strong>SP/CP（序列/上下文并行）</strong>：序列维切分解决超长上下文激活爆炸（Ring Attention 思想）</li>
+            <li><strong>组合公式（经验）</strong>：万卡 = DP×TP×PP×CP×EP 乘积=总卡数；典型 H100 万卡配置 TP=8（机内 NVLink）× PP=8-16（跨机）× CP=2-4（长上下文）× DP×EP 吃剩余。原则：通信越贵的并行维度越放越近（TP 机内 → PP 跨机 → DP 最外）</li>
+          </ul>
+          <strong>MFU（Model FLOPs Utilization）提升：</strong>
+          <ul>
+            <li>行业现状：GPT-4 级训练 MFU 30-40% 是好成绩，国产集群 25-35%；每 +1% MFU = 千万级成本节省</li>
+            <li><strong>手段</strong>：通信计算重叠（TP/PP/EP 的通信与计算异步化）、融合 kernel（FlashAttention-3/4、FP8 混合精度、算子融合）、异步 TP（权重同步与计算解耦）、MoE 的 expert 负载均衡（避免 all-to-all 等待慢 expert）、数据加载流水线（预处理异步化不饿 GPU）</li>
+            <li><strong>监控定位</strong>：按层/按 phase 拆时间线（Profiler + 集群级 timeline），区分"算力瓶颈/通信瓶颈/IO 瓶颈/同步等待"四类占用</li>
+          </ul>
+          <strong>故障常态化与弹性训练（万卡日均故障数次）：</strong>
+          <ul>
+            <li><strong>故障统计</strong>：万卡集群日均硬件故障数次（GPU 掉卡/NCCL 超时/光模块/内存 ECC），一次全量重启恢复要小时级 → 损失巨大；MTBF（平均无故障时间）从年降到天</li>
+            <li><strong>Checkpoint 工程</strong>：高频快照（异步 checkpoint，训练不中断，秒级写入分层存储）+ 增量 checkpoint（只存变化分片）+ 三维并行下的一致性分片恢复（恢复时按新拓扑重切分）</li>
+            <li><strong>弹性训练（Elastic Training）</strong>：节点掉线自动缩容续训（数据并行维度动态调整 batch/学习率），故障节点替换后自动扩回；C5/Ctrl 类控制器 + 健康检查心跳</li>
+            <li><strong>在线诊断</strong>：NCCL 级超时定位、GPU 健康预测（ECC 错误率趋势提前换卡）、"暗故障"检测（卡还在跑但速度异常）</li>
+            <li>2026 实践：字节 MegaScale / 字节-北大论文、阿里 PAI、Google Pathways 都公开了弹性调度体系；国内"昇腾万卡"补齐了容错工具链</li>
+          </ul>
+          <strong>面试加分点：</strong>①能推导"通信量与并行维度"的排序（TP > EP > DP > PP）并解释组合放置原则；②说出 ZeroBubble 如何把 PP 气泡压到 <1%；③给出弹性续训的难点细节（优化器状态跨拓扑重分片、LR 调度与 batch 变化的耦合）；④有真实故障案例（如 NCCL 挂起定位到光模块、FP8 训练 loss spike 排查），这是区分"背题"与"做过"的关键。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"五件套=DP(ZeRO 分片)/TP(机内 NVLink)/PP(跨机 1F1B/ZeroBubble)/EP(MoE all-to-all)/CP(Ring Attention 超长序列)。组合=TP8×PP8-16×CP2-4×DP/EP 吃剩余，通信贵的放近。MFU=30-40% 为优，靠通信计算重叠+融合 kernel+FP8+expert 负载均衡+数据流水线。弹性训练=异步增量 checkpoint(秒级)+跨拓扑重分片恢复+自动缩扩容+GPU 健康预测。万卡日均故障数次，MTBF 从年到天，容错是工程生命线。"</div>
       </div>
     </div>
 
