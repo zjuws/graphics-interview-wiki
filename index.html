@@ -390,7 +390,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num">344+</div><div class="stat-label">面试题目</div></div>
+    <div class="stat-item"><div class="stat-num">358+</div><div class="stat-label">面试题目</div></div>
     <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">技术模块</div></div>
     <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">大厂覆盖</div></div>
     <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">含详细答案</div></div>
@@ -16717,6 +16717,632 @@ Answer + 可信度 + 引用</code></pre>
           </ul>
           <strong>面试加分点：</strong>①能推导"通信量与并行维度"的排序（TP > EP > DP > PP）并解释组合放置原则；②说出 ZeroBubble 如何把 PP 气泡压到 <1%；③给出弹性续训的难点细节（优化器状态跨拓扑重分片、LR 调度与 batch 变化的耦合）；④有真实故障案例（如 NCCL 挂起定位到光模块、FP8 训练 loss spike 排查），这是区分"背题"与"做过"的关键。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"五件套=DP(ZeRO 分片)/TP(机内 NVLink)/PP(跨机 1F1B/ZeroBubble)/EP(MoE all-to-all)/CP(Ring Attention 超长序列)。组合=TP8×PP8-16×CP2-4×DP/EP 吃剩余，通信贵的放近。MFU=30-40% 为优，靠通信计算重叠+融合 kernel+FP8+expert 负载均衡+数据流水线。弹性训练=异步增量 checkpoint(秒级)+跨拓扑重分片恢复+自动缩扩容+GPU 健康预测。万卡日均故障数次，MTBF 从年到天，容错是工程生命线。"</div>
+      </div>
+    </div>
+
+    <!-- Q329 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q329</div>
+        <div style="flex:1">
+          <div class="q-title">路径追踪降噪器（Path Tracing Denoiser）的演进：SVGF → BMFR → NRD → DLSS Ray Reconstruction 各代核心数学是什么？生产里"反射/GI/阴影"统一降噪还是分通道？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么路径追踪离不开降噪器（先讲清算账）：</strong>
+          <ul>
+            <li>1spp 路径追踪输出是带噪点云 → 必须时序/空间滤波重建。算力账：4K 8M 像素 × 1spp = 1.6 万根原始光线只能产出低质图，依赖"重投影 + 历史累积 + 滤波"三件套从噪声中还原干净画面</li>
+            <li>降噪器不是附属 Pass，而是预算策略的一部分（参见 Q318）；2026 趋势是 DLSS Ray Reconstruction 统一模型替代手调滤波链</li>
+          </ul>
+          <strong>三代降噪器核心数学对比：</strong>
+          <ul>
+            <li><strong>SVGF（Spatiotemporal Variance Guided Filter, 2017）</strong>：空间 A-Trous 小波滤波 + 时序累积 + 沿 motion vector 重投影；用方差估计（min/max depth 与 normal 的局部统计）作自适应核半径，引导边缘处用小核（保细节）、平坦处用大核（强去噪）。缺陷：高频细节（头发、栅栏）易过糊、对 firefly（火花/直光残点）失效</li>
+            <li><strong>BMFR（Blockwise Multi-Order Feature Regression）/ ReBLUR 等 NVIDIA NRD 系列</strong>：基于经验模态分解把入射辐照度分为 direct/indirect/specular/diffuse 四个信号通道，每个通道独立做降噪（数学特性不同，分开处理效果远好于混合）；NRD 4.0 还提供 SIGMA（环境光遮蔽专用）、ReLAX（混合管线专用）等变体。NRD 思路被众多引擎采用（UE 自带 NRD 集成）</li>
+            <li><strong>DLSS Ray Reconstruction 3（DLSS RR, 2024-2026 主流）</strong>：用大 Transformer 模型 + UNet 跨帧输入（G-Buffer 深度/法线/MV + 噪声色 + 历史帧 + jitter 偏移）端到端输出干净图像，单模型同时处理反射、GI、阴影、AO、半透明 firefly → 替代手调滤波链。它能"学"出不同信号差异，跨场景泛化能力远胜传统滤波器；代价是输入信噪比极低时（<0.5spp）可能幻觉</li>
+          </ul>
+          <strong>生产中的分通道 vs 统一降噪选择：</strong>
+          <ul>
+            <li><strong>分通道（NRD 派）</strong>：把信号按物理意义拆开（specular/diffuse/indirect），每通道独立滤波 → 数学最优、参数可解释、调试方便；但要写多套 Pass（反射/漫反射 GI/阴影降噪各一），GPU 调度复杂、带宽乘以通道数</li>
+            <li><strong>统一降噪（DLSS RR 派）</strong>：单模型端到端 → 调度简单、跨场景泛化强，但黑盒难调、需要大数据集训练、对"未见过场景"可能出现幻觉；NVIDIA RTX 全家桶默认方案</li>
+            <li><strong>2026 主流选择</strong>：AAA 走 DLSS RR 统一；自研引擎与开源方案走 NRD 分通道；移动端/边缘端选 SVGF/BMFR 等传统滤波器（显存/带宽限制）</li>
+          </ul>
+          <strong>工程难点与对策：</strong>
+          <ul>
+            <li><strong>输入信号一致性</strong>：法线/材质 ID/MV 必须每帧一致，否则重投影错位 = 拖影；G-Buffer 编码要稳</li>
+            <li><strong>Firefly 控制</strong>：直接光 + 高光镜面产生极亮单像素噪声（异常值）→ 滤波前必须做局部最大值裁剪（Clamp）或带权重的多 tap 评估</li>
+            <li><strong>抖动时序稳定性</strong>：蓝噪声抖动序列 + TAA 共享 jitter → 噪声频谱被白化，避免低频周期性噪点</li>
+            <li><strong>输入 spp 自适应</strong>：1spp 与 4spp 用同一滤波参数会过糊/过噪 → spp 比例反馈引导滤波强度（DLSS RR 内部处理）</li>
+          </ul>
+          <strong>面试加分点：</strong>①能说清 SVGF 用 min/max 局部方差估计的关键技巧（为什么不用 mean variance，而是 min/max 收敛统计）；②区分 NRD 的物理通道拆分（specular/diffuse 是光的物理传播性质不同）与"按 Pass 拆"的区别；③知道 DLSS RR 用了哪个 Transformer 架构（NVIDIA 未公开细节但业内推测是类似 Restormer 的多尺度 Transformer）；④给出自己在 1spp 时的实际成本数据（滤波 0.3-0.5ms / DLSS RR 0.8-1.2ms）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"算账=4K 1spp=1.6 万根光线产噪声图，必须重投影+历史+滤波。演进=SVGF(方差引导 A-Trous 小波)/NRD(物理通道拆分 spec/diff/indir/阴影+BMFR+SIGMA+ReLAX)/DLSS RR(大 Transformer 端到端跨帧统一替代手调链)。选型=AAA 走 DLSS RR 统一、自研走 NRD 分通道、边缘端选 SVGF。难点=输入信号一致性+firefly 裁剪+蓝噪声抖动+spp 自适应。"</div>
+      </div>
+    </div>
+
+    <!-- Q330 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q330</div>
+        <div style="flex:1">
+          <div class="q-title">虚拟几何体（Virtual Geometry / Meshlet / Procedural Geometry）与 Nanite 的差异：Nanite 的"虚拟化几何"思想如何被借鉴到 V-Buffer、Mesh Shader、自研引擎？2026 年 Mesh Shader + Bindless + Meshlet 三件套的工程最佳实践？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Nanite 的"虚拟化几何"思想解构：</strong>
+          <ul>
+            <li>核心心法 = 把整个场景视作一块"虚拟几何"，由 GPU 按需流式 + LOD 调度；CPU 不需要知道"一共有多少三角形"，GPU 也不需要把所有三角形放进 VB/IB</li>
+            <li>三大支柱：①<strong>Meshlet 化</strong>（固定大小的三角形簇 128 tri/clusters，便于 SIMT 并行与缓存命中）②<strong>层级化 LOD</strong>（按屏幕误差阈值自动选择 cluster 层级，类似 mipmap）③<strong>软光栅化</strong>（用 software rasterizer 在 GPU 上做精确几何剔除，绕过硬件管线的固定三角形粒度）</li>
+            <li>Nanite 的代价：专用数据结构、定制光栅化路径、与传统渲染管线兼容需要 fallback mesh（Q310 已覆盖）</li>
+          </ul>
+          <strong>"虚拟几何"思想的工程化借鉴路径：</strong>
+          <ul>
+            <li><strong>V-Buffer 3.0 路径（Q310 已述）</strong>：不存材质，只存 Cluster ID + Barycentric → 光照时按 ID 查表 + 属性重算，本质是"Nanite 思想的轻量化版本"</li>
+            <li><strong>Mesh Shader 路径（D3D12 Ultimate / Vulkan）</strong>：用 Mesh Shader 替代 VS+IA 阶段，Meshlet 化天然适配；Mesh Shader 可在 GPU 上做 LOD 选择与裁剪（扩 indirect meshlet draw），硬件加速 + 标准化 API</li>
+            <li><strong>Bindless Descriptor 路径</strong>：16K 槽位单次 Bind → 几万 cluster/mesh 不再切描述符、避免 PSO 爆炸；GPU-Driven Pipeline 三件套 = Bindless + Compute Cull + Mesh Shader</li>
+            <li><strong>Procedural Mesh / Runtime Mesh 路径</strong>：自定义几何体（刀光、破碎、植被）在 GPU 上程序化生成，省 CPU 上传；2026 UE Nanite Foliage / 3DGS 都是该思想的延伸</li>
+          </ul>
+          <strong>2026 Mesh Shader + Bindless + Meshlet 工程最佳实践：</strong>
+          <ul>
+            <li><strong>Meshlet 划分</strong>：128 tri/cluster 公认甜点；按连续 LOD 阈值在离线阶段预切；Cluster 边界要算共享顶点避免裂缝（CR/CL seam 处理）</li>
+            <li><strong>Bindless 三层</strong>：TLAS（场景级 Acceleration Structure）、Buffer SRV（顶点/索引）、Texture SRV（材质）全部走 Descriptor Heap 单次 Bind；PSO 编译量从 N×M 降到 1</li>
+            <li><strong>Compute Cull 三层</strong>：① Frustum Cull（按 meshlet AABB 粗筛）② Occlusion Cull（HZB 剔除）③ LOD 选择（屏幕误差阈值）—— 三层 Compute Pipeline 串成 async chain，可与 Render 主队列并行</li>
+            <li><strong>Mesh Shader 编写</strong>：EmitVertex/EmitIndex 控制输出；组内共享内存做 meshlet AABB 计算；与现代 SM 6.8 的 Work Graph 协同（Producer-Consumer 零回读）</li>
+            <li><strong>兼容性 fallback</strong>：低端机/老硬件（不支持 Mesh Shader）降级到传统 VS+IA 路径，同一 meshlet 数据结构可在两路径上复用</li>
+          </ul>
+          <strong>面试加分点：</strong>①能说清 Nanite 与 Mesh Shader 的本质差异（Nanite 软光栅替代硬件、Mesh Shader 走硬件 Meshlet 阶段）；②解释为什么 Meshlet 128 tri 是甜点（wave 32-64 thread 整除、SIMT 满载、共享内存放得下 AABB）；③知道 Work Graph 与 Meshlet 协同的新范式（Producer Mesh Shader → Consumer 光栅化，零回读）；④对比自研引擎做虚拟几何的最低成本路径（V-Buffer + Bindless，不依赖硬件 Mesh Shader）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"虚拟几何心法=按需流式+LOD，CPU/GPU 都不需知全量三角形。Nanite 三大支柱=Meshlet 128 tri+层级 LOD+软光栅。借鉴路径=V-Buffer(轻量版属性重算)/Mesh Shader(硬件标准路径)/Bindless(描述符单次绑)+Procedural(运行时生成)。2026 三件套=Meshlet 128/Compute Cull 三层(Frustum+HZB+LOD)/Mesh Shader+Work Graph 零回读。Fallback=低端机降级 VS+IA 复用 meshlet 数据。"</div>
+      </div>
+    </div>
+
+    <!-- Q331 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q331</div>
+        <div style="flex:1">
+          <div class="q-title">毛发 / 织物 / 透明材质的渲染难点：Marschner 毛发散射模型、Kajiya-Kay 各向异性发丝、丝线/丝绸双层 BSDF、Order-Independent Transparency 选型怎么选？</div>
+          <div class="q-tags">
+            <span class="q-tag mihoyo">米哈游</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>毛发散射——从近似到物理的演进：</strong>
+          <ul>
+            <li><strong>Kajiya-Kay 模型（1989）</strong>：把头发视为光纤圆柱体，假设光照沿切线方向偏移（tan 偏移近似），适合早期游戏（计算廉价）。缺陷：无物理背向散射、无次表面、无多根发丝间散射耦合</li>
+            <li><strong>Marschner 模型（2003，业界标准）</strong>：把发丝视为透明圆柱体（皮质层 + 髓质层），入射光分三路散射——R（直接镜面反射，TT 模式主贡献）、TT（穿入-穿出透射，主导漫反射色）、TRT（穿入-反射-穿出，主导二次高光）；相位函数用 1D 球面坐标 θ_h/θ_d 表征，EE + ECSum + ECBlend 三层结构拟合</li>
+            <li><strong>2026 进展</strong>：神经散射（NeLUT 神经网络拟合的查表）、双层头发模型（strands 之外考虑头发层间的多次散射，UE Strata Hair 用）、SSS 增强版（血色贡献）</li>
+            <li><strong>工程实践</strong>：Marschner 模型用 1D LUT（θ_h/θ_d → BRDF）实现实时化；UE 的 Hair Strands / Strata Hair / Frostbite Hair 都是该路线</li>
+          </ul>
+          <strong>织物（Fabric / Silk）渲染难点与方案：</strong>
+          <ul>
+            <li><strong>丝绸/缎面（Anisotropic Fabric）</strong>：织线排列 → 各向异性高光（Ward / Disney anisotropic BRDF + 微表面方向）；旋转方向沿织线走向</li>
+            <li><strong>粗糙布料（绒布、棉麻）</strong>：微纤维多次散射主导 → 单 BSDF 不够，用<strong>双层 BSDF</strong>（表面层粗糙纤维反射 + 表面下层散射层，二者混合）→ Chen & Silva / Jakob 双层模型是基础</li>
+            <li><strong>天鹅绒（Velvet）</strong>：纤维末端向外散射 → 反向反射增强（retro-reflection，g 负值的相位函数）；Disney 的 Velvet lobe 单独拟合</li>
+            <li><strong>2026 工业实现</strong>：OpenPBR 提案含 Fabric 双层 + Velvet lobe；UE Substrate 材质框架下"Slab"组合式 BSDF（丝+缎+绒随意叠）；Fabric LUT 烘焙参数（粗细/密度/颜色）查表化</li>
+          </ul>
+          <strong>Order-Independent Transparency（OIT）方案选型：</strong>
+          <ul>
+            <li><strong>① 深度剥离（Depth Peeling）</strong>：多 Pass 从前到后剥离最近层，按 Pass 数严格有序；O(N) Pass = O(N) 带宽，移动端不实用</li>
+            <li><strong>② Per-Pixel Linked Lists（PPLL）</strong>：每个像素一个链表存所有透明片段，链表长度动态分配 → 单 Pass、显存与透明数线性相关；移动端带宽瓶颈</li>
+            <li><strong>③ Weighted Blended OIT（WBOIT / WBOIT++）</strong>：用加权函数（1/α、α(1-α)、α·z 等）把所有透明片段按权重累加到一张 RT → 单 Pass、O(1) 成本、但顺序不严格（适合烟、火、粒子，不适合精确折射）</li>
+            <li><strong>④ Moment-Based OIT（MBOIT）</strong>：用 4 阶矩（power + depth）累加拟合分布 → 顺序感知、O(1) 成本；适合玻璃水等需要顺序的半透明场景</li>
+            <li><strong>⑤ Neural OIT（2026 前沿）</strong>：用小型 MLP 在光照后插入排序/混合 → 视觉上最优但训练成本高、黑盒难调</li>
+            <li><strong>选型决策树</strong>：精确折射/玻璃 → Depth Peeling（限定 N=4-8）；烟/火/粒子/UI → WBOIT（最佳性价比）；玻璃水/海水 → MBOIT；实验性项目 → Neural OIT</li>
+          </ul>
+          <strong>面试加分点：</strong>①能画出 Marschner 三路散射示意图（R/TT/TRT）；②区分织物双层 BSDF 与皮肤的 SSS（都是多层但物理不同：织物是纤维层、皮肤是组织层）；③OIT 各方案准确说出带宽账（PPLL 4×RT、WBOIT 2×RT、MBOIT 4×RT）；④知道 2026 OpenPBR 织物与 Substrate Slab 的工程意义（跨引擎材质互操作）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"毛发=Kajiya-Kay(切线偏移近似,廉价)/Marschner(三路 R/TT/TRT,1D LUT 拟合,业界标准)+ 神经散射 NeLUT。织物=缎面各向异性 BSDF/绒布双层 Chen&Silva/天鹅绒 retro-reflection/Substrate Slab 组合。OIT=Depth Peeling 精确但 N Pass/PPLL 单 Pass 带宽大/WBOIT 加权累加 1 Pass 最便宜/MBOIT 4 阶矩顺序感知/Neural OIT 实验性。选型=玻璃 Depth Peeling/烟火 WBOIT/海水 MBOIT。"</div>
+      </div>
+    </div>
+
+    <!-- Q332 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q332</div>
+        <div style="flex:1">
+          <div class="q-title">GPU 资源调度与多引擎协同：Graphics / Compute / Copy Queue 怎么分？Async Compute（异步计算）什么时候该开、什么时候会拖性能？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>三大引擎的角色与定位：</strong>
+          <ul>
+            <li><strong>Graphics Queue</strong>：唯一支持光栅化（Rasterization）和 Present/输出，主渲染 Pass 跑这里；带宽大、独占 SM</li>
+            <li><strong>Compute Queue</strong>：纯通用计算（Culling、降噪、AI、BVH 构建），可与 Graphics 并行（异步计算 Async Compute）；带宽较 Graphics 低但灵活</li>
+            <li><strong>Copy Queue（D3D12）/ Transfer Queue（Vulkan）</strong>：DMA 数据搬运（CPU→GPU 上传、流式资源解压、SSBO 之间传输）；不抢占 SM，几乎零成本并发</li>
+            <li><strong>D3D12 引擎类型决策表</strong>：高级引擎（D3D12_COMMAND_QUEUE_TYPE_VIDEO）用于编解码；现代 GPU 普遍有 3-4 个引擎槽位，厂商实现差异大</li>
+          </ul>
+          <strong>Async Compute 的本质收益与代价：</strong>
+          <ul>
+            <li><strong>收益</strong>：把可并行的 Compute 工作（Cull、BVH 构建、降噪）从 Graphics 主队列移到独立队列，让 Compute 与 Graphics 在 GPU 上时间交错执行 → 隐藏 Compute 时延，理论帧时间省 0.5-2ms</li>
+            <li><strong>代价（常见踩坑）</strong>：①依赖关系引入 fence 等待（Compute 结果要被 Graphics 用 → Graphics 等 Compute 信号）②跨队列访问同一资源需插入 UAV barrier ③引擎切换有几十 μs 调度开销（小任务开 Async 比同步还慢）④部分 GPU（尤其移动端）对多引擎调度支持弱，强行开反而拖慢</li>
+            <li><strong>Async Compute 适合</strong>：Compute 耗时 > 0.3ms 且可与 Graphics 重叠；典型场景：Lumen 屏幕探针计算、RT BVH 构建、DLSS 锐化、AI 降噪、Culling</li>
+            <li><strong>不适合</strong>：Compute 极短（<0.3ms，调度开销占比大）；与 Graphics 强同步（数据直接喂给 Graphics 下一阶段，必须等）</li>
+          </ul>
+          <strong>资源调度与同步原语：</strong>
+          <ul>
+            <li><strong>Fence</strong>：CPU/GPU 同步点，CPU 等 GPU 完成（CPU→GPU）、GPU 等 CPU（GPU→CPU）、GPU 内跨队列（GPU→GPU）</li>
+            <li><strong>Barrier（UAV / Transition）</strong>：GPU 内单队列内资源状态转换（写→读必须 barrier）；跨队列更需 UAV barrier 防止读写冲突</li>
+            <li><strong>Multi-Queue 协同模式</strong>：① <strong>Ping-Pong</strong>：双 Buffer 交替读写避免 fence 等待；② <strong>Ring</strong>：多 Buffer 轮转；③ <strong>Signal/Wait</strong>：信号量跨队列握手（Graphics 等 Compute 信号后才消费结果）</li>
+            <li><strong>2026 Work Graph 范式</strong>：D3D12 Work Graphs（SM 6.8）用"Producer-Consumer"图声明任务依赖，硬件自动调度 + 零 CPU 回读，部分替代手写 Async Compute（Q274 已涉及）</li>
+          </ul>
+          <strong>工程最佳实践：</strong>
+          <ul>
+            <li>先 Profile 后决策：用 PIX / RenderDoc / RGP 看"Graphics 通道空隙"（Graphics 跑不满 SM）再决定上 Async Compute</li>
+            <li>小步迭代：每个 Async Compute 任务独立 Profile，确认带来收益再保留</li>
+            <li>移动端默认同步，PC 端按需开启；主机（PS5/Xbox）有多队列硬件支持，可大胆用</li>
+            <li>引擎层抽象（如 UE 的 RHI Async Compute、Unity SRP 的 CommandBuffer 跨 Pass）封装 fence 细节，业务层少碰</li>
+          </ul>
+          <strong>面试加分点：</strong>①能说出 "Async Compute 让 Compute 与 Graphics 时间重叠" 的物理本质（GPU SM 调度时间片轮转）；②指出"小任务开 Async 反而更慢"的反直觉现象并解释（调度开销占比 + UAV barrier 频率提升）；③给出真实工程案例（UE 5 Lumen 默认 Async Compute 屏幕探针 → 启用带来 0.5-1ms 帧时间收益）；④知道 Work Graph 是 2026 的演进方向（声明式依赖替代手写 fence）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"三引擎=Graphics(光栅+Present)/Compute(纯计算,可异步)/Copy(DMA,零 SM 抢占)。Async Compute 收益=Compute 与 Graphics 时间重叠省 0.5-2ms；代价=fence 等待+UAV barrier+调度开销+移动端调度弱。适合=Lumen 探针/BVH 构建/降噪(>0.3ms 且可重叠)，不适合=短任务/强同步。同步原语=Fence/Barrier/Work Graph(Producer-Consumer 零回读)。先 Profile 后开，移动端默认同步。"</div>
+      </div>
+    </div>
+
+    <!-- Q333 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q333</div>
+        <div style="flex:1">
+          <div class="q-title">着色器管理（Shader Management）与 PSO 缓存：跨平台 shader 变体爆炸怎么管理？Pipeline State Object（PSO）预编译与运行时卡顿优化策略？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>为什么 shader 管理是引擎级难题：</strong>
+          <ul>
+            <li>现代渲染管线需要 shader 变体（variants）：每个材质可能需要：Lit/Unlit、Forward/Deferred、ShadowCaster/DepthOnly、DirectX/Vulkan/Metal、Quality Tier × 4-5 级、Mobile/Desktop；一个 3A 项目 shader 变体数可达 10K-50K+，编译耗时数小时-数天，包体膨胀显著</li>
+            <li>shader 变体爆炸的工程症状：①包体大（每个变体几十 KB-几 MB）②冷启动卡顿（首次加载时编译/上传 shader）③热更新困难（shader 缓存难跨版本复用）</li>
+          </ul>
+          <strong>Shader 变体管理方案：</strong>
+          <ul>
+            <li><strong>预生成变体清单</strong>：编辑器扫描材质/材质实例/平台组合 → 生成完整变体表 → CI 在 PC 集群预编译所有变体并打包</li>
+            <li><strong>Permutation 标签化</strong>：把变体维度拆为 permutation 标签（STATICLIGHT、FOG、HAIR、LIT 等），运行时按材质实际需求拼装最小变体；类似 UE 的 Material Feature Level 概念</li>
+            <li><strong>按平台裁剪</strong>：移动端禁用高阶特性（Volumetric Fog、SSS、Screen Space 等），专属 mobile shader 变体子集；HLSL → DXBC → SPIRV → MSL 三平台独立编译链</li>
+            <li><strong>运行时去重</strong>：相同 permutation 在不同材质间去重；按需加载（首次引用才下载到本地）</li>
+            <li><strong>2026 趋势</strong>：Mesh Shader / Bindless 让 shader 变体数下降（无需按材质/平台做大量特殊化），单一 Shader Permutation 更通用</li>
+          </ul>
+          <strong>PSO 缓存与运行时卡顿：</strong>
+          <ul>
+            <li><strong>PSO（Pipeline State Object）</strong>：D3D12/Vulkan 把 shader + 渲染状态（blend/depth/stencil/raster）+ 输入布局打包为一个状态对象；创建成本数百 μs 到 ms 级</li>
+            <li><strong>运行时卡顿来源</strong>：首次遇到新 shader variant → 创建 PSO → 卡顿（帧时间 100ms+ 尖峰）；3A 大作典型场景"打开新区域/拾取新武器"瞬间卡顿，根因就是 PSO 编译</li>
+            <li><strong>预编译 + 预热</strong>：
+              <ul>
+                <li>① <strong>离线预编译</strong>：把所有 PSO 在加载阶段（Loading Screen）预创建好 → 玩家进入正式场景已缓存完成</li>
+                <li>② <strong>Pipeline Cache 持久化</strong>：把 PSO 序列化到磁盘（每个驱动版本+ GPU 架构独立缓存），二次启动复用</li>
+                <li>③ <strong>Shader Pre-Warm</strong>：用 background thread 在 Loading 阶段预先创建可能用到的 PSO，配合 priority queue</li>
+                <li>④ <strong>Asynchronous PSO Creation</strong>：把 PSO 创建放入独立线程/低优先级，主线程只检查缓存，缺失走 fallback 渲染</li>
+              </ul>
+            </li>
+            <li><strong>UE 实践</strong>：PSO Precaching 机制（4.21+）；Shader Pipeline File Cache（*.upipelinecache）；自动收集运行期 PSO → 离线打包</li>
+            <li><strong>Unity 实践</strong>：ShaderVariantCollection API；SRP Batcher 减少 PSO 切换</li>
+          </ul>
+          <strong>工程最佳实践：</strong>
+          <ul>
+            <li>Profile 工具：PIX PSO Events、Razor Frame Capture、UE PSO Stats</li>
+            <li>持续收集：玩家跑过的 PSO 自动上报 → CI 补全预编译清单</li>
+            <li>热更新：驱动版本变化 → PSO Cache 失效，UI 友好提示"驱动更新"避免用户困惑</li>
+            <li>Mesh Shader + Bindless 路线从根本上降低 PSO 数量（描述符 Heap 单次绑，不再每个材质一个 PSO）</li>
+          </ul>
+          <strong>面试加分点：</strong>①能给出"为什么 PSO 创建贵"的本质（驱动层 HLSL 字节码生成 + 着色器状态机硬件配置，跨平台差异大）；②说出 PSO Cache 文件为何不可跨驱动版本（驱动版本变化 → 内部 hash 失效）；③知道 GPU 驱动层 Shader 编译 vs 用户态 PSO 创建的区分；④给出自己项目治理 shader 变体爆炸的具体案例（如"我们项目 shader 变体 28K → 接入 SRP Batcher 后降到 8K"）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"变体爆炸=10K-50K 变体/项目，编译耗时数小时，包体大。管理=Permutation 标签化+预生成清单+按平台裁剪+运行时去重+Mesh/Bindless 减少变体。PSO 运行时卡顿=首次创建 100ms+尖峰，预编译(Loading Screen)+Pipeline Cache 持久化(磁盘序列化)+Asynchronous 创建(后台线程)。UE PSO Precaching 4.21+ / Unity ShaderVariantCollection / Mesh Shader+Bindless 根本上降 PSO 数。"</div>
+      </div>
+    </div>
+
+    <!-- Q334 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q334</div>
+        <div style="flex:1">
+          <div class="q-title">虚拟纹理（Virtual Texture / Mega Texture）与纹理流式（Texture Streaming）引擎：Clipmap / Page Table / Feedback 的工作机制？2026 VT 在开放世界与 Nanite 中的协同？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag mihoyo">米哈游</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>虚拟纹理的核心动机（为什么不是直接全量纹理）：</strong>
+          <ul>
+            <li>开放世界需要超大纹理（地形 Lightmap、Detail Splat、远景 Tile Set），单张可能 16K×16K 甚至 32K×32K → 单卡显存放不下，且绝大部分像素根本没被近距离观察到 → 浪费</li>
+            <li>VT 思路 = 把超大纹理切成固定大小 Page（如 128×128），按需从磁盘加载到 GPU 显存中的物理页池（Physical Page Pool），运行时通过 Page Table 映射虚拟坐标 → 物理坐标</li>
+          </ul>
+          <strong>VT 三大组件：</strong>
+          <ul>
+            <li><strong>Page Table（页表）</strong>：虚拟纹理坐标 → 物理页号（或 invalid） 的映射表，每页项记录物理地址 + 状态位（已加载/请求中/缺失）；CPU/GPU 都要可读，存为 Buffer 或 2D Texture 数组</li>
+            <li><strong>Feedback（反馈缓冲）</strong>：屏幕渲染后记录当帧实际访问到的虚拟页坐标 → 回读（CPU readback）→ 触发 IO 调度加载缺失页；用 atomic counter + minimize noise（蓝噪声采样而非全量反馈）</li>
+            <li><strong>Page Pool（页池管理）</strong>：固定大小的物理纹理页池（GPU 显存一段），按 LRU 或 priority 替换；IO 加载完成后写入对应物理页槽位</li>
+            <li><strong>Clipmap（地形专用）</strong>：按相机位置自动平移的"环状"虚拟纹理，常用于地形（中心高细节、边缘低细节），UV 不需要重新生成；属于 VT 的简化实现</li>
+          </ul>
+          <strong>VT 进阶：Runtime Virtual Texture（RVT）与稀疏纹理：</strong>
+          <ul>
+            <li><strong>RVT</strong>：运行时把材质效果（地形 Detail、Lightmap）合成到 VT 纹理，避免每帧重复计算；UE RVT 是 Nanite Foliage 协同的关键（植被细节由 RVT 烘焙到虚拟纹理，不每材质采样）</li>
+            <li><strong>Sparse Texture / Tiled Resource</strong>：硬件级支持（NVIDIA 部分 GPU + 全部主机）—— Page 直接由硬件管理，无需软件 Page Table；但驱动支持有限，UE/Unity 多走软件 VT 路线</li>
+            <li><strong>神经纹理压缩（NTC, Q226 已涉及）</strong>：把 VT 页内容用神经网络压缩 → 内存进一步省 5-10×，是 VT 与 AI 渲染的交集</li>
+          </ul>
+          <strong>2026 VT 在开放世界与 Nanite 中的协同：</strong>
+          <ul>
+            <li><strong>地形 + 植被协同</strong>：地形 Splat 用 RVT 烘焙（静态），远景植被贴图走 Nanite Virtual Material（动态流式）；近景特写走物理纹理（最高细节），距离过渡自动切换</li>
+            <li><strong>IO 调度协同</strong>：VT 页请求与 Nanite Cluster 流式请求共享同一个 Streaming Manager（UE 5.7+ 统一调度），按重要性优先级混合加载，避免互相挤兑</li>
+            <li><strong>显存预算</strong>：典型 PC 配置 VT 物理页池 512MB-1GB，按 128×128 page = 64KB/页 = 8K-16K 物理页；NVMe 顺序读 + DirectStorage 让 IO 瓶颈突破</li>
+            <li><strong>精度分层</strong>：Mipmap 0（最高细节）→ Mip 12（最低）按距离自动选取，远景用低 mip 省显存；Clipmap 思想延续</li>
+          </ul>
+          <strong>工程难点与对策：</strong>
+          <ul>
+            <li><strong>Pop-in（纹理突然出现）</strong>：异步加载 + 距离雾遮挡 + mip 渐变；预先按相机轨迹预加载</li>
+            <li><strong>Feedback 回读时延</strong>：单帧 readback 1-2ms，移动端用 tile 化降分辨率；Mali/Adreno 上要精细优化</li>
+            <li><strong>显存碎片</strong>：固定大小物理页池避免碎片；LRU 替换策略</li>
+            <li><strong>多线程同步</strong>：CPU 写 Page Table、GPU 读 Page Table → 同步原语 + 双缓冲 Page Table</li>
+          </ul>
+          <strong>面试加分点：</strong>①能解释为什么 Page Size 选 128×128（Page Table 大小 ↔ 物理页池大小 ↔ 单页 IO 成本的权衡，128 是甜点）；②区分硬件 Sparse Texture 与软件 VT 的工程取舍（硬件灵活但驱动支持差，软件普适但要管 Page Table）；③知道 UE RVT 与 Nanite 流式是同一 Streaming Manager；④给出自家项目 VT 卡顿排查经验（Feedback 频次/Pool 命中率/IO 队列堆积）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"动机=大纹理 16K+ 单卡放不下，大部分像素未被访问。VT 核心=Page Table(虚拟→物理映射)+Feedback(屏幕访问回读触发 IO)+Page Pool(固定物理页 LRU)。Clipmap=地形专用环状 VT。RVT/NTC=运行时合成/神经压缩再省 5-10×。2026 协同=Nanite 流式与 VT 共用 Streaming Manager(UE 5.7+)+RVT 烘焙+物理页池 512MB-1GB。难点=Pop-in(dither 过渡)/Feedback 回读时延/Page Table 双缓冲同步。"</div>
+      </div>
+    </div>
+
+    <!-- Q335 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q335</div>
+        <div style="flex:1">
+          <div class="q-title">混合架构（Hybrid Architecture）的复兴：Jamba / Zamba / Nemotron-H / Qwen3-Next 的 Mamba+Transformer 架构如何设计？为什么 Linear Attention 在 2026 重新被旗舰模型采纳？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Linear Attention 复兴的"三个推力"：</strong>
+          <ul>
+            <li><strong>推理成本拐点</strong>：Transformer 自注意力的 O(n²) 复杂度与 KV Cache 的 O(n) 线性增长，在 100K+ 长上下文场景成本爆炸；Linear Attention（SSM/Mamba/RWKV）推理时 O(1) 每 token 的固定算力 → 长上下文推理成本降 5-10×</li>
+            <li><strong>硬件匹配成熟</strong>：Mamba-2 的 SSD（State Space Duality）发现 SSM 与注意力的对偶性，可在 FlashAttention 同款 kernel 上跑 → 主流 GPU 友好</li>
+            <li><strong>混合架构工程成熟</strong>：纯 SSM 在 in-context learning 与复制任务上弱于 Attention，混合架构取二者之长：Attention 负责"精确检索/复制"，SSM 负责"长程压缩"——成为旗舰默认选择</li>
+          </ul>
+          <strong>2026 主流混合架构家族：</strong>
+          <ul>
+            <li><strong>Jamba（AI21, 2024）</strong>：Mamba + Transformer Attention 块按 8:1（或 4:1）交错，MoE 化；52B 总参 / 12B 激活，256K 上下文，Mixtral 同等质量下吞吐量提升 3×</li>
+            <li><strong>Zamba（Zyphra, 2024-2025）</strong>：7B 参数级，Attention 层只占总层数 7%，配合"共享 attention 层"参数复用；目标消费级 GPU 单卡部署</li>
+            <li><strong>Nemotron-H（Nvidia, 2025-2026）</strong>：Hybrid Mamba-Transformer + 全 MoE 化（Mamba 层间夹 1 层 Attention），560B 参数，1M 上下文，吞吐量比同等 Transformer 高 4×</li>
+            <li><strong>Qwen3-Next / Qwen3.5 路线</strong>：8 层 Attention + 数十层 Linear（Gated DeltaNet）按特定比例交错，配合 MoE；阿里实现"高密度 Attention + 高效 Linear 主体"</li>
+            <li><strong>Falcon-Mamba 系列</strong>：纯 Mamba 探索（无 Attention），证明纯 SSM 在合适训练下可逼近 Attention 质量</li>
+          </ul>
+          <strong>架构设计要点（面试答题主线）：</strong>
+          <ul>
+            <li><strong>层间比例</strong>：经验值 Attention:Linear ≈ 1:8 到 1:16，过低影响检索能力（大海捞针变弱），过高失去 Linear 的效率优势</li>
+            <li><strong>混合位置</strong>：开头/结尾几层放 Attention（接收输入/产出输出精度敏感），中间层放 Linear（压缩长程依赖）；部分方案隔几层交叉</li>
+            <li><strong>训练技巧</strong>：Linear 层对初始化敏感（用单位矩阵初始化状态），训练时 LR 比 Attention 层稍低；预训练 + 长上下文微调两阶段</li>
+            <li><strong>MoE 化</strong>：混合架构天然适合 MoE（结构差异让专家分工更自然：Attention 专家管推理，Linear 专家管记忆）</li>
+          </ul>
+          <strong>Linear Attention 三强对比（Mamba-2 / RWKV-7 / Gated DeltaNet）：</strong>
+          <ul>
+            <li><strong>Mamba-2（SSD）</strong>：状态空间 + 对偶算法，与 Attention 数学可对偶 → 可用 FlashAttention 同款 kernel；目前生态最广</li>
+            <li><strong>RWKV-7</strong>：线性 RNN 风格 + 时序衰减 + token-shift 机制；推理极快，生态独立（RWKV.cpp 端侧部署）</li>
+            <li><strong>Gated DeltaNet / Qwen3-Next 主用</strong>：在 Mamba-2 基础上加门控 + delta 规则，长程记忆能力比纯 SSD 更强；2026 旗舰主力</li>
+          </ul>
+          <strong>面试加分点：</strong>①能说清 SSD 对偶性的本质（SSM 的状态更新矩阵 A 与 Attention 的 softmax kernel 在某些条件下数学等价）；②给出"为什么纯 Linear 不能取代 Attention"的论证（in-context learning 任务中 Attention 的精确匹配能力不可替代）；③知道混合架构在不同任务上的差异化表现（编程/数学任务 Attention 收益高，长文档问答 Linear 收益高）；④了解端侧（手机/车机）纯 Linear 架构的工程价值（电池/热设计约束）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"三个推力=推理成本拐点(Linear O(1) vs Attention O(n²))/硬件匹配成熟(SSD 对偶性复用 FlashAttention kernel)/混合工程成熟(各取所长)。2026 家族=Jamba(8:1 Mamba+Attn MoE)/Zamba(7% Attn 共享层)/Nemotron-H(MoE 560B 1M)/Qwen3-Next(Attention+DeltaNet)/Falcon-Mamba 纯探索。设计=Attn:Linear 1:8~1:16 比例+头尾精度敏感+MoE 化。三强=Mamba-2 SSD/RWKV-7 时序衰减/Gated DeltaNet 门控。"</div>
+      </div>
+    </div>
+
+    <!-- Q336 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q336</div>
+        <div style="flex:1">
+          <div class="q-title">混合专家（MoE）的容量工程学：Fine-grained Experts / Shared Experts / DeepSeekMoE vs Mixtral 架构对比？2026 MoE 在 1T+ 参数量下的训练稳定性与负载均衡策略？</div>
+          <div class="q-tags">
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>MoE 的本质动机（先讲清账本）：</strong>
+          <ul>
+            <li>密集模型（Dense）：每 token 激活全部参数 → 算力与参数量线性挂钩 → 1T 参数 = 1T 计算量</li>
+            <li>稀疏模型（MoE）：每 token 只激活 Top-K 个专家 → 算力与激活量挂钩，与总参数量解耦 → 1T 参数可只有 50B 激活 = 推理成本降到 1/20</li>
+            <li>代价：显存按总参数量计（所有专家都要加载），KV Cache 按激活数计；负载不均（专家坍塌）会浪费容量</li>
+          </ul>
+          <strong>三大家族架构演进：</strong>
+          <ul>
+            <li><strong>GShard / Switch Transformer（粗粒度，2020-2022）</strong>：每层 N=16/64 个专家，Top-1/2 路由；问题——专家粒度太粗、专家之间知识边界僵硬（一个专家被迫同时学多类知识）</li>
+            <li><strong>Mixtral 8x7B（2023）</strong>：每层 8 专家 Top-2 路由，标准 MoE；活跃度 13B 但参数量 47B，开源标杆</li>
+            <li><strong>DeepSeekMoE（细粒度，2024-2026 演进）</strong>：核心创新 = ①<strong>细粒度专家</strong>（N=64-256，每个专家 FFN 中间维度缩小）②<strong>共享专家</strong>（K=1-2 个始终激活，吸收通用知识）③<strong>Aux-Loss-Free 负载均衡</strong>（无辅助损失函数，直接调整路由偏置 bias，保证负载均衡）。DeepSeek-V3/V5 旗舰都用这一套</li>
+            <li><strong>Qwen-MoE / Llama-MoE（2025-2026）</strong>：在细粒度 + 共享专家基础上加 Expert Choice 路由（专家选 token 而非 token 选专家），天然均衡但破坏因果性 → 训练技巧复杂</li>
+          </ul>
+          <strong>1T+ 参数下训练稳定性挑战：</strong>
+          <ul>
+            <li><strong>专家坍塌</strong>：路由集中于少数专家 → 大量专家训练不充分 → 模型容量浪费。对策：Aux-Loss-Free 偏置调整（DeepSeek 系），每步根据专家负载微调 bias</li>
+            <li><strong>通信瓶颈</strong>：EP（Expert Parallel）维度的 all-to-all 通信成为瓶颈，1T 模型 EP×16 时单 step all-to-all 通信可达秒级；FP8 all-to-all + 通信压缩是必做</li>
+            <li><strong>专家粒度 vs 专家质量</strong>：太细（256+）单专家能力弱，路由选择难度大；太粗（8-16）专家间知识混合。DeepSeek 经验 ≈ 64-160 专家 / 共享 2-4</li>
+            <li><strong>训练-推理一致性</strong>：训练时专家随机化（Dropout）vs 推理时确定性路由 → 性能差距，需"训练时就用推理时的 top-K 分布"约束</li>
+            <li><strong>微调特殊性</strong>：全参数微调 MoE 显存爆炸（需存所有专家参数），常用"专家冻结 + 路由微调"或 LoRA 应用到每个专家</li>
+          </ul>
+          <strong>2026 容量工程学新方向：</strong>
+          <ul>
+            <li><strong>Latent MoE（Q265 已涉及）</strong>：把 token 压缩到低维 latent 后路由 → 路由计算降本 4×</li>
+            <li><strong>MegaMoE（Q288 已涉及）</strong>：超大规模专家池（10K+ 专家）通过稀疏激活实现超大容量</li>
+            <li><strong>分层路由（Hierarchical Routing）</strong>：先路由到"专家组"（粗选），再组内路由到具体专家（细选），降低路由计算</li>
+            <li><strong>Expert Memory + Routing 解耦</strong>：把"参数在哪"与"怎么路由"分开设计，路由策略可独立升级</li>
+          </ul>
+          <strong>面试加分点：</strong>①能比较 Mixtral（粗粒度 Top-2）和 DeepSeekMoE（细粒度 + 共享 + Aux-Loss-Free）的精度/成本差异；②说清 Aux-Loss-Free 的核心思想（用 bias 控制而非损失函数，避免辅助损失对主任务的干扰）；③给出 EP all-to-all 的带宽账本与 FP8/FP4 通信压缩的收益；④知道 1T+ MoE 在推理时 expert offload（不活跃专家卸载到 CPU/NVMe）的最新进展。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"动机=总参数量与激活量解耦，1T 总参数可只 50B 激活算力降到 1/20。家族=GShard 粗粒度→Mixtral 8x7B 标准→DeepSeekMoE(细粒度+共享专家+Aux-Loss-Free 偏置均衡)/Qwen-MoE(Expert Choice 反向路由天然均衡)。1T+ 挑战=专家坍塌(Aux-Loss-Free 偏置)/EP all-to-all 通信瓶颈(FP8 压缩)/训练-推理一致性/微调显存爆炸。2026 趋势=Latent MoE+MegaMoE 万专家+分层路由+内存 offload。"</div>
+      </div>
+    </div>
+
+    <!-- Q337 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q337</div>
+        <div style="flex:1">
+          <div class="q-title">大模型评测体系：从 MMLU 到 LiveBench / Arena-Hard / Frontier-Eval 的演进？2026 评测的"对抗污染 + 动态题库 + 能力分解 + 偏好对齐"四大趋势？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag base">基础</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>经典评测基准的局限与新一代评测的诞生：</strong>
+          <ul>
+            <li><strong>MMLU / GSM8K / HumanEval 等"老一辈"基准</strong>：静态题库、可被训练集污染（Frontier 模型已 MMLU >90%，区分度坍塌）、覆盖窄（难衡量真实生产场景）</li>
+            <li><strong>2026 评测的"四大趋势"总览</strong>：①对抗污染（防训练数据重叠）②动态题库（每月更新）③能力分解（不是测总分而是按维度拆分）④偏好对齐（人类偏好与模型能力双轴）</li>
+          </ul>
+          <strong>趋势一：对抗污染与动态题库</strong>
+          <ul>
+            <li><strong>LiveBench（2023-2026 持续更新）</strong>：每月发布新题，源自近期新闻/竞赛/数学；自动从 GitHub/IP/测试集合成新题；不可被"训练集作弊"</li>
+            <li><strong>Frontier-Eval（OpenAI 主导）</strong>：动态题 + 难度自适应 + 人类专家持续评审；模型在"没见过的题"上比拼</li>
+            <li><strong>ARC-AGI（ARC-AGI 2 2026）</strong>：抽象推理能力专项，AI 仍远落后人类（GPT-6 ~70%，人类 100%）；专门衡量"非记忆的真正推理"</li>
+            <li><strong>GPQA（研究生级问答）</strong>：PhD 专家命题，多领域，防止"Google-able"</li>
+          </ul>
+          <strong>趋势二：能力分解评测</strong>
+          <ul>
+            <li><strong>不是单一总分，而是按维度拆分</strong>：
+              <ul>
+                <li>推理能力：MATH-500、OlympiadBench、ARC-AGI</li>
+                <li>代码能力：SWE-bench Verified、LiveCodeBench、MultiPL-E</li>
+                <li>长上下文：RULER、LongBench v2、NIAH-X</li>
+                <li>Agent 能力：GAIA、SWE-Agent Bench、OSWorld、WebArena</li>
+                <li>多模态：MMMU、MathVista、ChartQA、VideoMME</li>
+                <li>工具使用：BFCL、Tau-Bench、ToolBench</li>
+              </ul>
+            </li>
+            <li><strong>能力雷达图</strong>：模型不再单一 Elo 排序，按维度画雷达图；同一模型不同领域表现差异极大（如 GPT-6 代码强、Claude 数学强、Gemini 多模态强）</li>
+          </ul>
+          <strong>趋势三：偏好对齐评测</strong>
+          <ul>
+            <li><strong>Chatbot Arena（LMSYS）</strong>：人类盲评对战，Elo 排序；2026 仍是最权威的"用户偏好"评测（Bradley-Terry 模型拟合）；问题：评测受风格影响（友好/格式化），不纯粹是"能力"</li>
+            <li><strong>Arena-Hard（2025）</strong>：Arena 中筛选出的难题子集，与 Chatbot Arena 总排名高相关但更聚焦"难问题"</li>
+            <li><strong>Production Capture（内部评测）</strong>：腾讯/字节/阿里都有自家"产品场景评测"——以真实用户 query 为源，比学术 benchmark 更直接反映用户感受</li>
+            <li><strong>Judge 模型</strong>：用大模型做裁判（LLM-as-Judge, Q230 已涉及）；GPT-6/Claude 5 等顶级模型判分与人类一致率 80%+，但有 length bias / style bias</li>
+          </ul>
+          <strong>趋势四：评估的反作弊与可复现性</strong>
+          <ul>
+            <li><strong>防污染机制</strong>：题目发布前 hash + 时间戳对比训练集；动态题库每月更迭</li>
+            <li><strong>Pass@k / Best-of-N</strong>：不同采样策略评测（Greedy、T=0.7、BON）；同一模型 Greedy 与 Best-of-N 可差 5-10 个百分点</li>
+            <li><strong>Sandbox 隔离</strong>：代码评测（HumanEval/SWE-bench）必须 sandbox 隔离防止作弊 + 网络限制</li>
+            <li><strong>成本与时间账</strong>：完整评测一套基准需几万到几百万美元 API 费 → 训练期间只能用小子集，全集只在最终发布前跑</li>
+          </ul>
+          <strong>面试加分点：</strong>①能区分"能力评测"与"偏好评测"——前者用题目打分，后者用人对盲评；②说出 LLM-as-Judge 的偏差类型（length/style/position）；③举一两个真实场景"某模型 MMLU 高但实际生产差"的反例（很多模型在 MMLU 上差距 1 分但用户体验天差地别）；④知道 2026 SWE-bench Verified 已逼近 90% 但"真实软件工程"（多文件、跨月迭代）仍 30-50%。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"老基准局限=静态可污染(MMLU >90% 区分度坍塌)。四趋势=对抗污染(LiveBench 月更新/ARC-AGI/GPQA)+能力分解(代码/推理/长文/Agent/多模态 雷达图)+偏好对齐(Chatbot Arena Elo/Arena-Hard 难题子集/LLM-as-Judge)+可复现(Pass@k/Sandbox)。2026 真相=MMLU 1 分差≠实际 1 分差，能力雷达图+生产捕获评测+成本账本(几万-几百万美元)才是真实画像。"</div>
+      </div>
+    </div>
+
+    <!-- Q338 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q338</div>
+        <div style="flex:1">
+          <div class="q-title">模型蒸馏（Distillation）与小型化技术全景：白盒 / 黑盒 / Self-Distillation 三类方法对比？DeepSeek-R1 / Qwen-Distill / Phi 系列如何在保持能力前提下把 70B+ 蒸馏到 7B？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>蒸馏的三类范式：</strong>
+          <ul>
+            <li><strong>白盒蒸馏（White-box）</strong>：学生模型能访问教师模型全部信息（logits、隐藏层、中间 attention）；拟合 KL 散度（output distribution）或特征对齐（Hinton 2015 / TinyBERT / MiniLM）；效果最好但要求教师开源</li>
+            <li><strong>黑盒蒸馏（Black-box）</strong>：学生只能访问教师 API 输出（文字）；通过 prompt 让教师生成训练数据（self-instruct / evol-instruct / rejection sampling）→ 学生模仿；教师可闭源，效果中等</li>
+            <li><strong>Self-Distillation（自蒸馏）</strong>：无外部教师，模型用自身多代输出互相学习（如 Self-Rewarding、Self-Play）；或同一模型不同 checkpoint 互相学习；2026 主流趋势</li>
+          </ul>
+          <strong>代表性工作对比（面试要点）：</strong>
+          <ul>
+            <li><strong>DeepSeek-R1 蒸馏（2025）</strong>：用 R1（671B MoE）生成 80 万高质量推理数据 → 蒸馏到 Qwen/Llama 1.5B-70B 系列；7B 模型在 MATH/AIME 上逼近 o1；核心：教师能力 + 大量合成数据 + 长 CoT 风格</li>
+            <li><strong>Qwen-Distill 系列</strong>：阿里体系内的蒸馏流水线，专精小尺寸（0.5B-7B）；使用教师 logits + 自有 token frequency 平衡；部署到手机/端侧</li>
+            <li><strong>Phi 系列（Microsoft）</strong>：3.8B 模型能力逼近大模型；核心不是"传统蒸馏"而是"高质量数据 + RL 训练"（Textbook Quality Data + 严选 RL 数据）；挑战了"小模型必须靠蒸馏"的传统认知</li>
+            <li><strong>Gemma / Llama 系小型化</strong>：Knowledge Distillation + Data Filtering + Architecture Optimization 三件套；Gemma 2 9B 能力近 Llama 70B 部分</li>
+          </ul>
+          <strong>蒸馏的关键工程要素：</strong>
+          <ul>
+            <li><strong>数据质量 vs 数量</strong>：R1 蒸馏 80 万条精挑细选 >> 数百万条粗筛数据；Phi 经验：1 万条教科书质量 > 100 万条噪声</li>
+            <li><strong>蒸馏温度</strong>：教师 logits 软化（temperature=2-4）让学生学到概率分布而非硬标签 → 信息密度更高；过软则失去区分度</li>
+            <li><strong>损失函数</strong>：KL 散度 + 真实标签 CE 的加权（α≈0.5-0.7），避免只学教师"幻觉"</li>
+            <li><strong>渐进式蒸馏</strong>：学生先学大模型 → 再学中间尺寸 → 最后自己；比一步蒸馏效果好（教师链式学习）</li>
+            <li><strong>能力保留</strong>：数学/代码长 CoT 蒸馏容易（信号明确），写作/创意类能力难蒸馏（无固定正确答案）</li>
+          </ul>
+          <strong>2026 蒸馏新趋势：</strong>
+          <ul>
+            <li><strong>Reasoning Distillation（推理蒸馏）</strong>：专门蒸馏"思考过程"——长 CoT 数据比短答案蒸馏效果好 30%+</li>
+            <li><strong>Multi-Teacher Distillation</strong>：多教师集成（GPT-6 数学 + Claude 代码 + Gemini 多模态），每个领域最强教师专精；学生按领域路由</li>
+            <li><strong>Online Distillation</strong>：训练中学生模型动态向教师反馈"哪里还需改进"，而非一次性离线；节省教师 API 成本</li>
+            <li><strong>训练-推理一致性</strong>：蒸馏出来的模型在推理时如果不采用与蒸馏数据相同的 decoding 策略（温度/top-p/CoT 长度），性能会大幅下降；这是常见踩坑</li>
+            <li><strong>端侧部署闭环</strong>：手机 SoC NPU 算力快速提升（Apple A20 NPU 50 TOPS、骁龙 X80 70 TOPS）→ 3B-7B 模型量化（Q4/Q5）后可在端侧实时运行，蒸馏+量化+端侧部署成完整链路</li>
+          </ul>
+          <strong>面试加分点：</strong>①能说清白盒 vs 黑盒蒸馏的工程取舍（白盒需教师开源+架构对齐+拟合 logits 算力；黑盒灵活但仅学表层）；②指出 Phi 系列对"蒸馏神话"的挑战——证明数据质量比"大模型作为教师"更关键；③知道 Self-Distillation 的优势（不依赖外部教师、可无限循环改进，但容易陷入自循环偏差）；④给出一个具体蒸馏策略（如 "GPT-6 数学教师 + Claude 代码教师 + 自有领域数据 10%")。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"三类范式=白盒(拟合 KL/特征对齐,效果最好需开源)/黑盒(API 生成数据 self-instruct,教师可闭源)/Self-Distillation(模型多代自学习,2026 趋势)。代表=R1 蒸馏 80 万 CoT 数据到 7B 逼近 o1/Phi 教科书质量挑战"必须大教师"/Gemma 三件套。工程要素=数据质量>数量+温度软化+KL/CE 加权+渐进式。2026=推理 CoT 蒸馏+Multi-Teacher+Online+端侧 Q4 部署闭环。"</div>
+      </div>
+    </div>
+
+    <!-- Q339 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q339</div>
+        <div style="flex:1">
+          <div class="q-title">Tool-Use（Function Calling）工程：从 Schema 设计到沙箱执行的完整链路？MCP（Model Context Protocol）2026 生态与传统 Function Calling 的对比与协同？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Tool-Use 的完整链路（面试必画）：</strong>
+          <ol>
+            <li><strong>工具定义层</strong>：JSON Schema 描述工具（name/description/parameters/return）；description 是"模型的接口文档"——含糊的描述 → 调用错误</li>
+            <li><strong>工具注入层</strong>：把工具列表注入到 system prompt；OpenAI/Anthropic/Google 都有原生 tools 字段，与 prompt 解耦</li>
+            <li><strong>模型决策层</strong>：模型输出 tool_call（JSON 或结构化格式）；部分模型支持 parallel calls（同轮多次调用）</li>
+            <li><strong>执行层</strong>：解析 tool_call → 沙箱执行 → 异常处理（超时/重试/降级）→ 返回 tool_result</li>
+            <li><strong>反馈注入层</strong>：把 tool_result 作为"用户消息"下一轮发给模型 → 模型基于结果继续推理</li>
+            <li><strong>终止判断</strong>：模型输出 final answer（不再调工具）或工具调完自动结束</li>
+          </ol>
+          <strong>Schema 设计的工程要点：</strong>
+          <ul>
+            <li><strong>description 的重要性</strong>：比参数定义更关键——LLM 看 description 决定何时调用、传什么值；模糊描述会"调错工具"或"不调工具"</li>
+            <li><strong>Few-shot Examples</strong>：在 description 中嵌入示例（用法 + 边界案例）显著提升调用准确率</li>
+            <li><strong>enum 限制</strong>：把可选值用 enum 列出而非 free-form string，避免模型自由发挥</li>
+            <li><strong>嵌套 schema 复杂度</strong>：超过 3 层嵌套的 schema 模型准确率明显下降 → 拆成多个简单工具优于一个复杂工具</li>
+            <li><strong>错误处理 schema</strong>：工具失败时返回错误信息结构（error_code + message + retryable），让模型能"读懂错误"再决策</li>
+          </ul>
+          <strong>沙箱与执行安全：</strong>
+          <ul>
+            <li><strong>进程级沙箱</strong>：每工具调用独立进程（subprocess/worker），超时即 kill；Docker/WASM 容器化更彻底</li>
+            <li><strong>权限最小化</strong>：每个工具声明能力集（network: ['api.example.com']/filesystem: ['/tmp/agent']）；seccomp/AppArmor 系统级限制</li>
+            <li><strong>资源配额</strong>：CPU/内存/网络带宽/IO 字节数限制；防止单工具耗尽资源</li>
+            <li><strong>审计日志</strong>：每个工具调用都记录（输入+输出+耗时+调用方），用于回放与排错</li>
+            <li><strong>错误注入测试</strong>：沙箱中模拟工具超时/返回错误/网络断开，验证模型能否优雅恢复（不进入死循环）</li>
+          </ul>
+          <strong>MCP（Model Context Protocol, 2024-2026 主流生态）：</strong>
+          <ul>
+            <li><strong>本质</strong>：把"工具调用"从"模型 API 内嵌"解耦为独立协议层，类似"Agent 时代的 USB/HTTP"——一套 MCP Server 可被任何支持 MCP 的模型客户端使用</li>
+            <li><strong>三大组件</strong>：①<strong>Tools</strong>（模型主动调用的函数）②<strong>Resources</strong>（模型被动读取的数据/上下文）③<strong>Prompts</strong>（模型可选的 prompt 模板）—— 比 Function Calling 多出 Resources 和 Prompts 两类</li>
+            <li><strong>传输</strong>：stdio（本地进程通信，简单但仅本机）+ Streamable HTTP（远程 HTTP/SSE 流式，生产首选）+ WebSocket（双向实时）</li>
+            <li><strong>生态</strong>：官方 MCP Server 仓库（filesystem / github / postgres / puppeteer 等）；2026 已 1000+ 社区 server，Linux Foundation 治理</li>
+          </ul>
+          <strong>MCP vs 传统 Function Calling 对比：</strong>
+          <ul>
+            <li><strong>Function Calling 优势</strong>：与模型原生集成、无中间层、响应快；适合单次/少量工具调用</li>
+            <li><strong>MCP 优势</strong>：工具复用（一份 server 多模型用）、生态丰富、动态加载（运行时发现工具）、跨平台/跨语言、与 Agent 框架解耦</li>
+            <li><strong>协同模式</strong>：MCP 负责"工具注册与发现"，模型调用通过 MCP 客户端 → Function Calling 作为底层 API 兼容层；2026 主流 Agent 框架（LangChain/CrewAI/AutoGen）已原生支持 MCP</li>
+          </ul>
+          <strong>面试加分点：</strong>①能描述完整链路（Schema → 注入 → 决策 → 执行 → 反馈 → 终止）六步；②知道 description 质量是调用准确率的主要瓶颈，给出"如何写好 description"的工程经验；③区分 MCP 三件套（Tools/Resources/Prompts）与 Function Calling 的扩展；④说清"为什么 MCP 选 stdio + Streamable HTTP 双传输"的设计哲学（本地 vs 远程场景差异化）。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"完整链路=Schema(JSON Schema 定义,description 比参数更重要)→注入(tools 字段)→决策(tool_call JSON)→执行(沙箱 subprocess/容器)→反馈(tool_result 注入下一轮)→终止(final answer)。沙箱=进程隔离+权限最小化+资源配额+审计日志。MCP 三件套=Tools/Resources/Prompts,比 Function Calling 多两类。MCP vs FC=生态复用+动态加载 vs 原生集成快；2026 协同=MCP 注册发现+FC 底层 API。"</div>
+      </div>
+    </div>
+
+    <!-- Q340 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q340</div>
+        <div style="flex:1">
+          <div class="q-title">大模型安全（Safety / Alignment）工程：从 RLHF 到 Constitutional AI 到 Red Teaming 的全景？2026 Jailbreak / Prompt Injection / 模型投毒的对策与"对齐税"代价？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag alibaba">阿里</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>对齐技术演进五代（面试答题主线）：</strong>
+          <ul>
+            <li><strong>RLHF（Reinforcement Learning from Human Feedback）</strong>：人工标注偏好对（同一 prompt 的多输出排序）→ 训练 Reward Model → PPO 优化 LLM。OpenAI 主流方案，但成本高（百万美元级标注）且不稳定（Reward Hacking）</li>
+            <li><strong>DPO（Direct Preference Optimization）</strong>：跳过 Reward Model，直接用偏好对训练（数学上等价于 PPO 但更稳定），2024-2026 开源模型标配</li>
+            <li><strong>Constitutional AI / RLAIF</strong>：用 AI 替代人工打分（让 LLM 评判 LLM），规模化且可解释；Anthropic 主推，"宪法"（规则集）让 AI 自动评判</li>
+            <li><strong>SimPO / KTO / ORPO（DPO 改进）</strong>：简化目标函数 / Kahneman-Tversky 优化 / Odds Ratio；进一步去掉 reference model，显存省一半</li>
+            <li><strong>RLVR（Reinforcement Learning with Verifiable Rewards, 2025-2026）</strong>：在数学/代码等可验证领域用规则作 reward（如数学题答案对错、代码测试通过），取代人类偏好；DeepSeek-R1 / o 系列核心</li>
+          </ul>
+          <strong>Red Teaming 与对抗性测试：</strong>
+          <ul>
+            <li><strong>人工红队</strong>：雇佣专家（安全研究员/伦理学家）系统化构造攻击 prompt；Anthropic / OpenAI 都组建专门团队</li>
+            <li><strong>AI 红队</strong>：用模型自动生成攻击 prompt（对抗学习），覆盖更广；Crescendo Attack、PAIR（Prompt Automatic Iterative Refinement）等算法</li>
+            <li><strong>对抗性数据增强</strong>：训练时主动喂"危险 prompt + 安全回答"，提升对未知攻击的鲁棒性；Anthropic 的"Constitutional Examples"思路</li>
+            <li><strong>持续评估</strong>：HarmBench / AdvBench / JailbreakBench 等基准，模型迭代时回归</li>
+          </ul>
+          <strong>2026 三大攻击类型与对策：</strong>
+          <ul>
+            <li><strong>Jailbreak（越狱）</strong>：用角色扮演/多语言/Base64 编码/隐喻绕开安全策略。对策：①多层防御（System+Constitutional+Output 三层过滤）②意图识别而非关键词③<strong>对齐税</strong>——过度对齐会让模型变得"过度拒绝"，连正常问题也拒绝，伤害用户体验；需平衡"安全 vs 有用"</li>
+            <li><strong>Prompt Injection（提示词注入）</strong>：在用户输入/工具返回/外部数据中嵌入"忽略之前指令，执行 X"攻击，篡改模型行为。Q256 已涉及五大类攻击向量。对策：①<strong>输入隔离</strong>（用户输入 vs 工具输出明确区分，工具输出引用而非执行）②<strong>权限最小化</strong>（不让 Agent 直接执行外网 API）③<strong>结构化输出校验</strong>（强制 JSON Schema，不允许自由文本指令）</li>
+            <li><strong>模型投毒（Data Poisoning）</strong>：训练数据/微调数据被污染 → 后门触发（特定输入触发特定异常行为）。对策：①数据来源审计（trusted sources）②训练时 anomaly detection（loss spike 检测）③水印/签名验证</li>
+          </ul>
+          <strong>对齐税（Alignment Tax）与代价：</strong>
+          <ul>
+            <li><strong>性能税</strong>：过度对齐让模型在敏感话题外也"过度谨慎"，连正常问题拒绝；Q&A 准确率下降 2-5 个百分点</li>
+            <li><strong>推理税</strong>：多层安全过滤增加 0.3-0.8ms 时延；高频调用场景需优化</li>
+            <li><strong>训练税</strong>：安全数据需占据训练数据 5-15%，挤占其他能力训练</li>
+            <li><strong>研发税</strong>：红队/审计/合规成本数百万美元/模型版本</li>
+          </ul>
+          <strong>2026 安全工程最佳实践：</strong>
+          <ul>
+            <li><strong>Defense in Depth</strong>：模型内（对齐训练）+ 输入过滤（prompt 检测）+ 输出过滤（违规检测）+ 工具层（权限最小化）+ 监控（异常调用审计）</li>
+            <li><strong>Contextual Safety</strong>：同一问题在不同场景安全等级不同（医学 vs 创意写作），动态评估而非一刀切</li>
+            <li><strong>透明度与可解释</strong>：Constitutional AI 把规则显式化，用户可审查"为什么模型拒绝"</li>
+            <li><strong>International AI Safety Institute（2024 成立）</strong>：多国联合制定 frontier model 安全评估标准</li>
+          </ul>
+          <strong>面试加分点：</strong>①能对比 RLHF/DPO/CAI/RLVR 的优劣（成本/稳定性/可解释/规模化）；②说清 Jailbreak vs Prompt Injection 的区别（前者绕过模型自身安全、后者劫持外部指令）；③指出"对齐税"是产品级挑战（不是纯技术问题）；④知道 2026 的"Contextual Safety"（医学/法律/创意等场景差异化合规）是工程热点。</div>
+        <div class="tip-box">💡 <strong>面试框架：</strong>"五代对齐=RLHF(DPO 改进)/DPO(无 Reward Model)/CAI(AI 评判 AI)/SimPO/KTO 简化/RLVR(可验证领域规则奖励，DeepSeek-R1)。Red Team=人工+AI 自动 PAIR/Crescendo+对抗数据。2026 攻击=Jailbreak(越狱+多层防御+对齐税)/Prompt Injection(输入隔离+权限最小化+结构化校验)/投毒(数据审计+loss spike 检测)。代价=性能税 2-5%/推理税 0.3-0.8ms/训练税 5-15% 数据+合规数百万美元。"</div>
       </div>
     </div>
 
