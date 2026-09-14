@@ -1271,6 +1271,78 @@
         <div class="tip-box">💡 <strong>面试框架：</strong>"Nanite 5.5 三大进步：Skeletal Mesh 从实验到稳定（Compute Skin Cache + Cluster LOD）、Foliage 专属路径解决 Masked 材质开销、Texture Color 绘制突破顶点色限制。核心限制：半透明不支持、Masked 昂贵、Morph Target 有限、磁盘 2-3×。选型：静态环境 → Nanite；角色面部/布料 → 传统 Skeletal Mesh；透明物体 → 传统光栅化。"</div>
       </div>
     </div>
+
+    <!-- ══ Q341 渲染管线（2026-09-14 新增） ══ -->
+    <!-- Q341 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q341</div>
+        <div style="flex:1">
+          <div class="q-title">RTX 50 Blackwell 神经渲染生态：Neural Shaders + Cooperative Vectors + AI Management Processor 如何把神经网络嵌入图形管线？与 DLSS 5 / Neural Materials / Neural Faces / Neural Radiance Cache 如何协同形成"全栈神经渲染"？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Blackwell 架构核心改造（为神经渲染而生）：</strong>
+          <ul>
+            <li><strong>第五代 Tensor Core</strong>：原生 FP4 / INT4 推理，吞吐量比 Ada 翻倍；可直接在 Shader 中通过 Cooperative Vectors 调用</li>
+            <li><strong>第四代 RT Core</strong>：Triangle Cluster Intersection Engine（Mega Geometry 加速）+ 压缩/解压引擎 + Linear Swept Spheres（LSS 毛发）</li>
+            <li><strong>AI Management Processor（AMP）</strong>：GPU 前端新增的 AI 任务调度单元，平衡 RT / CUDA / Tensor Core 资源；确保 LLM 对话生成与游戏渲染不互相阻塞</li>
+            <li><strong>统一 FP32/INT32 CUDA Core</strong>：所有 Shader Core 都能跑 FP32 或 INT32，比 Ada 的混合更高效</li>
+            <li><strong>GDDR7 + PAM3 信令</strong>：速率 2× GDDR6、功耗减半；DisplayPort 2.1 UHBR20 + PCIe 5.0</li>
+            <li><strong>Double Flow Through 散热</strong>：3D 真空腔均热板 + 双流式风扇，RTX 5090 600W 双槽仍 &lt;35dB</li>
+          </ul>
+          <strong>Neural Shaders（RTX 神经着色器）：</strong>
+          <ul>
+            <li>把小型神经网络嵌入 HLSL/GLSL Shader，运行时通过 Tensor Core 做推理</li>
+            <li>Microsoft DirectX <strong>Cooperative Vectors API</strong> 解锁 WMMA 指令，让 Shader 直接调用 Tensor Core</li>
+            <li>纹理压缩（NTC）+ 材质（Neural Materials）+ 面部（Neural Faces）+ 辐射缓存（Neural Radiance Cache）共用神经网络推理资源</li>
+          </ul>
+          <strong>全栈神经渲染五件套：</strong>
+          <ul>
+            <li><strong>① DLSS 5</strong>：超分辨率 + Multi Frame Generation + Ray Reconstruction，统一 Transformer 模型，sub-16ms 4K/60FPS</li>
+            <li><strong>② RTX Neural Materials</strong>：丝绢/宝石/金属镀层等复杂 BSDF 用 MLP 替代长 Shader 代码</li>
+            <li><strong>③ RTX Neural Faces</strong>：跨恐怖谷，照片级数字人面部生成（真人照片→合成数据→训练→推理增强）</li>
+            <li><strong>④ RTX Neural Radiance Cache（NRC）</strong>：路径追踪的间接光，一次反射后推算多次反射结果</li>
+            <li><strong>⑤ Neural Texture Compression（NTC）</strong>：BCn/ASTC 替代为 MLP，纹理压缩率 4-8×</li>
+          </ul>
+          <strong>DLSS 4 Multi Frame Generation 工作流：</strong>
+          <ul>
+            <li>渲染 1 帧真实画面 → DLSS 4 生成 3 帧（4× MFG）→ 每帧消耗 1 个真实像素，15 个像素由 AI 生成</li>
+            <li>Flip Metering 单元检测帧间隔，配合 AI Optical Flow + Reflex 2 Frame Warp 平滑输出</li>
+            <li>Reflex 2 Predictive Rendering：检测鼠标最后位置，对生成画面做变形修复，竞技游戏延迟可控</li>
+          </ul>
+          <strong>与 UE5 / Unity / 自研引擎集成：</strong>
+          <ul>
+            <li>NvRTX 5.7（UE5 分支，2026-03-24 发布）：DLSS 4.5 Dynamic MFG + LSS Beta + ReSTIR PT + Mega Geometry Foliage</li>
+            <li>RTX Kit 2026.2：ReSTIR PT Enhanced + 反射优化</li>
+            <li>RTX Remix：经典游戏路径追踪化（如 Quake III RTX）</li>
+          </ul>
+          <strong>AI Management Processor（AMP）实际作用：</strong>
+          <ul>
+            <li>NVIDIA ACE（AI Character Engine）本地化部署 NPC 对话模型（Nemotron 3 Nano 4B 等 SLM）</li>
+            <li>Riva v1.1 ASR（中英日多语言）、文本转语音、游戏内 AI 推理</li>
+            <li>AMP 调度：游戏渲染（RT/CUDA）+ AI 推理（Tensor）并行不阻塞</li>
+          </ul>
+          <strong>对比 Ada Lovelace（RTX 40）：Blackwell 的代际跃迁</strong>
+          <ul>
+            <li>Tensor Core：FP4 原生支持（Ada 需 FP8 模拟）</li>
+            <li>RT Core：Cluster Intersection + LSS（Ada 无）</li>
+            <li>神经渲染：5 件套完整生态（Ada 仅 DLSS 3 + 部分 Neural Materials）</li>
+            <li>AI 调度：AMP 硬件单元（Ada 无）</li>
+            <li>显存：GDDR7 32GB（RTX 5090）vs GDDR6X 24GB（RTX 4090）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Blackwell 五件套=第五代 Tensor Core（FP4）+ 第四代 RT Core（Cluster/LSS）+ AI Management Processor + Cooperative Vectors + GDDR7。全栈神经渲染=DLSS 5 + Neural Materials + Neural Faces + Neural Radiance Cache + NTC，全部在 Shader 中调 Tensor Core。这是 RTX 50 与 RTX 40 的代际分水岭，2026 路径追踪森林实时化的硬件基础。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q233 -->
@@ -2474,6 +2546,69 @@
           </ol>
           <strong>面试加分点：</strong>"UE5.5 的 Path Tracer Production-Ready 意味着游戏引擎第一次提供与离线渲染器质量对标的路径追踪——虽然采样效率仍有差距，但 GPU 加速 + 游戏资产直接可用是独特优势。Lumen 60Hz 的关键是'Surface Cache + Screen Probe + Radiance Cache'三级缓存减少光线数量，配合 Async Compute 隐藏延迟。"</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"UE5.5 三大渲染里程碑：Path Tracer 生产化（物理正确 + MRG 集成 + 时空降噪）、Lumen 60Hz（Surface Cache + Screen Probe + Radiance Cache 三级缓存 + HWRT 加速）、Substrate Beta（BSDF 分层替代 Legacy 材质）。与 Arnold 差距：复杂 caustics 和 MLT 采样策略，但 GPU 交互式预览是 UE5 独有优势。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q342 光线追踪（2026-09-14 新增） ══ -->
+    <!-- Q342 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q342</div>
+        <div style="flex:1">
+          <div class="q-title">RTX Mega Geometry Foliage（GDC 2026）：用 Partitioned TLAS 实现百万级植被路径追踪？为什么 The Witcher 4 / Alan Wake 2 / CONTROL Resonant 都采用该方案？与传统 BVH refit / rebuild 的性能差距？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心问题：植被路径追踪的几何爆炸</strong>
+          <ul>
+            <li>森林场景 100 万+ 植株，每株 50-100 三角形 → <strong>5000 万-1 亿三角形</strong>，每帧风吹动画都变化</li>
+            <li>传统 BVH 每帧 rebuild：O(N log N)，1 亿三角形需要数十 ms，远超实时预算</li>
+            <li>传统 BVH refit（不动结构只更新 AABB）：动画拓扑变化时 refit 会导致 BVH 质量退化，ray traversal 效率下降 30%+</li>
+          </ul>
+          <strong>Mega Geometry Foliage 核心架构：</strong>
+          <ul>
+            <li><strong>Partitioned TLAS（顶层加速结构分区）</strong>：把整个森林 TLAS 拆分为多个分区，每区独立管理一组植被实例</li>
+            <li><strong>实例级加速</strong>：每个植被实例只构建一次 BLAS（Bottom-Level AS），动画时只需更新实例 transform → TLAS refit 极快</li>
+            <li><strong>Cluster-Level LOD</strong>：远距离植被自动合并为低精度 cluster，BLAS 简化；近距离保留高精度</li>
+            <li><strong>Implicit Geometry</strong>：植被用程序化参数（位置/朝向/季节）描述，运行时生成几何而非存储</li>
+          </ul>
+          <strong>性能数据（GDC 2026 官方报告）：</strong>
+          <ul>
+            <li><strong>Alan Wake 2（Remedy）</strong>：Mega Geometry 集成后<strong>+5-20% FPS</strong>、<strong>VRAM 节省 300MB</strong></li>
+            <li><strong>The Witcher 4（CDPR）</strong>：路径追踪完整森林 demo（百万级植被）</li>
+            <li><strong>CONTROL Resonant（Remedy）</strong>：Mega Geometry 集成大幅减少几何更新开销</li>
+            <li><strong>Quake III Arena RTX</strong>：开源 demo，集成 Mega Geometry + Neural Radiance Cache + DLSS 4 MFG</li>
+          </ul>
+          <strong>与传统 BVH 方案对比：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">方案</th><th style="padding:6px;border:1px solid #ddd">几何更新</th><th style="padding:6px;border:1px solid #ddd">BVH 质量</th><th style="padding:6px;border:1px solid #ddd">适用场景</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">BVH rebuild</td><td style="padding:6px;border:1px solid #ddd">O(N log N)，极慢</td><td style="padding:6px;border:1px solid #ddd">最佳</td><td style="padding:6px;border:1px solid #ddd">静态场景</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">BVH refit</td><td style="padding:6px;border:1px solid #ddd">快（O(N)）</td><td style="padding:6px;border:1px solid #ddd">动画退化 30%+</td><td style="padding:6px;border:1px solid #ddd">小幅动画</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Mega Geometry Partitioned TLAS</td><td style="padding:6px;border:1px solid #ddd">最快（实例 transform 更新）</td><td style="padding:6px;border:1px solid #ddd">保持最佳</td><td style="padding:6px;border:1px solid #ddd">百万级动态植被</td></tr>
+          </table>
+          <strong>RT Core 第四代（Blackwell）协同：</strong>
+          <ul>
+            <li>第四代 RT Core 引入<strong>Triangle Cluster Intersection Engine</strong>，对 Mega Geometry 的 Cluster 做批量相交测试</li>
+            <li>支持<strong>压缩格式 + 无损解压引擎</strong>，BVH 节点内存占用减少 75%</li>
+            <li><strong>Linear Swept Spheres (LSS)</strong> Beta：用球-曲线基元代替三角形做毛发路径追踪，更快更省内存</li>
+          </ul>
+          <strong>与 ReSTIR PT / NRD / DLSS RR 闭环：</strong>
+          <ul>
+            <li>Mega Geometry 解决"几何爆炸"</li>
+            <li>ReSTIR PT 解决"采样爆炸"（路径复用 + 时空重采样）</li>
+            <li>NRD 4.0 + DLSS Ray Reconstruction 解决"噪声爆炸"（1 spp → 接近 4096 spp 视觉质量）</li>
+            <li>四件套组合 = Blackwell RTX 50 + UE5.8/NvRTX 5.7 的"实时路径追踪森林"事实方案</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Mega Geometry Foliage = Partitioned TLAS + 实例级 BLAS refit + Cluster LOD + Implicit Geometry。Alan Wake 2 实测 +5-20% FPS / -300MB VRAM；The Witcher 4 实现百万植被路径追踪。与 BVH rebuild/refit 对比优势明显。与第四代 RT Core Cluster Intersection Engine + LSS 协同，与 ReSTIR PT + NRD + DLSS RR 形成完整闭环。</div>
       </div>
     </div>
   </section>
@@ -3765,6 +3900,64 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试框架：</strong>"Substrate = BSDF 的乐高积木。传统材质是硬编码模型（Default Lit / Clear Coat 等），Substrate 把材质拆成独立 Slab（Dielectric / Metal / Clear Coat / Subsurface / Fuzz / Thin Film），美术自由组合。5.5 Beta 改进：全部 Legacy 特性 + 全平台 + Path Tracer 完整支持。性能比 Legacy 慢 1.5-3×，适合 Look Dev 和过场动画，实时游戏应用等 GA。"</div>
       </div>
     </div>
+
+    <!-- ══ Q343 PBR（2026-09-14 新增） ══ -->
+    <!-- Q343 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q343</div>
+        <div style="flex:1">
+          <div class="q-title">2026 神经材质（Neural Materials）生态：RTX Neural Materials / UE Substrate Neural / Adobe Standard Material 神经增强 / MIT Neural BRDF v3 在着色器中如何调用 Tensor Core？与传统 Cook-Torrance BRDF 的本质差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：传统 PBR 的瓶颈</strong>
+          <ul>
+            <li>Cook-Torrance BRDF + GGX + Smith 遮挡函数对丝绢、宝石、金属镀层等复杂材质<strong>需要极长的着色器代码 + 大量纹理</strong>，近看才显真实</li>
+            <li>数据采集困难：MERL BRDF 数据库的 100 种材质只覆盖小范围，难以参数化控制</li>
+          </ul>
+          <strong>Neural Materials 核心思想：</strong>
+          <ul>
+            <li>把"复杂 BSDF 计算"压缩为<strong>小型神经网络</strong>，权重存储在纹理/Buffer中，运行时在 Shader 中调用 Tensor Core 做推理</li>
+            <li>训练数据：从 MERL/SVBRDF 采集的真实材质 → MLP 学习"输入参数（粗糙度/各向异性/角度）→ BRDF 值"映射</li>
+            <li>推理开销：约 1-2ms/帧（4K），相比传统复杂着色器（5-10ms）反而<strong>更快</strong></li>
+          </ul>
+          <strong>Cooperative Vectors（DirectX 12 + Blackwell）解锁 Tensor Core：</strong>
+          <ul>
+            <li>传统 HLSL 不能直接调用 Tensor Core；Cooperative Vectors API 让 Shader 直接调用 WMMA（Warp Matrix Multiply Accumulate）指令</li>
+            <li>Blackwell 第五代 Tensor Core 原生支持 FP4/INT4，吞吐量翻倍</li>
+            <li>RTX Neural Shaders 把神经网络嵌入可编程着色器，配合 Cooperative Vectors 完成推理</li>
+          </ul>
+          <strong>2026 四大 Neural Material 方案对比：</strong>
+          <ul>
+            <li><strong>RTX Neural Materials（NVIDIA）</strong>：商业 SDK，专攻"丝绢/宝石/金属镀层"等高复杂度材质；通过 NRMS（Neural Reflectance Models）替代 Cook-Torrance；与 RTX Neural Faces / RTX Neural Radiance Cache 同属 RTX Neural Rendering 套件</li>
+            <li><strong>UE Substrate Neural</strong>：Substrate 框架内的 Slab 节点支持神经 BRDF，与 Closure Graph 能量守恒协同；2026 路线图把 Slab 全部神经化</li>
+            <li><strong>Adobe Standard Material（ASM）+ Neural</strong>：开源标准材质 + 神经增强层，参数化控制更友好（适合 DCC 工具链）</li>
+            <li><strong>MIT Neural BRDF v3（学术）</strong>：可微 BRDF，支持反向传播优化材质参数；2026 v3 引入金属/各向异性扩展</li>
+          </ul>
+          <strong>与传统 Cook-Torrance 的本质差异：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Cook-Torrance + GGX</th><th style="padding:6px;border:1px solid #ddd">Neural Materials</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">表达力</td><td style="padding:6px;border:1px solid #ddd">受限（解析公式）</td><td style="padding:6px;border:1px solid #ddd">无限（MLP 通用逼近）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">数据</td><td style="padding:6px;border:1px solid #ddd">参数化（粗糙度/金属度）</td><td style="padding:6px;border:1px solid #ddd">真实采集（MERL/SVBRDF）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">性能</td><td style="padding:6px;border:1px solid #ddd">长 Shader 代码（5-10ms）</td><td style="padding:6px;border:1px solid #ddd">Tensor Core 推理（1-2ms）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">硬件</td><td style="padding:6px;border:1px solid #ddd">全平台</td><td style="padding:6px;border:1px solid #ddd">RTX 50+（Blackwell + Cooperative Vectors）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">迭代</td><td style="padding:6px;border:1px solid #ddd">改 Shader 代码</td><td style="padding:6px;border:1px solid #ddd">重新训练模型</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">可解释</td><td style="padding:6px;border:1px solid #ddd">物理可解释</td><td style="padding:6px;border:1px solid #ddd">黑盒（需可微 BRDF 反推）</td></tr>
+          </table>
+          <strong>与 Neural Texture Compression（NTC）协同：</strong>NTC 把 BCn/ASTC 替代为 MLP，与 Neural Materials 共享 Tensor Core 资源；2026 趋势是<strong>"一切材质相关数据都神经网络化"</strong>。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Neural Materials = 把复杂 BSDF 压缩成小型 MLP，运行时通过 Cooperative Vectors 在 Shader 中调 Tensor Core 推理（FP4/INT4 翻倍吞吐）。四大方案=RTX Neural Materials / UE Substrate Neural / Adobe Standard Material Neural / MIT Neural BRDF v3。相比 Cook-Torrance 表达力无限+数据真实+推理更快但需 Blackwell 硬件。与 NTC 协同=材质全栈神经化。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q235 -->
@@ -4511,6 +4704,67 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- ══ Q344 阴影（2026-09-14 新增） ══ -->
+    <!-- Q344 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q344</div>
+        <div style="flex:1">
+          <div class="q-title">VSM 进阶工程调优：UE5 Virtual Shadow Map 的 Clipmap 滚动 / Marking Pass 性能预算 / Non-Nanite Marking Job Queue 溢出排查？DFSS（Distance Field Soft Shadow）+ SSS（Screen Space Shadow）三级 Fallback 怎么协同？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Clipmap 滚动机制（方向光 VSM）：</strong>
+          <ul>
+            <li>UE5 默认 8 级 Clipmap，每级覆盖范围 2× 递增，精度 1/2 递减，对应 CSM Cascade 但过渡更平滑</li>
+            <li>相机移动时，<strong>Page 粒度滚动</strong>（类似 Toroidal Addressing）：只重新渲染移入视野的新 Page，无需全量重绘</li>
+            <li>滚动逻辑：Camera 位移超过 Page Size 阈值 → 触发 Page Rotate（环形地址翻转），新 Page 写入 Physical Pool 旧位置</li>
+            <li>关键 CVars：<code>r.Shadow.Virtual.ClipmapLevelBias</code>（调整级数偏移）、<code>r.Shadow.Virtual.ClipmapPageTransform</code>（调试可视化）</li>
+          </ul>
+          <strong>Marking Pass 工作流：</strong>
+          <ul>
+            <li><strong>Marking Pass</strong> 遍历屏幕可见像素，计算每像素对应的阴影 UV，标记哪些 Virtual Page 需要更新</li>
+            <li>只有被标记的 Page 才在 Shadow Render Pass 中写入 Physical Pool → 增量更新减少 Overdraw</li>
+            <li>性能预算：通过 <code>r.Shadow.Virtual.NonNaniteMarkingPassBudget</code>（单位 100us）控制；预算不足时跳过部分标记 → 阴影"延迟出现"伪影</li>
+          </ul>
+          <strong>Non-Nanite Marking Job Queue 溢出（高频生产问题）：</strong>
+          <ul>
+            <li>症状：日志出现 <code>Non-nanite Marking Job Queue overflow</code> 警告，部分非 Nanite 物体阴影缺失</li>
+            <li>根因：非 Nanite Mesh 有独立 Marking Job 队列，当物体过多或 Queue 容量不足时溢出</li>
+            <li>排查：① 检查 <code>r.Shadow.Virtual.MaxPlacedPhysicalPages</code>（默认 8192）是否过小；② 用 <code>stat ShadowVirtual</code> 查看 Queue 占用率；③ 把更多静态 Mesh 转 Nanite</li>
+            <li>修复：增大 <code>r.Shadow.Virtual.NonNaniteMarkingPassBudget</code>；或减少非 Nanite 物体数量；或转换 Nanite</li>
+          </ul>
+          <strong>DFSS（Distance Field Soft Shadow）+ SSS（Screen Space Shadow）三级 Fallback：</strong>
+          <ul>
+            <li><strong>Contact Shadow（SSS，屏幕空间）</strong>：用于近处 1m 内硬阴影接触细节，类似 SSAO 但更精确（Ray March 沿光照方向）；100% 硬件无关</li>
+            <li><strong>DFSS（Distance Field Soft Shadow）</strong>：用 Mesh Distance Field（SDF）做 Cone Trace，0.5m-20m 范围软阴影；无需 RT 硬件</li>
+            <li><strong>VSM</strong>：方向光 20m+ 范围主阴影，Page 化管理，支持近处高精度</li>
+            <li>三级 Fallback 协同：接触细节→Contact，近距离软阴影→DFSS，远景主阴影→VSM，无缝过渡</li>
+          </ul>
+          <strong>VSM Bindless 化（UE5.8）：解除 16 通道限制</strong>
+          <ul>
+            <li>传统 SM5 限制 16 个 SRV 绑定 → 多个 Cascade 难以一次绑定</li>
+            <li>Bindless 化后通过 Descriptor Indexing 访问任意 Page Atlas，简化多 Cascade 渲染</li>
+          </ul>
+          <strong>VSM 适用边界（不适合的场景）：</strong>
+          <ul>
+            <li>点光源 / 聚光灯：VSM 主要为方向光设计，点光源用 Cubemap VSM 内存爆炸</li>
+            <li>透明物体：VSM 不写透明几何深度，透明物体无阴影</li>
+            <li>极端远距离阴影：超远 Cascade 用 DFSS 或 Ray Traced Shadow 更合适</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>VSM 调优=Clipmap Page 滚动（Toroidal Addressing）+ Marking Pass 预算（NonNaniteMarkingPassBudget）+ Queue 溢出排查（转 Nanite 或加大 Queue）。三级 Fallback=Contact Shadow（屏幕空间 1m）→ DFSS（SDF 软阴影 0.5-20m）→ VSM（方向光主阴影 20m+）。UE5.8 VSM Bindless 化解除 16 通道限制。</div>
+      </div>
+    </div>
+
   <!-- ══ 6. 抗锯齿 ══ -->
   <section class="wiki-section" id="aa">
     <div class="section-title"><span class="section-icon">🔲</span>抗锯齿技术</div>
@@ -4952,6 +5206,68 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>面试加分点：</strong>"降噪是实时路径追踪的'第二引擎'——没有好的降噪，1 SPP 的路径追踪完全不可用。NRD 是传统方案的巅峰（多 Pass + G-Buffer 引导），DLSS RR 用 Transformer 端到端学习超越手工滤波——核心优势是语义理解和非局部信息利用。未来趋势：AI 降噪 + 更多 SPP + 更好 BVH = 路径追踪游戏。"</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"时空降噪 = 路径追踪的必需品。演进：SVGF（联合双边滤波）→ BMFR（线性回归）→ NRD（REBLUR 多 Pass 生产级）→ DLSS RR（Transformer 端到端）。NRD 四步：时序累积 → 历史修复 → 空间模糊 → 判别式模糊。AI 优势：语义理解 + 非局部信息 + 多信号融合 + Transformer 长距离建模。1 SPP → 降噪 → 接近 4096 SPP 视觉质量。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q345 抗锯齿（2026-09-14 新增） ══ -->
+    <!-- Q345 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q345</div>
+        <div style="flex:1">
+          <div class="q-title">DLSS 5（SIGGRAPH 2026）三大 AI 模型（A/B/C）+ 实时逐帧时序流 + 4K/60FPS 单卡目标：解决了 DLSS 4 哪些"艺术意图"问题？为什么从 chunk-based 改为 motion-vector 驱动的 frame-by-frame 生成？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>DLSS 4 的"艺术意图"批评（2025-2026 争议焦点）：</strong>
+          <ul>
+            <li>DLSS 4 引入 CNN → Transformer 升级、MFG 4× 多帧生成，但早期 demo 暴露<strong>"过度写实化"问题</strong>：原本 stylized 的角色面部/材质被 AI 模型"超分先验"重写为 photorealistic，<strong>偏离开发者艺术意图</strong></li>
+            <li>Shimmering（闪烁）问题：chunk-based 时序流处理在边界处产生明显伪影</li>
+            <li>UI 静态元素被超分模型误处理，文字/图标模糊</li>
+          </ul>
+          <strong>DLSS 5（SIGGRAPH 2026）三大 AI 模型 A/B/C：</strong>
+          <ul>
+            <li><strong>Model A</strong>：低强度，结构保真优先，适合需要严格保留开发者原始视觉的场景</li>
+            <li><strong>Model B</strong>：中等强度，全局光照与纹理细节增强，平衡质量与艺术意图</li>
+            <li><strong>Model C</strong>：高强度，最大参数量 photorealism 增强，用于"参考级"过场动画</li>
+            <li>开发者可<strong>per-scene / per-character</strong>混合配置：主角用 Model C，远景用 Model A，过场用 Model C</li>
+          </ul>
+          <strong>实时逐帧时序流（Real-Time Temporal Streaming）：</strong>
+          <ul>
+            <li>放弃 chunk-based 处理，<strong>直接用游戏引擎的 motion vectors</strong>，frame-by-frame 实时生成</li>
+            <li>消除 shimmering 与 image corruption；4K 帧可在 16ms 内生成（60 FPS+）</li>
+            <li>处理时间占比：游戏引擎占大头，DLSS 5 模型本身开销极小</li>
+          </ul>
+          <strong>艺术意图保留机制（Artistic Intent Preservation）：</strong>
+          <ul>
+            <li>per-object customization：开发者可对特定物体/角色设置不同的超分强度与参数</li>
+            <li>material photorealism 限定：仅在严格参数范围内应用 photorealism，不破坏原始视觉身份、角色 pose、光照语义</li>
+            <li>granular control：per-scene + per-character 微调</li>
+          </ul>
+          <strong>UI 处理改进：</strong>
+            <p>Frame Generation 模型更新引入额外游戏引擎数据，提升静态 UI 元素的清晰度与质量。</p>
+          <strong>DLSS 4.5 → DLSS 5 演进路线：</strong>
+          <ul>
+            <li>DLSS 4.5（2026-03-31 SDK）：Dynamic MFG（根据显示器刷新率自适应 1-6×）、6X MFG、Transformer 超分</li>
+            <li>DLSS 5（2026 下半年发布）：A/B/C 三模型、实时时序流、艺术意图保留、4K/60FPS sub-16ms</li>
+          </ul>
+          <strong>对比 DLSS 4 / FSR 4 / XeSS 2 / TSR：</strong>
+          <ul>
+            <li>DLSS 5：仅 RTX 50+（Blackwell 第五代 Tensor Core + FP4），最佳质量，封闭生态</li>
+            <li>FSR 4：AMD RDNA4 ML 超分，开源跨 GPU，对旧硬件回退到 FSR 3 算法</li>
+            <li>XeSS 2：Intel XMX 加速，Arc 限定</li>
+            <li>TSR：UE5 内置，纯规则算法无 AI 硬件依赖，跨平台质量稳定</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>DLSS 5 = 三 AI 模型 A/B/C（per-scene/per-character 配置）+ 实时逐帧时序流（motion vectors 驱动消除 shimmering）+ 4K/60FPS sub-16ms。核心解决 DLSS 4 的"艺术意图偏离"和"chunk-based shimmering"两大问题。仅 RTX 50+ Blackwell 支持。FSR 4/XeSS 2 是开源替代，TSR 是规则算法兜底。</div>
       </div>
     </div>
   </section>
@@ -5538,6 +5854,65 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
             <li><strong>Look Dev / 质量验证</strong>：Path Tracer 作为 Ground Truth → 调参 Deferred 使其视觉匹配 Path Tracer → 切换到 Forward+ 验证性能</li>
           </ol></div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"UE5 三模式统一架构：共享 Substrate 材质 + G-Buffer Layout + 光源数据 + 后处理链。Forward+（全平台/MSAA/低带宽）→ Deferred（PC/G-Buffer/材质受限）→ Path Tracer（RTX/物理正确/非实时）。Visibility Buffer 是三模式的共同抽象——Nanite 统一了几何阶段。选型：实时游戏 → Forward+/Deferred；过场 → Deferred + RT 关键路径；电影 → Path Tracer + MRG。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q346 延迟渲染（2026-09-14 新增） ══ -->
+    <!-- Q346 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q346</div>
+        <div style="flex:1">
+          <div class="q-title">Clustered Shading 进阶与 MegaLights 协同：3D Cluster 分块 vs 2D Tile 的深度方向问题？2026 UE5.8 MegaLights 1700+ 动态光源如何与 Clustered Deferred 协同？Importance Sampling + Top-K 路由的工程实现？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>2D Tile Shading 的深度方向缺陷：</strong>
+          <ul>
+            <li>屏幕 16×16 Tile 做光源剔除，但深度方向上前后灯光穿插时，单个 Tile 仍需遍历所有覆盖该 Tile 的光源 → 大开放世界室内场景"灯光穿透多层楼板"问题严重</li>
+            <li>深度 Min-Max 优化只能粗略剔除，<strong>每个 Tile 仍可能挂载数十到上百个光源</strong></li>
+          </ul>
+          <strong>3D Clustered Shading 核心改进：</strong>
+          <ul>
+            <li>把屏幕 Tile 在深度方向再切分为多个 Cluster（三维格子），每个 Cluster 独立光源列表</li>
+            <li>深度切分策略：<strong>指数分布</strong>（近处密、远处疏，匹配透视投影）或 <strong>log-space 均匀</strong></li>
+            <li>光源剔除更精确：光源包围球与 3D Cluster 视锥体相交测试，深度方向可独立剔除</li>
+            <li>《赛博朋克 2077》夜城使用 Clustered Deferred，数千动态光源下维持 60 FPS</li>
+          </ul>
+          <strong>UE5.8 MegaLights（"光照领域的 Nanite"）核心算法：</strong>
+          <ul>
+            <li><strong>Importance Sampling</strong>：对每个像素，按光源对该像素的贡献度排序，只取 Top-K（默认 8-16）个最重要光源实际着色，剩余光源用低分辨率近似或忽略</li>
+            <li><strong>Light Function Atlas</strong>：把所有 Light Function（光照函数/遮罩）烘焙到一张 Atlas 纹理，避免运行时切换</li>
+            <li><strong>重要性来源</strong>：基于光源距离、强度、N·L 余弦、Visibility（VSM 软阴影预计算）综合排序</li>
+            <li>实测 UE5.8 MegaLights 支持 1700+ 动态光源，单帧 4K 60 FPS（RTX 4090）</li>
+          </ul>
+          <strong>MegaLights 与 Clustered Deferred 协同：</strong>
+          <ul>
+            <li>Clustered 提供"哪些光源可能影响这个 Cluster"候选集（粗筛）</li>
+            <li>MegaLights 在候选集内做 Top-K 重要性排序（细筛）</li>
+            <li>每个像素实际只对 Top-K 光源做完整 BRDF + Shadow 计算，其余光源走廉价近似</li>
+            <li>类似 GPU Driven 的"两阶段剔除"思路：粗筛降复杂度，细筛保质量</li>
+          </ul>
+          <strong>Bindless 化解除 16 通道限制：</strong>
+          <ul>
+            <li>传统 SM5 profile 限制 16 个 SRV/CBV/UAV 绑定点，多光源场景每光源占 1-3 个纹理 → 严重受限</li>
+            <li>Bindless Descriptor Indexing（SM6.6+）通过一个大 Descriptor Heap 索引访问任意数量资源</li>
+            <li>UE5.8 MegaLights 利用 Bindless 实现数千光源的无绑定切换</li>
+          </ul>
+          <strong>与 Visibility Buffer 协同：</strong>
+            <p>V-Buffer pass 只记录三角形 ID + barycentric，后续 Material Pass 按需 fetch；与 Clustered + MegaLights 三件套组合是 2026 高复杂度场景的事实标准（Blackwell RTX 50 + UE5.8）。</p>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Clustered=3D 分块解决 2D Tile 深度穿插问题；MegaLights=Importance Sampling + Top-K 路由（1700+ 光源仍 60 FPS）；协同链=Cluster 粗筛→MegaLights 细筛 Top-K→Bindless 解除 16 通道限制→V-Buffer Material Pass 按需 fetch。这是 UE5.8 + Blackwell 旗舰渲染栈。</div>
       </div>
     </div>
   </section>
@@ -17343,6 +17718,226 @@ Answer + 可信度 + 引用</code></pre>
           </ul>
           <strong>面试加分点：</strong>①能对比 RLHF/DPO/CAI/RLVR 的优劣（成本/稳定性/可解释/规模化）；②说清 Jailbreak vs Prompt Injection 的区别（前者绕过模型自身安全、后者劫持外部指令）；③指出"对齐税"是产品级挑战（不是纯技术问题）；④知道 2026 的"Contextual Safety"（医学/法律/创意等场景差异化合规）是工程热点。</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"五代对齐=RLHF(DPO 改进)/DPO(无 Reward Model)/CAI(AI 评判 AI)/SimPO/KTO 简化/RLVR(可验证领域规则奖励，DeepSeek-R1)。Red Team=人工+AI 自动 PAIR/Crescendo+对抗数据。2026 攻击=Jailbreak(越狱+多层防御+对齐税)/Prompt Injection(输入隔离+权限最小化+结构化校验)/投毒(数据审计+loss spike 检测)。代价=性能税 2-5%/推理税 0.3-0.8ms/训练税 5-15% 数据+合规数百万美元。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q347-Q350 AI 大模型（2026-09-14 新增） ══ -->
+
+    <!-- Q347 Transformer / 混合架构 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q347</div>
+        <div style="flex:1">
+          <div class="q-title">2026 后 Transformer 时代：Mamba-3（ICLR 2026）/ Gated DeltaNet / RWKV-7 "Goose" 的核心创新？为什么 Jamba / Nemotron-H / Qwen3-Next 都采用 1:7 的 Hybrid Mamba+Attention 比例，而不是纯 SSM？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>背景：Transformer 的二次方墙</strong>
+          <ul>
+            <li>标准 Self-Attention 计算复杂度 O(N²)、KV Cache 随上下文线性增长，4K 可控 / 128K 昂贵 / 1M+ 撞墙；FlashAttention / 稀疏注意力 / 滑动窗口只是缓解</li>
+            <li>状态空间模型（SSM）通过<strong>固定大小的递归状态</strong>把每个新 token 折叠进状态，O(N) 复杂度、内存平摊、KV Cache 问题被彻底绕开</li>
+          </ul>
+          <strong>Mamba-3（CMU+Princeton+Cartesia+Together AI，2026-03 ICLR）三大创新：</strong>
+          <ul>
+            <li><strong>MIMO（多输入多输出）</strong>：从 SISO 升级为矩阵投影，单步做 4× 算术运算 → 提高 arithmetic intensity，解决"冷 GPU"问题（解码阶段 GPU 大量时间在等内存）</li>
+            <li><strong>复数状态跟踪（Complex-Valued State）</strong>：用复数 SSM 建模，相同 perplexity 下状态大小减半；能解决位序列奇偶性等线性模型历史失败任务</li>
+            <li><strong>指数梯形离散化（Exponential-Trapezoidal）</strong>：从一阶 Euler 升级到二阶梯形，更富表达力的更新规则，去掉了 Mamba-2 的外部短因果卷积</li>
+            <li>结果：1.5B Mamba-3 下游平均 57.6%，比 Llama-3.2-1B 高 2.2 个百分点；64K 上下文比 Transformer 便宜 7×</li>
+          </ul>
+          <strong>Gated DeltaNet（NVIDIA ICLR 2025）成为 2026 主流 Linear Attention 层：</strong>
+          <ul>
+            <li>把 Mamba 风格 gating 与 delta rule 结合，做"目标性记忆更新"；持续超过 Mamba-2</li>
+            <li>已驱动 <strong>Qwen3-Next / Qwen3.5 / Qwen3.6、Kimi Linear、OLMo Hybrid</strong> 等旗舰模型</li>
+          </ul>
+          <strong>RWKV-7 "Goose"（2025-03，arXiv 2503.14456）：</strong>
+          <ul>
+            <li>纯 RNN 但可并行训练；广义 delta rule + 向量门控 + 上下文学习率；2.9B 模型用 < 1/3 训练 token 匹配 Qwen2.5 英文性能</li>
+            <li>已集成进 Windows / Office 运行时，是 Linux Foundation AI 项目</li>
+          </ul>
+          <strong>1:7 Hybrid 比例的工程逻辑（Jamba/Nemotron-H）：</strong>
+          <ul>
+            <li><strong>Recall Gap</strong>：纯 SSM 把无限历史压缩进固定状态，<strong>associative recall（精确逐字检索）</strong>是负载瓶颈，"API key 是 X，请告诉我 X" 这类问题容易丢</li>
+            <li>Hybrid 让 Mamba-2 层廉价处理大部分序列，<strong>稀疏 Attention 层</strong>保留完美 recall 能力；64K 上下文 KV Cache 只有纯 Transformer 的 10-15%</li>
+            <li>Jamba（AI21）= 1 Transformer : 8 总层 + MoE；Nemotron-H 8B/47B/56B 报告 3× 推理速度提升 + 同等或更好精度；IBM Granite 4.0 报告 70%+ 内存节省</li>
+          </ul>
+          <strong>"SSM vs Linear Attention"分歧已消解：</strong>Mamba-2 证明选择性 SSM 与掩码线性注意力对偶；DeltaNet 从另一方向到达同一对象，2026 都是"gated linear recurrence with matrix-valued state"。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Mamba-3 三件套=MIMO+复数状态+梯形离散化；Gated DeltaNet 是 2026 旗舰 Linear Attention 标配；1:7 Hybrid 是"SSM 解决成本，稀疏 Attention 解决 recall"的工程答案。Nemotron-H/Jamba 在 64K 上下文 KV Cache 仅 10-15% 但保留 recall 能力，是 2026 长上下文服务的事实标准。</div>
+      </div>
+    </div>
+
+    <!-- Q348 训练微调 / 推理模型 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q348</div>
+        <div style="flex:1">
+          <div class="q-title">Reasoning Model 2026 全景：DeepSeek R2 vs OpenAI o3 vs Claude 4.7 Extended Thinking 的差异？Test-Time Compute 为什么把"推理预算"和"训练预算"分开？同步推理 vs 智能体推理两种产品模式如何选型？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>核心机制：Test-Time Compute</strong>
+          <ul>
+            <li>训练阶段用 RL（GRPO/RLVR）让模型学会生成<strong>内部推理链</strong>（探索策略/检查部分答案/出错回溯），最后才产出最终响应</li>
+            <li>推理链常对用户隐藏（"私下思考"），与传统 left-to-right token-by-token 的固定计算量根本不同</li>
+            <li>在数学奥赛/研究生科学/竞赛编程等硬任务上，<strong>推理 compute 持续提升分数的时间远超预期</strong>（o3 high-compute 把 ARC-AGI 设计为对抗当前模型的 benchmark 直接打穿到 96.7%）</li>
+          </ul>
+          <strong>2026 五大旗舰对比：</strong>
+          <ul>
+            <li><strong>OpenAI o3</strong>：GPQA Diamond 87.7%、ARC-AGI 96.7%（high-compute）；硬题平均 57M token / 14 分钟运行，"推理经济=训练经济"</li>
+            <li><strong>DeepSeek R2</strong>（2026-04，32B dense，MIT 许可）：AIME 2025 92.7%、MATH-500 94.1%、HumanEval 89.2%；$0.8/1M input，比 GPT-5/o3 便宜 70%；可单卡 RTX 4090 24GB 部署</li>
+            <li><strong>Claude 4.7 Extended Thinking</strong>：可配置 thinking token 预算；长分析、代码 review 最强</li>
+            <li><strong>Gemini 2.5 Pro Thinking</strong>：多模态 + 超长上下文（2M token）推理最强</li>
+            <li><strong>DeepSeek R1</strong>（2025-01，671B MoE/37B active）：AIME 2024 79.8%，价格约 o1 的 5%；现仍是开源基线</li>
+          </ul>
+          <strong>R2 vs R1 关键升级：</strong>
+          <ul>
+            <li>推理链深度 3-5×（R2 平均 2400 token，R1 850 token）；MATH 78.3% vs 72.1%；推理成本下降 40%；上下文 128K vs 64K</li>
+            <li>架构从 671B MoE 改为 32B dense，<strong>"后训练优化胜过原始规模"</strong>的信号；通过推理蒸馏 + GRPO 自验证达成</li>
+          </ul>
+          <strong>两种产品模式（2026 共识）：</strong>
+          <ul>
+            <li><strong>同步推理（Synchronous Reasoning）</strong>：模型思考数秒到数分钟，返回答案；适合数学、代码、结构化分析</li>
+            <li><strong>智能体推理（Agentic Reasoning）</strong>：模型跨多次工具调用和外部交互思考数小时；适合 Deep Research、Computer Use、长流程自动化</li>
+          </ul>
+          <strong>生产部署模式：Hybrid Routing</strong>
+          <ul>
+            <li>简单查询 → 快速模型；硬查询 → 推理模型；运行时路由判断</li>
+            <li>Easy 80% 流量走 Haiku/Mini 类，Hard 20% 走 o3/R2 类，整体成本可控</li>
+          </ul>
+          <strong>Reasoning Token 的隐性成本：</strong>thinking token 按输出 token 计费，复杂问题可能产生 2-5× 的有效输出成本；不需要长思考的任务应关闭 reasoning mode（如可用）。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Reasoning Model = RL 训练生成内部推理链 + 推理时延长思考换精度。R2 32B dense + MIT + 单卡部署是 2026 性价比拐点；o3 high-compute 57M token/题把"推理经济=训练经济"。Hybrid Routing 是生产标配，Easy 走快模型 Hard 走推理模型。同步推理 vs 智能体推理是 2026 两大产品模式分水岭。</div>
+      </div>
+    </div>
+
+    <!-- Q349 推理优化 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q349</div>
+        <div style="flex:1">
+          <div class="q-title">2026 推理优化新前沿：Reasoning Model 推理预算怎么管？Thinking Token 怎么缓存与压缩？为什么 Prefill-Decode 分离 + Disaggregated Serving + Speculative Decoding 2.0 是新一代推理引擎的"三件套"？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Reasoning Model 推理预算新挑战：</strong>
+          <ul>
+            <li>o3 high-compute 单题平均 57M token / 14 分钟，<strong>推理经济已等同训练经济</strong></li>
+            <li>传统 LLM 推理优化针对"短输入短输出"，Reasoning Model 是<strong>"短输入 + 超长 thinking + 中等输出"</strong>， Prefill 占比下降，Decode 阶段主导</li>
+          </ul>
+          <strong>Thinking Token 工程优化：</strong>
+          <ul>
+            <li><strong>显式 Thinking 隔离</strong>：把 thinking 与 answer 分两个 segment，thinking 段可降级存储/压缩/部分丢弃</li>
+            <li><strong>Thinking KV Cache 重用</strong>：相同问题的 thinking 链可缓存复用（Prefix Caching 的延伸），但要注意模型 nondeterminism 带来的微小偏差</li>
+            <li><strong>Thought Compression</strong>：把长 thinking 链分段摘要压缩，类似上下文压缩（LLMLingua），保留关键推理步骤</li>
+            <li><strong>Confidence-based Early Exit</strong>：模型自评置信度足够时提前结束 thinking；DSpark 半自回归方案</li>
+          </ul>
+          <strong>三件套详解：</strong>
+          <ul>
+            <li><strong>① Prefill-Decode 分离</strong>：Prefill 是 compute-bound（并行处理 prompt），Decode 是 memory-bound（逐 token 自回归）；分到不同 GPU 池，Prefill 池高算力，Decode 池高带宽</li>
+            <li><strong>② Disaggregated Serving</strong>：vLLM / SGLang / TensorRT-LLM 的下一代架构，PD 分离 + KV Cache 跨节点传输（NIXL / KV-Xfer）；Moonshot / DeepSeek / Anthropic 都已部署</li>
+            <li><strong>③ Speculative Decoding 2.0</strong>：EAGLE-3 / Medusa-2 / Self-Speculative / DSpark 半自回归；Tree Attention 支持多分支并行验证；DeepSeek MTP 内置推测解码，无需外置 draft model</li>
+          </ul>
+          <strong>其他 2026 关键优化：</strong>
+          <ul>
+            <li><strong>Continuous Batching + PagedAttention</strong>：vLLM 的基石，动态拼批，KV Cache 分页管理，零碎片</li>
+            <li><strong>Chunked Prefill</strong>：长 prompt 分块 prefill，与 decode 请求混批，避免长 prefill 阻塞 decode</li>
+            <li><strong>Prefix Caching</strong>：相同 system prompt / few-shot 前缀的 KV 复用，TTFT 显著降低</li>
+            <li><strong>FP8 / FP4 量化</strong>：Blackwell 原生 FP4，吞吐量翻倍；NVFP4 训练也已落地</li>
+            <li><strong>MoE Cache-Aware Routing</strong>：把专家路由与 KV Cache 局部性结合，避免跨节点专家访问</li>
+          </ul>
+          <strong>推理芯片军备竞赛（2026 实测）：</strong>
+          <ul>
+            <li>Groq LPU 2.0：单卡 750 tokens/s（Llama-70B），专攻低延迟</li>
+            <li>Cerebras WSE-3：晶圆级芯片，1T 参数单卡部署</li>
+            <li>国产：天数智芯 / 寒武纪 / 昇腾，GLM-5 全程昇腾训练</li>
+            <li>评价维度：Token/J 能效、Token/$ 性价比、TTFT/TPOT 延迟</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Reasoning Model 优化核心是 Thinking Token 隔离+缓存+压缩+提前退出。PD 分离 + Disaggregated + Spec 2.0 三件套是 2026 推理引擎事实标准。FP4/FP8 + Continuous Batching + PagedAttention + Chunked Prefill + Prefix Caching + Cache-Aware MoE Routing 是基础栈。能算 Token/J 和 Token/$ 才是工程深度。</div>
+      </div>
+    </div>
+
+    <!-- Q350 RAG / Agent -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q350</div>
+        <div style="flex:1">
+          <div class="q-title">2026 RAG 全栈演进：GraphRAG vs Agentic RAG vs HippoRAG 2 vs Zep/Graphiti 双时间图怎么选？为什么 NYU Shanghai 2026 实测 GraphRAG 仅在多跳 QA 才有 +27.23 优势？90% Agentic RAG 项目失败的根因？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>NYU Shanghai 2026-04 实测结论：</strong>
+          <ul>
+            <li>GraphRAG 在<strong>多跳 QA</strong>（HotpotQA / 2WikiMultihopQA / MuSiQue）平均 +27.23 EM 优势；在<strong>通用 QA</strong> 仅 +0.47 EM</li>
+            <li>Training-free agentic search 把多跳差距缩小到 +26.59，<strong>迭代检索不能替代图结构</strong>；RL-based agentic search 才能缩小更多</li>
+            <li>选型铁律：跨文档多跳推理 → GraphRAG；单文档/单跳 → Naive/Advanced RAG + agentic 多轮即可</li>
+          </ul>
+          <strong>四大主流方案对比：</strong>
+          <ul>
+            <li><strong>Microsoft GraphRAG（v3.1.0, 34k+ stars）</strong>：研究项目非产品 SDK；Leiden 社区检测 + 社区摘要；Global Search（社区 map-reduce）/ Local Search（实体邻域）/ DRIFT 混合；索引成本随语料超线性增长，无原生增量更新</li>
+            <li><strong>LazyGraphRAG</strong>（MS 2024 末）：把摘要推迟到查询时，索引成本降到完整流程的 ~0.1%</li>
+            <li><strong>HippoRAG 2（OSU-NLP, ICML 2025）</strong>：受海马体启发；query 编码 → seed 节点评分 → Personalized PageRank 单步多跳；比迭代多跳 RAG 快 10-30×；显式定位为<strong>"非参数持续学习=记忆"</strong></li>
+            <li><strong>Zep / Graphiti</strong>（28.5k stars, Apache-2.0）：<strong>双时间图（Bi-Temporal）</strong>，valid-time（事实在世界中成立的时间）+ transaction-time（系统学到的时间）；新事实增量加入无需重建；事实变化时<strong>不删除而是 invalidate 旧边</strong>，保留历史轨迹 → "live memory vs static index" 的分水岭</li>
+          </ul>
+          <strong>Agentic RAG 90% 项目失败的根因（2024 行业报告）：</strong>
+          <ul>
+            <li><strong>链式失败累积</strong>：每步 95% 成功率，10 步整体仅 59.9%；多步工作流在生产 40% 失败率不可接受</li>
+            <li><strong>调试困难</strong>：每次运行路径可能不同，复现困难</li>
+            <li><strong>成本爆炸</strong>：多步 = 多次 LLM 调用，Anthropic 实测 multi-agent 系统用 ~15× chat 交互的 token</li>
+            <li><strong>过度工程化</strong>：为"炫技"而非"解决问题"上 Agent；Morgan Stanley 98% 成功案例的共性是<strong>限定高价值有边界场景</strong></li>
+          </ul>
+          <strong>Agentic RAG 失败模式四分类（PING，2026-01）：</strong>
+          <ul>
+            <li><strong>P</strong>ropagation（传播）：早期错误沿轨迹扩散</li>
+            <li><strong>I</strong>ntent（意图）：用户意图理解偏差</li>
+            <li><strong>N</strong>oise-induced（噪声诱导）：检索噪声触发幻觉</li>
+            <li><strong>G</strong>rounding（接地）：最终答案接地不能修复早期错误</li>
+          </ul>
+          <strong>2026 RAG 演进六大方向：</strong>
+          <ul>
+            <li>检索内化（RING / "无 RAG 的 RAG"，TTTT 0.78s vs 4.05s）</li>
+            <li>多模态工业化（MKG-RAG-Bench，效率慢 10×）</li>
+            <li>长推理 + 反思（10+ 跳 + PRM 过程奖励模型）</li>
+            <li>端到端 RL 化（Graph-R1，F1 46→58 翻倍）</li>
+            <li>开放世界 + 可信（事实核查、引用追溯、对抗鲁棒）</li>
+            <li>BM25 + SLM 重新崛起（大规模场景下 BM25 仍是王者）</li>
+          </ul>
+          <strong>Context Engineering 取代 Prompt Engineering：</strong>Anthropic 2026-07 报告，对更新模型可剥离 Claude Code 系统 prompt 的 80% 而无评估损失，从刚性规则转向模型判断；Chroma Context Rot 报告显示<strong>上下文退化是非均匀的</strong>，连贯 haystack 反而比 shuffled 表现更差。
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>GraphRAG 仅在多跳 QA 有 +27 优势（NYU 实测），单跳没必要。Zep/Graphiti 双时间图是"活记忆 vs 静态索引"的分水岭。Agentic RAG 90% 失败=链式累积+调试困难+成本爆炸+过度工程；Morgan Stanley 共性是"限定高价值边界场景"。PING 四分类（传播/意图/噪声/接地）是失败模式框架。2026 趋势=检索内化+RL 化+多模态+长反思。</div>
       </div>
     </div>
 
