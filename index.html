@@ -1343,6 +1343,95 @@
         <div class="tip-box">💡 <strong>面试要点：</strong>Blackwell 五件套=第五代 Tensor Core（FP4）+ 第四代 RT Core（Cluster/LSS）+ AI Management Processor + Cooperative Vectors + GDDR7。全栈神经渲染=DLSS 5 + Neural Materials + Neural Faces + Neural Radiance Cache + NTC，全部在 Shader 中调 Tensor Core。这是 RTX 50 与 RTX 40 的代际分水岭，2026 路径追踪森林实时化的硬件基础。</div>
       </div>
     </div>
+
+    <!-- ══ Q351 渲染管线（2026-09-18 新增） ══ -->
+    <!-- Q351 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q351</div>
+        <div style="flex:1">
+          <div class="q-title">Unity 6.5（2026）三管线命运：Built-in Render Pipeline 正式弃用 / URP Render Graph 后端主力 / HDRP 维护模式如何选？切换管线后材质为何"变粉"？SRP Batcher vs GPU Instancing vs GPU Resident Drawer 三种合批方案？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Unity 2026 战略转移（重大变化）：</strong>
+          <ul>
+            <li><strong>Built-in Render Pipeline</strong>：Unity 6.5（2026）开始<strong>正式弃用</strong>，仅 Unity 6.7 LTS 提供保证支持；官方覆盖最早 2028 结束（企业版/工业版延至 2029）</li>
+            <li><strong>HDRP</strong>：<strong>进入维护模式</strong>，除 Nintendo Switch 2 平台扩展外不增加新功能</li>
+            <li><strong>URP</strong>：几乎所有 Unity 工程投入都在 URP；过去 3 年大多数已发布 Unity 游戏都用 URP；覆盖 mobile / PC / console / XR 单一 codebase</li>
+          </ul>
+          <strong>三管线本质对比：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Built-in</th><th style="padding:6px;border:1px solid #ddd">URP</th><th style="padding:6px;border:1px solid #ddd">HDRP</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">渲染架构</td><td style="padding:6px;border:1px solid #ddd">固定管线</td><td style="padding:6px;border:1px solid #ddd">SRP（Forward/Forward+/Deferred）</td><td style="padding:6px;border:1px solid #ddd">SRP（Tile/Cluster-Based）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Shader 语言</td><td style="padding:6px;border:1px solid #ddd">Surface/Fragment</td><td style="padding:6px;border:1px solid #ddd">Shader Graph / HLSL</td><td style="padding:6px;border:1px solid #ddd">Shader Graph / HLSL</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">SRP Batcher</td><td style="padding:6px;border:1px solid #ddd">❌ 不支持</td><td style="padding:6px;border:1px solid #ddd">✅ 支持</td><td style="padding:6px;border:1px solid #ddd">✅ 支持</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">GPU Instancing</td><td style="padding:6px;border:1px solid #ddd">需手动</td><td style="padding:6px;border:1px solid #ddd">自动优化</td><td style="padding:6px;border:1px solid #ddd">自动优化</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">后处理</td><td style="padding:6px;border:1px solid #ddd">Post-Processing Stack v2</td><td style="padding:6px;border:1px solid #ddd">Volume Framework</td><td style="padding:6px;border:1px solid #ddd">Volume Framework</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">光照</td><td style="padding:6px;border:1px solid #ddd">Phong/Blinn-Phong</td><td style="padding:6px;border:1px solid #ddd">Simple Lit / Lit PBR</td><td style="padding:6px;border:1px solid #ddd">物理 PBR + SSS + ClearCoat</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">平台</td><td style="padding:6px;border:1px solid #ddd">全平台</td><td style="padding:6px;border:1px solid #ddd">全平台（含 mobile/XR）</td><td style="padding:6px;border:1px solid #ddd">PC/Console</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">光线追踪</td><td style="padding:6px;border:1px solid #ddd">不支持</td><td style="padding:6px;border:1px solid #ddd">有限支持</td><td style="padding:6px;border:1px solid #ddd">完整支持</td></tr>
+          </table>
+          <strong>切换管线后材质"变粉"根因：</strong>
+          <ul>
+            <li>粉红色通常意味着 Shader 缺失 / 不支持 / 编译失败</li>
+            <li>不同管线对 Shader Pass、LightMode Tag、光照函数、纹理声明、常量缓冲区和内置宏有不同要求</li>
+            <li>Built-in 的 Surface Shader 由 Unity 生成大量底层 Pass；URP/HDRP 不支持此工作流</li>
+            <li>依赖 <code>GrabPass</code> 的折射特效在 SRP 中需改用场景颜色纹理或自定义渲染 Pass</li>
+            <li>"材质参数还在不代表材质能被另一条管线解释"——真正要迁移的是 Shader 与渲染流程</li>
+          </ul>
+          <strong>检测当前管线（运行时）：</strong>
+          <ul>
+            <li><code>RenderPipelineAsset asset = GraphicsSettings.currentRenderPipeline;</code></li>
+            <li><code>null</code> → Built-in；包含 "Universal" → URP；包含 "HDRenderPipeline" → HDRP</li>
+          </ul>
+          <strong>SRP Batcher vs GPU Instancing vs GPU Resident Drawer（URP 三种合批）：</strong>
+          <ul>
+            <li><strong>SRP Batcher</strong>：解决材质切换开销，要求 <code>CBUFFER_START(UnityPerMaterial)</code>；同 Shader 的不同材质可批量提交；不增加 DrawCall 数量但减少状态切换</li>
+            <li><strong>GPU Instancing</strong>：同 mesh + 同 material 批量绘制多个实例；通过 instancing buffer 传 per-instance 数据</li>
+            <li><strong>GPU Resident Drawer（Unity 6.3+）</strong>：GPU-Driven + Bindless 思路；类似 UE5 Nanite GPU-Driven；CPU 仅提交 Indirect Draw，GPU 内完成剔除与渲染</li>
+          </ul>
+          <strong>URP 关键能力详解：</strong>
+          <ul>
+            <li><strong>Renderer Feature + Scriptable Render Pass</strong>：描边 / 角色透视 / 扫描效果 / 模糊 / 深度重建 / 全屏特效通过明确渲染事件插入</li>
+            <li><strong>Render Graph 后端</strong>（Unity 6.3+）：自动 pass 优化、动态资源分配、降 CPU 开销</li>
+            <li><strong>Quality Tier</strong>：阴影距离 / 渲染比例 / MSAA / 附加功能可分档，让 URP 适配从 mobile 到高端 PC</li>
+            <li><strong>2D Renderer</strong>：2D Light / 2D Shadow / Sprite 法线贴图 / 不同 Blend Style</li>
+          </ul>
+          <strong>HDRP 独有价值（被维护但仍不可替代）：</strong>
+          <ul>
+            <li>实时<strong>光线追踪</strong>：唯一支持完整 RT 的 Unity 管线</li>
+            <li><strong>体积光照</strong>、<strong>物理天空</strong>、<strong>SSS 皮肤</strong>、<strong>复杂反射</strong>、<strong>电影化曝光</strong>整套</li>
+            <li>需 DirectX 12 + compute-shader-capable GPU，无法跑移动硬件</li>
+            <li>定位：高端 PC / 主机 / 影视预演</li>
+          </ul>
+          <strong>2026 选型决策树：</strong>
+          <ul>
+            <li>跨平台 / mobile / XR / 风格化 3D → <strong>URP</strong></li>
+            <li>仅 PC/Console + 写实 + 光追 + 影视化 → <strong>HDRP</strong></li>
+            <li>已有 Built-in 旧项目 + 依赖 Surface Shader/GrabPass/OnRenderImage → <strong>延续 Built-in</strong>（但接受 2028 后无更新）</li>
+            <li>新项目用 Built-in → <strong>不推荐</strong>（迁移成本高）</li>
+            <li>特殊渲染需求 + 团队有专门渲染工程师 → <strong>Custom SRP</strong></li>
+          </ul>
+          <strong>URP 性能常见误区：</strong>
+          <ul>
+            <li>"URP 自动更快"是误解——开高 Render Scale + 多盏实时附加灯 + 高分辨率阴影 + SSAO + 后处理同样把移动 GPU 压满</li>
+            <li>性能取决于真正瓶颈：CPU Draw Call、GPU 顶点像素着色、透明 Overdraw、阴影图数量与分辨率、屏幕分辨率与中间缓冲带宽、Shader Variant 切换</li>
+            <li>管线提供成本组织方式，不替项目自动管理预算</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Unity 6.5（2026）三管线命运=Built-in 正式弃用（2028 EOL）/ HDRP 维护模式（仅 Switch 2 扩展）/ URP 是几乎所有工程投入方向。变粉=Shader 契约不匹配（Pass/LightMode Tag/CBUFFER/GrabPass）。三合批=SRP Batcher（材质切换）/ GPU Instancing（同 mesh 同 material）/ GPU Resident Drawer（GPU-Driven+Bindless）。HDRP 不可替代=完整 RT + 体积光照 + 物理天空。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q233 -->
@@ -2609,6 +2698,94 @@
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>Mega Geometry Foliage = Partitioned TLAS + 实例级 BLAS refit + Cluster LOD + Implicit Geometry。Alan Wake 2 实测 +5-20% FPS / -300MB VRAM；The Witcher 4 实现百万植被路径追踪。与 BVH rebuild/refit 对比优势明显。与第四代 RT Core Cluster Intersection Engine + LSS 协同，与 ReSTIR PT + NRD + DLSS RR 形成完整闭环。</div>
+      </div>
+    </div>
+
+    <!-- ══ Q352 光线追踪 / 现代图形 API（2026-09-18 新增） ══ -->
+    <!-- Q352 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q352</div>
+        <div style="flex:1">
+          <div class="q-title">现代图形 API 工程栈（How to Vulkan 2026）：Vulkan 1.3 + Slang 着色器语言 + Buffer Device Address + Descriptor Indexing (Bindless) + Synchronization2 + Dynamic Rendering 如何协同？为什么 Doom Eternal 用 Bindless 把 Draw Call 压到 10 个以内？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Vulkan 1.3 基线四大核心特性：</strong>
+          <ul>
+            <li><strong>Dynamic Rendering（动态渲染）</strong>：大幅简化 Render Pass 设置（最被诟病的 Vulkan 区域）；不再需要显式 subpass 描述，自动处理 attachment</li>
+            <li><strong>Buffer Device Address (BDA)</strong>：通过指针（64-bit GPU address）访问 Buffer，而非走 descriptor；类似 C++ 指针，shader 直接 fetch</li>
+            <li><strong>Descriptor Indexing（Bindless）</strong>：descriptor 数组大小无界，shader 通过 nonuniformEXT 索引访问任意数量资源</li>
+            <li><strong>Synchronization2</strong>：改进同步处理（Vulkan 最难区域），简化 barrier 与 semaphore API</li>
+          </ul>
+          <strong>Slang 着色器语言（2026 新选）：</strong>
+          <ul>
+            <li>Vulkan 只消费 SPIR-V 中间格式，与 GLSL 解耦；2026 有更优选项</li>
+            <li>Slang：基于 HLSL 扩展，支持泛型、接口、模块化；<strong>LunarG Vulkan SDK 1.4.357 自带 Slang 有 bug</strong>，需装 2026.17.1+ 或降级 SDK</li>
+            <li>优势：跨平台（DirectX/Vulkan/Metal）、强类型系统、shader 代码复用</li>
+          </ul>
+          <strong>Bindless 资源管理（核心范式）：</strong>
+          <ul>
+            <li><strong>纹理</strong>：单 descriptor set 持有 unbounded texture2D 数组，shader 用 uint textureId 索引采样</li>
+            <li><strong>Buffer</strong>：buffer_reference + std430 readonly buffer，shader 用指针访问任意结构</li>
+            <li><strong>Material</strong>：material ID 索引到 MaterialsBuffer，按需 fetch 各项</li>
+            <li>关键技巧：<code>nonuniformEXT</code> 修饰索引（避免 divergence 性能损失）</li>
+          </ul>
+          <strong>Doom Eternal Bindless 设计哲学：</strong>
+          <ul>
+            <li>整游戏<strong>不到 500 个 PSO</strong>（Unreal Engine 游戏常 100K+ PSO）</li>
+            <li>Ubershader 思路：少量 pipeline 覆盖所有材质</li>
+            <li>减少 <code>VkCmdBindPipeline</code> 调用（最昂贵的 CPU 调用之一）</li>
+            <li>整大陆 (WoW) 仅 10 个 drawcall + 100 FPS（NovusCore 实测）</li>
+          </ul>
+          <strong>GPU-Driven + Bindless 协同：</strong>
+          <ul>
+            <li>所有场景数据（matrix、AABB、material ID、cull bounds）存大 SSBO</li>
+            <li>不要 per-object PushConstants 或 descriptor sets</li>
+            <li>剔除 + 写 Index Buffer 在 GPU Compute Shader 内完成</li>
+            <li>CPU 只提交一次 DrawIndexedIndirect → GPU 解码绘制参数</li>
+          </ul>
+          <strong>Vulkan 2026 关键库生态：</strong>
+          <ul>
+            <li><strong>VMA (Vulkan Memory Allocator)</strong>：简化内存分配，AMD 维护，业界标准</li>
+            <li><strong>Volk</strong>：meta-loader，简化 Vulkan 函数加载</li>
+            <li><strong>glm</strong>：数学库（矩阵+向量）</li>
+            <li><strong>tinyobjloader / KTX-Software</strong>：3D 模型 + GPU 纹理加载</li>
+            <li><strong>SDL / GLFW / SFML</strong>：窗口与输入</li>
+          </ul>
+          <strong>GLSL for Vulkan 关键差异（与 OpenGL 对比）：</strong>
+          <ul>
+            <li>必须用 <code>layout(location = X)</code> 显式声明输入/输出</li>
+            <li>用 <code>layout(set = N, binding = M)</code> 替代 OpenGL uniform 语法</li>
+            <li>Push constants：<code>layout(push_constant, scalar) uniform constants {...}</code></li>
+            <li>Specialization constants：<code>layout(constant_id = X)</code> 实现 PSO 创建时变体</li>
+            <li>gl_VertexIndex / gl_InstanceIndex 替代 gl_VertexID/gl_InstanceID</li>
+          </ul>
+          <strong>GLSL → Slang → HLSL 工程迁移建议：</strong>
+          <ul>
+            <li>HLSLPROGRAM 替代 CGPROGRAM（Built-in 用 CG）</li>
+            <li>更新 include 路径：URP 用 Core.hlsl，HDRP 用 ShaderVariables.hlsl</li>
+            <li>SRP Batcher 需 CBUFFER_START(UnityPerMaterial)</li>
+          </ul>
+          <strong>与光追协同：</strong>
+            <p>Bindless 渲染天然兼容光追：所有几何数据已在 GPU Buffer，光追 shader 直接 BDA 访问；VK_KHR_ray_tracing_pipeline + VK_KHR_acceleration_structure 加速结构。</p>
+          <strong>与 Unity Render Graph 后端对比（2026）：</strong>
+          <ul>
+            <li>Unity 6.3 URP/HDRP 都用 Render Graph 后端：自动 pass 优化、动态资源分配</li>
+            <li>Vulkan 1.3 + Slang + Bindless 是底层 API；Unity Render Graph 是上层抽象</li>
+            <li>自研引擎直接用 Vulkan 1.3 + Slang；用 Unity 则用 Render Graph API</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Vulkan 1.3 四件套=Dynamic Rendering+BDA+Descriptor Indexing+Synchronization2。Slang 是 2026 着色器新选（注意 SDK 1.4.357 自带 Slang 有 bug）。Bindless=纹理数组+buffer_reference+nonuniformEXT，Doom Eternal 用此把 PSO 压到 500、整大陆 10 drawcall。GPU-Driven+Bindless 协同=所有数据 SSBO，CPU 仅 DrawIndexedIndirect。VMA/Volk/glm 是必备库。</div>
       </div>
     </div>
   </section>
@@ -4048,6 +4225,92 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
       </div>
     </div>
 
+    <!-- ══ Q353 PBR（2026-09-18 新增） ══ -->
+    <!-- Q353 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q353</div>
+        <div style="flex:1">
+          <div class="q-title">物理光源参数与 LTC 面积光实时近似：Lumen/Candela/Lux/Nits 单位体系如何统一？Linearly Transformed Cosines (LTC) 如何把多边形/管状/盘形面积光压成 GGX lobe 的闭式解？IES Profile 在实时渲染中如何加载？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：现代引擎抛弃"intensity=1.0"任意值</strong>
+          <ul>
+            <li>物理光源基于<strong>辐射度学/光度学单位</strong>：与人类视觉响应（V(λ) 函数）加权后的物理量</li>
+            <li>放弃任意"光照强度 1.0"的旧做法，所有引擎（UE5/HDRP/Unity URP）都采用物理单位</li>
+          </ul>
+          <strong>四大单位体系（按光源类型）：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">单位</th><th style="padding:6px;border:1px solid #ddd">含义</th><th style="padding:6px;border:1px solid #ddd">适用光源</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Lumen (lm)</td><td style="padding:6px;border:1px solid #ddd">总光通量（flux）</td><td style="padding:6px;border:1px solid #ddd">点光源（全方位发光总量）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Candela (cd)</td><td style="padding:6px;border:1px solid #ddd">单位立体角的发光强度</td><td style="padding:6px;border:1px solid #ddd">聚光灯（per-steradian）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Lux (lx)</td><td style="padding:6px;border:1px solid #ddd">单位面积的照度（lm/m²）</td><td style="padding:6px;border:1px solid #ddd">方向光（如太阳，地表接收量）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Nits (cd/m²)</td><td style="padding:6px;border:1px solid #ddd">单位面积的发光亮度</td><td style="padding:6px;border:1px solid #ddd">自发光面积光源（如显示器、灯箱）</td></tr>
+          </table>
+          <strong>反平方定律（Inverse-Square Falloff）：</strong>
+          <ul>
+            <li>物理上：照度 E ∝ 1/r²</li>
+            <li>引擎工程：精确反平方会让远处永不到 0，需加 windowing function（窗口函数）使光在 bounding radius 处归零</li>
+            <li>原因：tiled/clustered 剔除需要光源有有限半径 → 性能可控</li>
+            <li>常用窗口：smoothstep(0, r_max, r) 平滑过渡</li>
+          </ul>
+          <strong>IES Profile（IES Luminous Intensity Distribution）：</strong>
+          <ul>
+            <li>真实灯具厂商测量的<strong>发光强度分布</strong>（Luminous Intensity Distribution）</li>
+            <li>1D 或 2D 纹理描述灯具在各个方向的发光强度</li>
+            <li>从 LDT/LDT 文件解析加载（如 Lithonia IES）</li>
+            <li>实时使用：聚光灯额外乘以 IES Profile 采样值，使建筑内灯具看起来真实</li>
+            <li>HDRP / UE5 都原生支持 IES Profile 加载</li>
+          </ul>
+          <strong>面积光难题：积分求解</strong>
+          <ul>
+            <li>真实矩形/管状/盘形光源：需对光源立体角积分 irradiance</li>
+            <li>解析解通常不存在（GGX BRDF + 多边形面积积分无闭式解）</li>
+            <li>蒙特卡洛采样：实时太贵（每像素数百采样）</li>
+          </ul>
+          <strong>Linearly Transformed Cosines (LTC, Heitz et al. 2016)：</strong>
+          <ul>
+            <li>核心思想：用一个 3×3 矩阵 M 变换<strong>余弦分布</strong>，使其近似 GGX lobe</li>
+            <li>余弦分布对多边形的积分有<strong>闭式解</strong>（球面多边形 irradiance 公式）</li>
+            <li>对变换后的多边形顶点应用逆矩阵 M⁻¹，回到余弦分布空间，再用闭式解</li>
+            <li>实时成本：GGX lobe 形状由 roughness + viewing angle 决定，预计算 2D LUT（amplitude + M 矩阵系数）</li>
+            <li>支持：漫反射 + 粗糙镜面反射（roughness &lt; 0.5 时镜面 LTC 占主）</li>
+            <li>局限性：单散射近似，多散射需配合 multi-scop GGX 扩展</li>
+          </ul>
+          <strong>LTC 工程实现关键：</strong>
+          <ul>
+            <li><strong>LUT 预计算</strong>：θ (view angle) × roughness → 4 个数（M 矩阵 + amplitude），约 64×64 RGBA 纹理</li>
+            <li><strong>顶点变换</strong>：把面积光多边形顶点变换到"特殊空间"（M⁻¹ V）</li>
+            <li><strong>闭式积分</strong>：球面多边形 irradiance 公式（Even & Arvo 2009）</li>
+            <li><strong>结果</strong>：得到 irradiance（漫反射 + 镜面）× GGX amplitude</li>
+          </ul>
+          <strong>与体积渲染的协同：</strong>
+          <ul>
+            <li>面积光<strong>被计算两次</strong>：① 像素级 surface shading；② froxel 体积注入（散射到参与介质）</li>
+            <li>典型优化：surface 用 LTC 精确积分；froxel 用粗略采样（每 froxel 一次 irradiance 查询）</li>
+            <li>避免双重扣减：surface diffuse × volume transmittance</li>
+          </ul>
+          <strong>2026 演进：神经面积光</strong>
+          <ul>
+            <li>Neural Radiance Field（NeRF/NeILF）从采集数据学习面积光</li>
+            <li>RTX 硬件直接对面积光做重要性采样 + 时空重采样（ReSTIR Area Light）</li>
+            <li>LTC 仍是兜底方案（无 RT 硬件时）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>物理单位=Lumen(点光通量)/Candela(聚光强度)/Lux(方向光地表照度)/Nits(面积光亮度)。反平方定律需 windowing 归零；IES Profile 描述真实灯具方向分布。LTC 用 3×3 矩阵变换余弦分布近似 GGX lobe，多边形 irradiance 闭式解（预计算 64×64 LUT）。与体积协同=面积光被 surface 与 froxel 双重计算但目的不同，能量守恒避免双重扣减。</div>
+      </div>
+    </div>
+
   <!-- ══ 5. 阴影 ══ -->
   <section class="wiki-section" id="shadow">
     <div class="section-title"><span class="section-icon">🌑</span>阴影技术</div>
@@ -4598,6 +4861,89 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
           <strong>面试加分点：</strong>"MegaLights 的核心洞察是'不是每个光源都影响每个像素'——通过重要性排序 + Top-K 选择，把 O(lights × pixels) 降为 O(pixels × K)。配合 RT Shadow 解决数百光源的阴影问题，Light Function Atlas 解决光源函数开销。这是'Nanite for Lights'——光照美术不再受性能预算约束。"</div>
         <div class="tip-box">💡 <strong>面试框架：</strong>"MegaLights = 光照虚拟化。核心：重要性排序 + Top-K 选择（O(lights×pixels) → O(pixels×K)），500+ 动态阴影光源实时。vs Cluster Forward+/Deferred：光源上限 10×+，但需要 RTX 硬件做 RT Shadow。Light Function Atlas 把光源函数预烘焙为纹理图集，支持彩色 + MegaLights 协同。是'光照领域的 Nanite'——解放光照美术。"</div>
+      </div>
+    </div>
+
+    <!-- ══ Q354 阴影（2026-09-18 新增） ══ -->
+    <!-- Q354 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q354</div>
+        <div style="flex:1">
+          <div class="q-title">Deep Shadow Map / Volumetric Shadow / Opacity Shadow Map：参与介质（雾/云/毛发/烟雾）的阴影如何实现？Lokovic & Veach 2000 经典方案与实时 Froxel Shadow 的差异？半透明物体（毛发、植被）的阴影该如何处理？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag medium">中频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：参与介质的阴影挑战</strong>
+          <ul>
+            <li>传统 Shadow Map 存储单层深度（最近表面）——半透明物体（毛发、烟雾、云）的"阴影"应是<strong>累积透射率函数</strong>而非单点遮挡</li>
+            <li>烟雾沿光线方向的密度变化 → 阴影应是连续半透明渐变，而非硬切</li>
+            <li>毛发（百万级发丝）单层 SM 完全失败，需要深度方向上的密度分布</li>
+          </ul>
+          <strong>Deep Shadow Map（Lokovic & Veach, SIGGRAPH 2000，离线经典）：</strong>
+          <ul>
+            <li>每个 texel 存储的不是单深度值，而是<strong>透射率函数 T(z)</strong>（沿光线方向深度 z 处的累积透射率）</li>
+            <li>T(z) = exp(-∫₀^z σt(t) dt)，Beer-Lambert 定律</li>
+            <li>存储方式：把 T(z) 函数压缩为分段线性近似（如 32 个关键深度+透射率对）</li>
+            <li>查询：根据阴影接收点的深度 z，查找对应 T(z) 值</li>
+            <li>支持：自阴影、半透明物体内部阴影、烟雾密度变化阴影</li>
+            <li>代价：内存 32× 普通 SM，构建慢，主要用于离线渲染（Pixar RenderMan）</li>
+          </ul>
+          <strong>Opacity Shadow Map（Kim & Neumann 2001）：</strong>
+          <ul>
+            <li>沿光线方向分层（如 32 层），每层存累积不透明度</li>
+            <li>类似 Deep SM 但用分层离散近似，更易 GPU 实现</li>
+            <li>用于早期实时毛发渲染（Strands、Hairworks）</li>
+          </ul>
+          <strong>实时方案 1：Froxel Volumetric Shadow（UE5/Frostbite）：</strong>
+          <ul>
+            <li>三个级联 clipmap 的消光体积围绕相机</li>
+            <li>每帧把粒子（粒子系统）和参与介质（雾体积）光栅化到这些消光体积</li>
+            <li>体积光照计算时，对每 froxel 世界位置查询消光体积 → 得到该点的体积透射率</li>
+            <li>实现：参与介质自阴影 + 粒子对介质阴影 + 任意物体相互体积阴影</li>
+            <li>God Rays 形成机制：阳光光柱 = 雾密度 × shadow map 采样 → 阴影中 froxel 暗，光照中 froxel 拾取太阳色</li>
+          </ul>
+          <strong>实时方案 2：Ray March 沿光线累积（高质量但慢）：</strong>
+          <ul>
+            <li>对每个体积采样点，向光源方向步进</li>
+            <li>每步采样体积密度场 + shadow map（动态物体遮挡）</li>
+            <li>累积透射率 = ∏ e^(-σt × ds)</li>
+            <li>《Horizon Zero Dawn》云方案、《Red Dead 2》天气系统用此方案</li>
+            <li>性能优化：低分辨率（1/4 屏幕）+ 时序重投影（temporal reprojection）+ 4×4 像素块只算一个再填补</li>
+          </ul>
+          <strong>半透明物体阴影方案：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">物体类型</th><th style="padding:6px;border:1px solid #ddd">方案</th><th style="padding:6px;border:1px solid #ddd">说明</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">毛发</td><td style="padding:6px;border:1px solid #ddd">Opacity SM / Deep SM / RT Hair Shadow</td><td style="padding:6px;border:1px solid #ddd">百万发丝用分层不透明度；LSS（Blackwell）+ RT 球-曲线基元可光追</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">植被（叶、草）</td><td style="padding:6px;border:1px solid #ddd">VSM + Cluster + Masked Material</td><td style="padding:6px;border:1px solid #ddd">UE5 Nanite Foliage 专用路径；Masked 材质特殊处理</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">烟雾/体积雾</td><td style="padding:6px;border:1px solid #ddd">Froxel Volumetric Shadow</td><td style="padding:6px;border:1px solid #ddd">clipmap 消光体积</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">半透明粒子（Niagara）</td><td style="padding:6px;border:1px solid #ddd">Opacity Atlas / Mega Particle</td><td style="padding:6px;border:1px solid #ddd">粒子渲染到不透明度 Atlas；Hillaire 2025 GDC mega particles</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">玻璃/水</td><td style="padding:6px;border:1px solid #ddd">RT Shadow + Refraction Ray</td><td style="padding:6px;border:1px solid #ddd">光追方案最佳，传统 SM 不可用</td></tr>
+          </table>
+          <strong>关键工程实践：</strong>
+          <ul>
+            <li><strong>能量守恒</strong>：参与介质消光 + 表面阴影不能双重扣减——表面 diffuse × 体积透射率</li>
+            <li><strong>时序累积</strong>：低分辨率 Froxel + 每帧 jitter + 时序重投影 → 4K 看似高分辨率</li>
+            <li><strong>God Rays 廉价变体</strong>：屏幕空间径向模糊（radial blur from sun position）—— 遗漏屏幕外太阳但便宜</li>
+            <li><strong>云的体积阴影</strong>：Schneider & Vos（Horizon Zero Dawn）双层 Perlin-Worley + 高频细节侵蚀</li>
+          </ul>
+          <strong>未来方向：神经体积阴影</strong>
+          <ul>
+            <li>NRD 神经降噪器配合低 spp RT Volume Shadow → 视觉接近高 spp</li>
+            <li>Neural Radiance Cache 把间接光多次反射压缩为单次查询</li>
+            <li>Lumen Surface Cache + Volumetric Froxel 协同（Wright SIGGRAPH 2022）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Deep Shadow Map（Lokovic 2000）每个 texel 存透射率函数 T(z) 而非单深度；实时用 Froxel Volumetric Shadow（级联 clipmap 消光体积）或低分辨率 Ray March + 时序重投影。半透明物体按类型选：毛发=Opacity SM/RT LSS；植被=VSM+Nanite Foliage；烟雾=Froxel Volumetric；玻璃=RT。能量守恒=表面 diffuse × 体积透射率避免双重扣减。</div>
       </div>
     </div>
   </section>
@@ -5270,6 +5616,89 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>DLSS 5 = 三 AI 模型 A/B/C（per-scene/per-character 配置）+ 实时逐帧时序流（motion vectors 驱动消除 shimmering）+ 4K/60FPS sub-16ms。核心解决 DLSS 4 的"艺术意图偏离"和"chunk-based shimmering"两大问题。仅 RTX 50+ Blackwell 支持。FSR 4/XeSS 2 是开源替代，TSR 是规则算法兜底。</div>
       </div>
     </div>
+
+    <!-- ══ Q355 抗锯齿 / 神经降噪（2026-09-18 新增） ══ -->
+    <!-- Q355 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q355</div>
+        <div style="flex:1">
+          <div class="q-title">神经降噪器 FP4 量化加速：NVFP4（DeepSeek-R1 实测损失 &lt;1% 性能 3×）/ SageAttention3 FP4 注意力（RTX 5090 比 FlashAttention2 快 4-5×）/ NRD + DLSS RR 在 FP4 下如何工作？与传统 SVGF/BMFR 的本质差异？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hot">热点</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>问题背景：神经降噪器推理开销</strong>
+          <ul>
+            <li>路径追踪 1 spp 渲染 → NRD 4.0 / DLSS Ray Reconstruction 神经网络降噪 → 视觉接近 4096 spp</li>
+            <li>传统神经降噪器用 FP16 推理，4K 60FPS 下推理开销 2-4ms</li>
+            <li>FP4 量化把权重压到 4-bit，吞吐翻倍且显存减半</li>
+          </ul>
+          <strong>NVFP4 vs MXFP4 格式对比：</strong>
+          <ul>
+            <li><strong>NVFP4（NVIDIA Blackwell 原生）</strong>：第五代 Tensor Core 直接执行；DeepSeek-R1 从 FP8 量化到 NVFP4，7 大基准损失 &lt;1%，性能 3×</li>
+            <li><strong>MXFP4（Microscaling 4-bit，OCP 开放标准）</strong>：AMD/Intel/Qualcomm 联合 + NVIDIA 参与；块大小 1×16 共享缩放因子</li>
+            <li>两者都是 Microscaling 格式：块内多个 4-bit 值并行计算，块共享一个高精度缩放因子</li>
+          </ul>
+          <strong>SageAttention3（清华朱军团队 2025-07）FP4 注意力：</strong>
+          <ul>
+            <li>针对 Transformer 注意力机制专门设计的 FP4 微缩放量化</li>
+            <li>块大小 1×16（一个 token 的 16 个 Q/K 通道共享缩放）</li>
+            <li><strong>两级量化</strong>：先 per-channel 缩放，再 per-block 微缩放</li>
+            <li><strong>与 online softmax 融合</strong>：避免反量化到 FP16 中间步骤</li>
+            <li>RTX 5090 上比 FlashAttention2 快 4-5×</li>
+          </ul>
+          <strong>NRD 4.0 + DLSS RR 在 FP4 下的工作流程：</strong>
+          <ul>
+            <li><strong>NRD 4.0（NVIDIA Real-time Denoiser）</strong>：REBLUR 多 Pass 生产级降噪；FP4 量化后推理时间从 2ms 降至 0.7ms</li>
+            <li><strong>DLSS Ray Reconstruction（RR）</strong>：Transformer 端到端神经降噪，替代 SVGF+TAA；FP4 推理 → Tensor Core 利用率 90%+</li>
+            <li>FP4 降噪器与光线追踪 1 spp 渲染配合：光追只算少量 spp，FP4 神经降噪器推断高 spp 等效</li>
+            <li>关键：低 spp 噪声分布稳定，FP4 量化对最终视觉质量影响可控</li>
+          </ul>
+          <strong>FP4 vs FP8 vs FP16 降噪器对比：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">精度</th><th style="padding:6px;border:1px solid #ddd">推理时间</th><th style="padding:6px;border:1px solid #ddd">显存占用</th><th style="padding:6px;border:1px solid #ddd">PSNR 损失</th><th style="padding:6px;border:1px solid #ddd">硬件要求</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">FP16</td><td style="padding:6px;border:1px solid #ddd">2-4ms</td><td style="padding:6px;border:1px solid #ddd">基准</td><td style="padding:6px;border:1px solid #ddd">0 dB</td><td style="padding:6px;border:1px solid #ddd">所有 Tensor Core</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">FP8</td><td style="padding:6px;border:1px solid #ddd">1-2ms</td><td style="padding:6px;border:1px solid #ddd">-50%</td><td style="padding:6px;border:1px solid #ddd">&lt;0.3 dB</td><td style="padding:6px;border:1px solid #ddd">Hopper+</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">FP4 (NVFP4/MXFP4)</td><td style="padding:6px;border:1px solid #ddd">0.5-1ms</td><td style="padding:6px;border:1px solid #ddd">-75%</td><td style="padding:6px;border:1px solid #ddd">0.5-1 dB</td><td style="padding:6px;border:1px solid #ddd">Blackwell / MI355X</td></tr>
+          </table>
+          <strong>与传统 SVGF/BMFR 的本质差异：</strong>
+          <ul>
+            <li><strong>SVGF（Spatial Variance-Guided Filtering）</strong>：联合双边滤波，基于 G-Buffer 几何/法线/深度做权重；规则算法，跨平台</li>
+            <li><strong>BMFR（Block-Matching Multi-Frame Rendering）</strong>：线性回归，块匹配跨帧；仍是规则算法</li>
+            <li><strong>NRD/DLSS RR（神经）</strong>：学习先验（low-spp → high-spp 映射），非局部信息融合，多信号融合，Transformer 长距离依赖建模</li>
+            <li>关键差异：<strong>神经方法用"数据驱动先验"替代"手工滤波规则"</strong>，更高质量但需要训练数据 + Tensor Core</li>
+            <li>FP4 进一步把神经方法压到接近 SVGF 的延迟（0.5-1ms vs SVGF 0.3-0.5ms）</li>
+          </ul>
+          <strong>跨平台落地（2026）：</strong>
+          <ul>
+            <li>桌面：Blackwell Tensor Core FP4 原生（NRD + DLSS RR FP4 推理）</li>
+            <li>移动：Snapdragon X80 / Dimensity 9500 / Apple A20 支持 FP8，MetalFX ML Pipeline + Arm ASR V2 开源</li>
+            <li>国产芯片：通过 FlagOS 把 FP4 模型转换为 BF16 路径运行（性能损失但精度保留）</li>
+          </ul>
+          <strong>与 SageAttention3 协同：</strong>
+          <ul>
+            <li>SageAttention3 量化的是 Transformer 注意力（QK^T 与 softmax PV）</li>
+            <li>NRD/DLSS RR 是 Transformer 架构，受益于 SageAttention3 加速</li>
+            <li>结合 Cooperative Vectors API → Shader 中调 Tensor Core 做 FP4 推理</li>
+          </ul>
+          <strong>实际部署：to-顶 AI 实验室 2026-04 实测</strong>
+          <ul>
+            <li>GB10 芯片双机集群 + TensorRT-LLM 框架</li>
+            <li>FP4 精度跑 235B 参数模型：22.6 tokens/s 推理吞吐，首 token 延迟 0.2s</li>
+            <li>同等模型在 FP8 下吞吐约 11-13 tokens/s（性能近 2×）</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>FP4 神经降噪器=NVFP4/MXFP4 + Blackwell 第五代 Tensor Core + SageAttention3 注意力 FP4 量化（RTX 5090 比 FA2 快 4-5×）。DeepSeek-R1 FP4 实测损失 &lt;1% 性能 3×。NRD 4.0 + DLSS RR FP4 推理时间从 2ms→0.7ms。与传统 SVGF/BMFR 本质差异=数据驱动先验替代手工滤波规则。跨平台通过 FlagOS 转换。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q237 -->
@@ -5913,6 +6342,123 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>Clustered=3D 分块解决 2D Tile 深度穿插问题；MegaLights=Importance Sampling + Top-K 路由（1700+ 光源仍 60 FPS）；协同链=Cluster 粗筛→MegaLights 细筛 Top-K→Bindless 解除 16 通道限制→V-Buffer Material Pass 按需 fetch。这是 UE5.8 + Blackwell 旗舰渲染栈。</div>
+      </div>
+    </div>
+
+    <!-- ══ Q356 延迟渲染（2026-09-18 新增） ══ -->
+    <!-- Q356 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q356</div>
+        <div style="flex:1">
+          <div class="q-title">Froxel Volumetric Fog（截锥体素）三 Compute Pass 管线：Material Injection / Light Scattering / Ray-March Integrate 怎么协同？指数深度切片 z(i) = near × (far/near)^(i/N) 的几何意义？与延迟渲染如何协同避免双倍光照计算？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Froxel = Frustum + Voxel（截锥体素）：</strong>
+          <ul>
+            <li>不是世界对齐 3D 网格（浪费屏幕外空间），而是<strong>与相机视锥对齐的 3D 纹理</strong></li>
+            <li>典型分辨率 160×90×64 RGBA16F（RGB=in-scattered light，A=extinction σt）</li>
+            <li>X/Y 轴跟随屏幕空间（1/8 屏幕分辨率），Z 轴沿视线深度</li>
+            <li>near 处一个 froxel 可能几厘米，64m 处可能 1m+——这正是需要的细节分布</li>
+          </ul>
+          <strong>指数深度切片（Exponential Depth Slicing）：</strong>
+          <ul>
+            <li>公式：<code>z(i) = near × (far/near)^(i/N)</code>，i=0..N</li>
+            <li>近处切片薄、远处切片厚——匹配<strong>透视收缩</strong>：froxel 屏幕空间面积本来就随距离增长</li>
+            <li>近处雾对比、光轴、阴影细节变化最快，远处雾本就模糊</li>
+            <li>线性切片会浪费一半体积在远处雾上，并在镜头前 1m 产生可见 slab</li>
+            <li>反查公式（合成 Pass）：i = N × log(z/near) / log(far/near)</li>
+            <li>部分引擎用幂曲线 z = far × (i/N)^k（k≈2），避免 log 对 near 极小的敏感性</li>
+          </ul>
+          <strong>三个 Compute Pass 详细工作流：</strong>
+          <ul>
+            <li><strong>Pass 1: Material Injection（材质注入）</strong>
+              <ul>
+                <li>对每个 froxel，从全局高度雾、本地雾体积、噪声纹理评估雾密度</li>
+                <li>写入 RGBA16F 体积：RGB = 散射系数 σs，A = 消光系数 σt</li>
+                <li>Group 划分：8×8×1（屏幕空间分块并行）</li>
+              </ul>
+            </li>
+            <li><strong>Pass 2: Light Injection / Scattering（光照注入）</strong>
+              <ul>
+                <li>对每个 froxel，遍历 clustered light list</li>
+                <li>对每盏光：采样 shadow map（froxel 世界位置）→ 应用相位函数 → 累积内散射辐射</li>
+                <li>输出更新后的 froxel 体积（RGB 内散射光，A 透射率）</li>
+              </ul>
+            </li>
+            <li><strong>Pass 3: Ray-March Integration（光线步进积分）</strong>
+              <ul>
+                <li>沿每个 froxel 列从近到远累积透射率</li>
+                <li>Beer-Lambert：<code>T_r_slice = e^(-σ_t × ds)</code></li>
+                <li>Hillaire 改进（考虑层内透射率）：<code>V_f[x,y,z] = L_scat' + (L_scat_in - L_scat_in × T_r_slice) / σ_t × T_r'</code></li>
+                <li>输出最终 RGBA 体积：RGB = 累积内散射光，A = 累积透射率</li>
+              </ul>
+            </li>
+          </ul>
+          <strong>Scene Composite（场景合成）：</strong>
+          <ul>
+            <li>Opaque Pass 后单次 trilinear 纹理查找（normalized frustum 坐标）</li>
+            <li>合成公式：<code>L_o = T_r × L_s + L_scat</code>（T_r=透射率，L_s=表面色，L_scat=内散射）</li>
+            <li>关键收益：<strong>体积成本与屏幕分辨率完全解耦</strong>——1080p 或 4K 雾成本相同</li>
+          </ul>
+          <strong>与延迟渲染协同（避免双倍光照计算）：</strong>
+          <ul>
+            <li>光照<strong>计算两次但目的不同</strong>：表面着色按像素，体积着色按 froxel</li>
+            <li>能量守恒原则：体积 Pass 算过的散射不能再在表面 Pass 算第二次</li>
+            <li>常用方法：表面 diffuse 光照乘以体积透射率（光被介质吸收部分）</li>
+            <li>避免"双重 fog"伪影：表面 Pass 不再叠加屏幕空间 fog post-process</li>
+          </ul>
+          <strong>相位函数（Phase Function）：</strong>
+          <ul>
+            <li><strong>Henvey-Greenstein (HG)</strong>：参数 g ∈ (-1, 1)；g=0 各向同性，g≈0.6-0.9 强前向散射（路灯 halo）</li>
+            <li><strong>双 HG</strong>：mix 前向 lobe + 后向 lobe，同时表达银边（前向）+ 迎光亮（后向）；用于云</li>
+            <li><strong>Cornette-Shanks</strong>：对水滴的 Mie 散射物理拟合更好</li>
+            <li><strong>Rayleigh (1 + cos²θ)</strong>：天空蓝（空气分子）</li>
+          </ul>
+          <strong>体积阴影（Volumetric Shadows）：</strong>
+          <ul>
+            <li>三个级联 clipmap 围绕相机的消光体积，存储粒子与介质的不透明度</li>
+            <li>实现：参与介质自阴影 + 粒子对介质阴影 + 任意物体相互体积阴影</li>
+            <li>God Rays（阳光光柱）= froxel Light Pass 时采样 shadow map，阴影中 froxel 保持暗，光照中 froxel 拾取太阳色</li>
+          </ul>
+          <strong>Unity 6.3 Render Graph 集成：</strong>
+          <ul>
+            <li>Render Graph 后端自动优化 Render Pass、动态资源分配、降 CPU 开销</li>
+            <li>自定义渲染代码用 <code>RecordRenderGraph(RenderGraph, ContextContainer)</code> API</li>
+            <li>URP 与 HDRP 都用 Render Graph 后端</li>
+            <li>体积雾作为 Raster Pass 注入 RG 节点，与 deferred G-Buffer Pass、Lighting Pass 一起调度</li>
+          </ul>
+          <strong>God Rays 廉价变体：</strong>
+            <p>屏幕空间径向模糊（radial blur 从太阳位置入深度缓冲）—— 移动/低端硬件仍可用；遗漏屏幕外太阳位置但成本几乎为零（GPU Gems 3 经典方案）。</p>
+          </ul>
+          <strong>vs Raymarching 对比：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Froxel Grid</th><th style="padding:6px;border:1px solid #ddd">Raymarching</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">质量</td><td style="padding:6px;border:1px solid #ddd">受分辨率限制</td><td style="padding:6px;border:1px solid #ddd">最高（各向异性、自阴影）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">性能</td><td style="padding:6px;border:1px solid #ddd">可扩展（与屏分辨率解耦）</td><td style="padding:6px;border:1px solid #ddd">贵</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">大开放世界</td><td style="padding:6px;border:1px solid #ddd">标准选择</td><td style="padding:6px;border:1px solid #ddd">不实用</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">复杂室内光柱</td><td style="padding:6px;border:1px solid #ddd">略粗</td><td style="padding:6px;border:1px solid #ddd">更佳</td></tr>
+          </table>
+          <strong>关键论文（业界标准）：</strong>
+          <ul>
+            <li>Wronski 2014（SIGGRAPH）：原始 froxel-grid 论文（Assassin's Creed 4）</li>
+            <li>Hillaire 2015（SIGGRAPH）：Frostbite 生产级实现，Physically Based and Unified Volumetric Rendering</li>
+            <li>Kovalovs 2020（SIGGRAPH）：TLOU2 时序 jitter + 深度正确合成</li>
+            <li>Wright 2022（SIGGRAPH）：Lumen 与体积雾的交互</li>
+            <li>Hillaire 2025（GDC）：Cyberpunk 2077 REDengine 4 体积云 + mega particles</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Froxel = frustum voxel 与相机视锥对齐的 3D 纹理（160×90×64 RGBA16F）。指数深度切片 z(i)=near×(far/near)^(i/N) 匹配透视收缩。三 Compute Pass：Material Injection → Light Scattering（采样 shadow map）→ Ray-March Integrate。合成 Lo = Tr×Ls + Lscat，体积成本与屏分辨率解耦。与延迟渲染协同=能量守恒避免双算（表面 diffuse 乘透射率）。Unity 6.3 Render Graph 自动优化。</div>
       </div>
     </div>
   </section>
@@ -17938,6 +18484,312 @@ Answer + 可信度 + 引用</code></pre>
           <strong>Context Engineering 取代 Prompt Engineering：</strong>Anthropic 2026-07 报告，对更新模型可剥离 Claude Code 系统 prompt 的 80% 而无评估损失，从刚性规则转向模型判断；Chroma Context Rot 报告显示<strong>上下文退化是非均匀的</strong>，连贯 haystack 反而比 shuffled 表现更差。
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>GraphRAG 仅在多跳 QA 有 +27 优势（NYU 实测），单跳没必要。Zep/Graphiti 双时间图是"活记忆 vs 静态索引"的分水岭。Agentic RAG 90% 失败=链式累积+调试困难+成本爆炸+过度工程；Morgan Stanley 共性是"限定高价值边界场景"。PING 四分类（传播/意图/噪声/接地）是失败模式框架。2026 趋势=检索内化+RL 化+多模态+长反思。</div>
+      </div>
+    </div>
+
+    <!-- ══ Q357-Q360 AI 大模型（2026-09-18 新增） ══ -->
+
+    <!-- Q357 Transformer / 旗舰模型对比 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q357</div>
+        <div style="flex:1">
+          <div class="q-title">2026 H2 三大旗舰对比：GPT-6 Astra（Symphony 多模态架构 + 双系统推理）/ Claude 5 Fable（自适应思考）/ Gemini 3.6（2M 上下文 + Deep Think）的核心差异？选型决策矩阵？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>GPT-6 Astra（OpenAI 2026-09-03）</strong>
+          <ul>
+            <li><strong>Symphony（交响乐）架构</strong>：把文本、图像、音频、视频统一到同一向量空间，实现真正原生多模态（非拼接）</li>
+            <li><strong>双系统推理（Dual-System）</strong>：System-1 快速响应 + System-2 深度推导自主切换</li>
+            <li><strong>规模</strong>：约 5-6 万亿参数 MoE，实际激活约 10%；上下文达 2M token</li>
+            <li><strong>智能体整合</strong>：ChatGPT + Codex + Atlas 统一为单智能体</li>
+            <li><strong>价格</strong>：$10/$50 per 1M tokens；OSWorld 2.0 72.6%（vs GPT-5.6 Sol 65.7%）</li>
+            <li><strong>首个 OpenAI "Critical" 网络安全阈值模型</strong>：可识别未知漏洞 + 构造 PoC；先 Daybreak 企业伙伴再公测</li>
+          </ul>
+          <strong>Claude 5.x（Anthropic 2026-07）</strong>
+          <ul>
+            <li><strong>Claude Opus 5</strong>：1M 上下文 / 128K 输出 / $5/$25 per 1M；Artificial Analysis Coding Agent Index 第一</li>
+            <li><strong>Fable 5.1（2026-09-01）</strong>：Anthropic 顶级智能模型；近 Fable 5 智能但价格减半；cache reads 降 75%（$0.25/M）；网络安全假阳性比 Fable 5 少 60%；vs Fable 5 同等能力下成本降 25-45%</li>
+            <li><strong>Adaptive Thinking（自适应思考）</strong>：自动调节推理深度，区别于固定 effort 模式</li>
+            <li><strong>Dynamic Workflows</strong>：并行子智能体执行独立子任务</li>
+            <li><strong>Fast mode</strong>：~2.5× 速度，~2-3× 价格（Opus 系列）</li>
+            <li><strong>Mythos 5.1</strong>：网络安全研究专用模型（Project Glasswing），与 Fable 5.1 同权重</li>
+          </ul>
+          <strong>Gemini 3.x（Google DeepMind 2026）</strong>
+          <ul>
+            <li><strong>Gemini 3.1 Pro（2026-02）</strong>：94.3% GPQA Diamond / 1M 上下文 / $2/$12 per 1M</li>
+            <li><strong>Gemini 3.1 Ultra（2026-05）</strong>：2M 上下文 / 原生多模态 / 顶级推理</li>
+            <li><strong>Gemini 3.6 Flash（2026-07）</strong>：稳定版工作马；下一代 Gemini 4 预训练中（年底发布）</li>
+            <li><strong>Gemini 3.8 Flash（2026-09-02）</strong>：新默认工作马，1M 上下文 / 64K 输出 / $0.75/$3.75 per 1M</li>
+            <li><strong>Gemini Spark（2026-05-19）</strong>：24/7 持久 AI Agent</li>
+            <li><strong>Omni Flash</strong>：any-to-any 输入 + 视频输出</li>
+          </ul>
+          <strong>选型决策矩阵：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">场景</th><th style="padding:6px;border:1px solid #ddd">首选模型</th><th style="padding:6px;border:1px solid #ddd">理由</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">计算机自动化/终端任务</td><td style="padding:6px;border:1px solid #ddd">GPT-6 Astra</td><td style="padding:6px;border:1px solid #ddd">terminal+computer use 评分第一</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">高级数学/研究</td><td style="padding:6px;border:1px solid #ddd">GPT-6 Astra</td><td style="padding:6px;border:1px solid #ddd">AIME/GPQA 顶级</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">网络安全研究</td><td style="padding:6px;border:1px solid #ddd">GPT-6 Astra / Mythos 5.1</td><td style="padding:6px;border:1px solid #ddd">Critical 阈值突破</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">长时间无人值守编程 Agent</td><td style="padding:6px;border:1px solid #ddd">Claude Opus 5 / Fable 5.1</td><td style="padding:6px;border:1px solid #ddd">长代码库理解+稳定不漂移</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">最长上下文 / 视频处理</td><td style="padding:6px;border:1px solid #ddd">Gemini 3.x Pro/Ultra</td><td style="padding:6px;border:1px solid #ddd">2M token / 原生多模态</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">高性价比 / 高吞吐</td><td style="padding:6px;border:1px solid #ddd">Gemini 3.8 Flash / Claude Sonnet 5</td><td style="padding:6px;border:1px solid #ddd">$2/$10 或更低</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Google 生态集成</td><td style="padding:6px;border:1px solid #ddd">Gemini</td><td style="padding:6px;border:1px solid #ddd">Workspace/YouTube/Search 深度整合</td></tr>
+          </table>
+          <strong>2026 共识：多模型路由是生产标配</strong>
+          <ul>
+            <li>大多数 2026 严肃生产工作负载都按任务类型跨 2-4 个模型路由（不再追求单模型标准化）</li>
+            <li>Hybrid Routing：简单任务 → Haiku/Flash 类；硬推理 → Astra/Fable；超长文档 → Gemini</li>
+            <li>关键能力分水岭：Astra=computer use + 网安；Fable=智能指数最高；Gemini=上下文最长+多模态最原生</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>GPT-6 Astra = Symphony 原生多模态 + 双系统推理 + Critical 网安阈值 + 5-6T MoE 激活 10%。Claude 5 Fable = Adaptive Thinking + Dynamic Workflows + Cache Reads $0.25/M。Gemini 3.x = 2M 上下文 + 原生多模态 + Google 生态。2026 选型=按任务路由而非单一模型；多模型路由是生产标配。</div>
+      </div>
+    </div>
+
+    <!-- Q358 训练微调 / FP4 训练 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q358</div>
+        <div style="flex:1">
+          <div class="q-title">2026 FP4 训练稳定性：MXFP4 / NVFP4 / Microscaling 格式如何在 Blackwell + AMD MI355X 上原生预训练？结构性微缩放误差（非随机噪声）的根因？确定性旋转（Deterministic Rotation）等缓解策略？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>FP4 格式两大阵营：</strong>
+          <ul>
+            <li><strong>NVFP4（NVIDIA 私有）</strong>：DeepSeek-R1 从 FP8 量化到 NVFP4，7 大 benchmark 损失 &lt;1%，性能提升 3×</li>
+            <li><strong>MXFP4（Microscaling 4-bit，OCP 标准）</strong>：开放无许可，AMD/Intel/Qualcomm 联合推动，NVIDIA 也参与制定</li>
+            <li>两者均为 Microscaling 格式：块内共享一个缩放因子，块内多个低位值并行计算</li>
+          </ul>
+          <strong>2026 重大进展：</strong>
+          <ul>
+            <li><strong>DeepSeek-V4-Flash</strong>：采用 FP4+FP8 混合精度训练；MoE 专家权重 + CSA 索引器 QK 路径用 MXFP4 QAT</li>
+            <li><strong>智源 FlagOS（2026-04）</strong>：DeepSeek-V4-Flash 在 8 款国产 AI 芯片（海光、沐曦、华为昇腾、摩尔线程、昆仑芯、平头哥真武、天数等）上完成全量适配；通过 FlagGems 全算子替代 + o-group 张量并行 + FP4→BF16 路径转换</li>
+            <li><strong>AMD+PSU 论文（2026-05）</strong>：MI355X GPU 上用 MXFP4 完成 Llama 3.1-8B 全流程预训练（首次 FP4 原生预训练）</li>
+            <li><strong>SageAttention3（清华朱军团队 2025-07）</strong>：FP4 微缩放注意力，块大小 1×16，RTX 5090 上比 FlashAttention2 快 4-5×；与 online softmax 融合</li>
+          </ul>
+          <strong>FP4 训练不稳定根因（AMD+PSU 关键洞察）：</strong>
+          <ul>
+            <li><strong>结构性微缩放误差沿敏感梯度路径累积放大</strong>——不是随机噪声问题</li>
+            <li>反传梯度对量化误差的敏感性远高于前向；某些梯度路径（attention QK、MLP gate）对 FP4 误差"敏感"，沿这些路径累积导致训练发散</li>
+            <li>反直觉结论：增加随机性（如 stochastic rounding）不能根治，因为根因是结构性的</li>
+          </ul>
+          <strong>缓解策略：确定性旋转（Deterministic Rotation）</strong>
+          <ul>
+            <li>对权重做固定的 Hadamard 旋转（正交变换）后再量化，把误差均匀分散到所有维度</li>
+            <li>"旋转"指数学上的正交变换，不是数据增强的随机旋转</li>
+            <li>类似 QuIP/Quanta 國 training-free 量化的旋转技巧，但应用到训练中</li>
+            <li>实测：MI355X 上 Llama 3.1-8B FP4 训练稳定性大幅提升，loss 收敛曲线接近 BF16</li>
+          </ul>
+          <strong>FP4 vs FP8 vs BF16 训练对比：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">BF16</th><th style="padding:6px;border:1px solid #ddd">FP8</th><th style="padding:6px;border:1px solid #ddd">FP4（MXFP4/NVFP4）</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">训练吞吐</td><td style="padding:6px;border:1px solid #ddd">基准</td><td style="padding:6px;border:1px solid #ddd">+30-50%</td><td style="padding:6px;border:1px solid #ddd">+100-200%（Blackwell）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">能耗</td><td style="padding:6px;border:1px solid #ddd">基准</td><td style="padding:6px;border:1px solid #ddd">-40-60%</td><td style="padding:6px;border:1px solid #ddd">进一步减半</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">精度损失</td><td style="padding:6px;border:1px solid #ddd">无</td><td style="padding:6px;border:1px solid #ddd">&lt;1%</td><td style="padding:6px;border:1px solid #ddd">1-3%（含旋转）</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">训练稳定性</td><td style="padding:6px;border:1px solid #ddd">最佳</td><td style="padding:6px;border:1px solid #ddd">需注意</td><td style="padding:6px;border:1px solid #ddd">需旋转+敏感路径 BF16</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">硬件依赖</td><td style="padding:6px;border:1px solid #ddd">全平台</td><td style="padding:6px;border:1px solid #ddd">Hopper+ / 国产部分</td><td style="padding:6px;border:1px solid #ddd">Blackwell / MI355X / 通过 FlagOS 转换</td></tr>
+          </table>
+          <strong>实际工程配方（DeepSeek-V4-Flash）：</strong>
+          <ul>
+            <li>MoE 专家权重：MXFP4 QAT（占比大）</li>
+            <li>CSA 索引器 Query-Key 路径：FP4</li>
+            <li>激活值与梯度：FP8 或 BF16（敏感路径保留高精度）</li>
+            <li>主权重（master weight）：BF16（避免累加误差）</li>
+            <li>反传梯度敏感路径（attention softmax 前）：BF16</li>
+          </ul>
+          <strong>国产芯片适配（FlagOS 路径）：</strong>
+          <ul>
+            <li>对不支持 FP4 的芯片：FP4→BF16 反量化路径转换</li>
+            <li>FlagGems 全算子替代（绕开厂商私有库）</li>
+            <li>o-group 独立张量并行策略（解决 FP4 跨卡通信）</li>
+            <li>跨芯片适配周期从数周缩短至数天</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>FP4 训练不稳定=结构性误差沿敏感梯度路径累积，不是随机噪声问题。缓解=确定性旋转（Hadamard 正交变换）+敏感路径保留 BF16。DeepSeek-V4-Flash 配方=MoE/CSA QK 用 MXFP4，激活梯度 FP8/BF16。MXFP4 是 OCP 标准（AMD/Intel/Qualcomm 联合），NVFP4 是 NVIDIA 私有；FlagOS 实现国产芯片跨平台适配。</div>
+      </div>
+    </div>
+
+    <!-- Q359 推理优化 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q359</div>
+        <div style="flex:1">
+          <div class="q-title">2026 推理引擎选型决策树：FP8 KV Cache 量化（Cloudflare 实测 Kimi K2.6）/ DSpark Speculative Decoding / SGLang vs vLLM vs TensorRT-LLM 怎么选？GPU 利用率 72.2% 交叉点是什么？</div>
+          <div class="q-tags">
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>FP8 KV Cache 量化（Cloudflare Kimi K2.6 实测）：</strong>
+          <ul>
+            <li>BF16 KV Cache：64 并发即 OOM；32 并发后内存耗尽</li>
+            <li>FP8 KV Cache：可缓存 <strong>1.37M token</strong>（BF16 仅 686K，<strong>翻倍</strong>）；64 并发时吞吐 <strong>+41%</strong>，单 token 成本 <strong>-30%</strong></li>
+            <li>反直觉：单并发下 BF16 略快（每 token 几个百分点），但 BF16 早在 32 并发就 OOM，FP8 可推到 64+</li>
+            <li>"赢在容量，不在裸速度"——FP8 优势是并发能力而非单 token 延迟</li>
+          </ul>
+          <strong>DSpark Speculative Decoding（DeepSeek-V4-Flash-0731 内置）：</strong>
+          <ul>
+            <li>投机解码直接内置在权重发布中：vLLM/SGLang 单配置开关激活</li>
+            <li>消除"实验室声称模型"vs"实际部署模型"的漂移（spec 算法常被部署方误配置）</li>
+            <li><strong>DFlash</strong>：Blackwell 上对 gpt-oss-120b 比 EAGLE-3 快 <strong>15×</strong>，已集成 SGLang/vLLM/TRT-LLM</li>
+            <li>软件层优化对老硬件也有效：5 年前 A10G（24GB）通过 sliding window attention + spec decoding + kernel fusion 跑 Gemma-4 达 510 tokens/s</li>
+          </ul>
+          <strong>三大推理引擎对比（2026）：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">引擎</th><th style="padding:6px;border:1px solid #ddd">优势</th><th style="padding:6px;border:1px solid #ddd">最佳场景</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">vLLM</td><td style="padding:6px;border:1px solid #ddd">硬件支持最广 / PagedAttention 标杆 / 社区最大</td><td style="padding:6px;border:1px solid #ddd">通用 / 国产芯片 / 多硬件环境</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">SGLang</td><td style="padding:6px;border:1px solid #ddd">Prefix Cache 优化 / RadixAttention / 结构化输出极强</td><td style="padding:6px;border:1px solid #ddd">Agent 重前缀流量 / 多轮对话 / 结构化输出</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">TensorRT-LLM</td><td style="padding:6px;border:1px solid #ddd">NVIDIA 平台吞吐最高 / FP4 原生 / kernel 融合最极致</td><td style="padding:6px;border:1px solid #ddd">Blackwell 纯 NVIDIA 集群 / 最高吞吐</td></tr>
+          </table>
+          <strong>2026 推理流量选型决策树：</strong>
+          <ul>
+            <li><strong>&lt; 2M tokens/day</strong>：用托管 API（自托管无法摊销 GPU 成本）</li>
+            <li><strong>2-5M tokens/day 突发流量</strong>：用 serverless 开源权重托管（DeepInfra/Together/Fireworks），按 token 计费无闲置成本</li>
+            <li><strong>&gt; 5M tokens/day 持续流量</strong>：自托管预留 GPU 容量，开 FP8 KV Cache 翻倍并发，按流量形态选引擎</li>
+            <li><strong>任何流量 + Agentic 负载</strong>：审计实际账单 vs 标称价；AI 负载均衡把请求路由到持有相关 cached prefix 的副本，可降 TTFT</li>
+          </ul>
+          <strong>72.2% 交叉点：自托管的临界值</strong>
+          <ul>
+            <li>GPU 持续利用率 <strong>&gt; 72.2%</strong>：自托管比托管 API 便宜</li>
+            <li>GPU 持续利用率 <strong>&lt; 72.2%</strong>：托管 API 更便宜（闲置成本拖累自托管）</li>
+            <li>"问题不是哪个模型最便宜，而是哪个服务栈匹配你的流量形态"</li>
+            <li>最大持久的节省在<strong>服务架构</strong>而非模型层级选择：优化 KV Cache 内存 + 路由到开源权重套利 + 维持 GPU 利用率 &gt; 72.2% 的团队，比追逐最便宜 API 的团队付费更少——每次都是</li>
+          </ul>
+          <strong>推理芯片军备（2026）：</strong>
+          <ul>
+            <li><strong>Etched Sohu</strong>：把 Transformer 架构硬连线进芯片；Llama 70B 达 <strong>500K tokens/s</strong>，但无法跑非 Transformer 架构（如 Mamba）</li>
+            <li><strong>Tensordyne Napier</strong>：对数数字系统（log A × B = log A + log B）→ 用加法替代乘法；1.3K tokens/s/user，功耗仅 NVIDIA 1/10</li>
+            <li><strong>NVIDIA Blackwell</strong>：FP4 原生 + 第四代 RT Core + Cooperative Vectors</li>
+            <li><strong>国产</strong>：天数 / 寒武纪 / 昇腾，FlagOS 跨芯片适配</li>
+          </ul>
+          <strong>选型行动指南：</strong>
+          <ul>
+            <li>1️⃣ 先做流量形态匹配，再做模型选择</li>
+            <li>2️⃣ 高并发短文本 Copilot → 优化 TTFT + 并发吞吐</li>
+            <li>3️⃣ 长链 Agent 推理 → 优化 Sustained Memory Bandwidth + KV 管理</li>
+            <li>4️⃣ 软件栈升级（SGLang/vLLM/TRT-LLM 最新版）红利 ≥ 硬件升级红利</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>FP8 KV Cache = 容量翻倍 +41% 并发 +30% 成本（Cloudflare 实测）；DSpark 内置 Spec Decoding 消除漂移；72.2% GPU 利用率是自托管临界值。三引擎：vLLM 通用广硬件 / SGLang Agent prefix-heavy / TRT-LLM NVIDIA 极致吞吐。Etched Sohu 把 Transformer 硬连进芯片 500K t/s，Tensordyne Napier 用对数运算功耗仅 1/10。</div>
+      </div>
+    </div>
+
+    <!-- Q360 RAG / Agent / Context Engineering -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">Q360</div>
+        <div style="flex:1">
+          <div class="q-title">Context Engineering 取代 Prompt Engineering：Anthropic 的七槽模型（System/User/History/Tools/Retrieved/Memory/Artifacts）+ Context Rot 失效模式？Agentic Context Engineering（ICLR 2026）的 Generator/Reflector/Curator 三角色如何解决 Brevity Bias 与 Context Collapse？</div>
+          <div class="q-tags">
+            <span class="q-tag bytedance">字节</span>
+            <span class="q-tag tencent">腾讯</span>
+            <span class="q-tag netease">网易</span>
+            <span class="q-tag hard">高频</span>
+          </div>
+        </div>
+        <div class="q-toggle">▼</div>
+      </div>
+      <div class="q-body">
+        <div class="answer-box">
+          <h4>📌 参考答案</h4>
+          <strong>Prompt Engineering → Context Engineering 的范式转移：</strong>
+          <ul>
+            <li>经典 Prompt Engineering 优化单次输入（角色/任务/约束/示例/输出格式）</li>
+            <li>Agent 运行多轮：调用工具、读文档、创建文件、犯错、恢复、累积历史——单次 prompt 优化失效</li>
+            <li>新问题："现在模型应该看到什么，让下一步动作最有用？"（而非"system prompt 该说什么"）</li>
+          </ul>
+          <strong>Anthropic 七槽上下文模型：</strong>
+          <table style="border-collapse:collapse;width:100%;font-size:13px;margin:12px 0">
+            <tr style="background:#eef"><th style="padding:6px;border:1px solid #ddd">槽位</th><th style="padding:6px;border:1px solid #ddd">含义</th><th style="padding:6px;border:1px solid #ddd">特性</th></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">S - System Prompt</td><td style="padding:6px;border:1px solid #ddd">系统提示与策略指令</td><td style="padding:6px;border:1px solid #ddd">稳定，置顶</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">U - User Request</td><td style="padding:6px;border:1px solid #ddd">当前用户请求</td><td style="padding:6px;border:1px solid #ddd">每轮变化</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">H - History</td><td style="padding:6px;border:1px solid #ddd">相关对话历史</td><td style="padding:6px;border:1px solid #ddd">需压缩/检索</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">T - Tool Definitions</td><td style="padding:6px;border:1px solid #ddd">工具定义与 schema</td><td style="padding:6px;border:1px solid #ddd">稳定</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">R - Retrieved Docs</td><td style="padding:6px;border:1px solid #ddd">检索文档/搜索结果</td><td style="padding:6px;border:1px solid #ddd">每轮变化，最大且最常过度填充</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">M - Memory</td><td style="padding:6px;border:1px solid #ddd">持久记忆/笔记/摘要/文件</td><td style="padding:6px;border:1px solid #ddd">跨会话</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">A - Artifacts</td><td style="padding:6px;border:1px solid #ddd">当前产出物（代码/计划/草稿）</td><td style="padding:6px;border:1px solid #ddd">累积</td></tr>
+          </table>
+          <strong>Context Rot（上下文腐烂）失效模式：</strong>
+          <ul>
+            <li>Anthropic 定义：随着上下文增长，agent 在硬 token 限制达到前已"失去焦点"</li>
+            <li>Chroma Context Rot 报告：18 个模型实测，<strong>退化非均匀</strong>——连贯 haystack 反而比 shuffled 表现更差</li>
+            <li>Epoch AI 跟踪：广告上下文 vs 有效上下文，123 个模型存在显著差距</li>
+            <li>2026-06 研究：长视野 agentic search 中 context rot 进一步恶化</li>
+          </ul>
+          <strong>三大杠杆（按杠杆率排序）：</strong>
+          <ul>
+            <li><strong>① 清除陈旧工具结果</strong>（最便宜最大的赢）：旧 search 返回的 4KB JSON 五轮前已无用但每轮仍付费重读；保留 stub 让转录连贯，丢弃内容</li>
+            <li><strong>② 接近限制时压缩</strong>：summary 历史 → 重启新窗口；Anthropic 工艺=<strong>先最大化召回</strong>（保留所有可能相关）→ <strong>再提高精度</strong>（丢其余）；lossy summary 忘记用户实际目标比原 bloated history 更糟</li>
+            <li><strong>③ Just-in-time 检索</strong>：不要 front-load 文档"以防万一"；上下文保留轻量标识（文件路径/ID/查询字符串），模型够到时才拉全文</li>
+          </ul>
+          <strong>子智能体上下文隔离（Anthropic 多智能体研究系统）： </strong>
+          <ul>
+            <li>每个 sub-agent 有独立 context window；orchestrator 只看 sub-agent 的 summary</li>
+            <li>orchestrator 窗口保持小 → 这是 2025 多智能体系统开始上线的最大原因</li>
+            <li>多智能体 ~15× chat 交互 token，但 token 占用解释了 ~80% 评估性能方差</li>
+          </ul>
+          <strong>Agentic Context Engineering（ICLR 2026 论文，Stanford+Untyped AI）：</strong>
+          <ul>
+            <li><strong>Brevity Bias（简洁偏见）</strong>：Prompt 优化器优先简洁，意外剥离领域启发式或边缘情况逻辑</li>
+            <li><strong>Context Collapse（上下文坍塌）</strong>：LLM 迭代重写自己 context 时过度总结，详细知识被压走，长时间后 context 变成空壳</li>
+            <li><strong>反直觉结论："More is More for LLMs"</strong>——LLM 在"饱和"context（长、详细、结构化 playbook）下表现更好，而非简洁</li>
+          </ul>
+          <strong>ACE 框架三角色分工：</strong>
+          <ul>
+            <li><strong>Generator</strong>：执行任务产生推理轨迹</li>
+            <li><strong>Reflector</strong>：critique 轨迹，从成功/失败中提取具体 lessons</li>
+            <li><strong>Curator</strong>：把 lessons 合成为增量 delta 更新（grow-and-refine 原则）</li>
+          </ul>
+          <strong>ACE 关键工程改进：</strong>
+          <ul>
+            <li><strong>itemized bullets</strong> 而非整体重写：避免 monolithic rewriting 时一次性误删数千 token</li>
+            <li><strong>localization</strong>：只更新相关 playbook 部分</li>
+            <li><strong>parallelism</strong>：多 insight 可并行合并</li>
+            <li><strong>redundancy control</strong>：去重步骤确保 playbook 干净</li>
+            <li><strong>KV Cache 复用</strong>：增量更新高度兼容 KV Cache 重用， billed cost 与 latency 显著降低</li>
+          </ul>
+          <strong>ACE 实测结果：</strong>
+          <ul>
+            <li>Agent 任务平均 <strong>+10.6%</strong>，金融基准 <strong>+8.6%</strong>（vs GEPA/ICL 强基线）</li>
+            <li>AppWorld 排行榜：用 DeepSeek-V3.1 开源 ACE 匹配或超越 IBM-CUGA（GPT-4 驱动）顶级生产 Agent</li>
+            <li>vs GEPA：延迟降 <strong>82.3%</strong>，rollout 数降 <strong>75.1%</strong>；在线 token 成本降 <strong>83.6%</strong></li>
+            <li>执行反馈（code 是否跑通/API 是否返回错误）&gt; 标注数据，无需人工 ground truth</li>
+          </ul>
+          <strong>2026 工程行动指南：</strong>
+          <ul>
+            <li>1️⃣ 记录每轮组装后的 context 到 trace（LangSmith/Phoenix/Helicone/Anthropic Console）</li>
+            <li>2️⃣ 盘点七槽，找出最大槽（通常是 Retrieved，常过度填充）</li>
+            <li>3️⃣ 加 scratchpad（让 agent 写下计划+引用回去）</li>
+            <li>4️⃣ 50% 窗口用量时压缩历史（不等到 distraction）</li>
+            <li>5️⃣ 运行 context-eval：挑 10 个失败 trace，看组装后的 context，写问题</li>
+          </ul>
+        </div>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Context Engineering 取代 Prompt Engineering = "现在模型该看到什么"而非"prompt 该说什么"。Anthropic 七槽（S/U/H/T/R/M/A）+ Context Rot 失效模式。三大杠杆=清陈旧工具结果（最便宜）+接近限制时压缩（先召回后精度）+JIT 检索。子智能体隔离是多智能体上线关键。ACE (ICLR 2026) 三角色 Generator/Reflector/Curator 解决 Brevity Bias + Context Collapse，"More is More for LLMs"反直觉，KV Cache 复用降成本 83.6%。</div>
       </div>
     </div>
 
