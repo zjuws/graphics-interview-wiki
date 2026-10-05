@@ -1432,6 +1432,67 @@
         <div class="tip-box">💡 <strong>面试要点：</strong>Unity 6.5（2026）三管线命运=Built-in 正式弃用（2028 EOL）/ HDRP 维护模式（仅 Switch 2 扩展）/ URP 是几乎所有工程投入方向。变粉=Shader 契约不匹配（Pass/LightMode Tag/CBUFFER/GrabPass）。三合批=SRP Batcher（材质切换）/ GPU Instancing（同 mesh 同 material）/ GPU Resident Drawer（GPU-Driven+Bindless）。HDRP 不可替代=完整 RT + 体积光照 + 物理天空。</div>
       </div>
     </div>
+
+    <!-- Q361 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">361</div>
+        <div class="q-title">Q361 【渲染管线】Unity 7 Surface Cache GI 实时全局光照 + Unity Neural（NTC+Upscaler）+ MCP 集成：UE6 提前一年抢占市场</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>Unite Seoul 2026 发布的 Unity 7 引擎在三大方向上突破：①Surface Cache GI（首次在 URP 实现完全动态全局光照，移动端 Samsung Galaxy S26 全分辨率 60FPS）②Unity Neural（NTC 神经纹理压缩 + Upscaler Framework + Sentis 推理引擎）③MCP 服务器集成（Adobe/Blender/UE/Houdini 22 协同）。请说明这三件套对 Unity 与 UE 竞争格局的影响。</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Surface Cache GI 技术原理</strong>：
+            <ul>
+              <li>低分辨率"card-based"表面缓存——每个表面存储 irradiance 信息，与 Lumen 类似的 Surface Cache 概念</li>
+              <li>混合软件 + 硬件光追方式更新（无需硬性要求 RT 硬件，覆盖全 Unity 设备矩阵）</li>
+              <li>动态几何体支持：车/物体在场景移动，光照自然响应；完整昼夜循环</li>
+              <li>预览在 Unity 6.7 alpha，LTS 在 Unity 6.7；SURFACE_CACHE 宏定义开关</li>
+            </ul>
+          </li>
+          <li><strong>性能账本</strong>：Mecha Repair Hangar 场景（Sakura Rabbit）移动端 Samsung Galaxy S26 全分辨率 60FPS（光照重要环境，传统需数小时烘焙）</li>
+          <li><strong>与 SSR + GTAO 协同</strong>：Surface Cache GI 可与 Screen Space Reflections + Ground Truth Ambient Occlusion 组合使用，丰富表面细节</li>
+          <li><strong>Unity Neural 三件套</strong>：
+            <ol>
+              <li><strong>Neural Texture Compression (NTC)</strong>：训练模型压缩纹理——近无损，纹理显存 &gt; 50% 减少，磁盘 ~70% 减少</li>
+              <li><strong>Upscaler Framework 升级</strong>：partner 神经超分器；与 NVIDIA DLSS / AMD FSR / Intel XeSS 路径平行</li>
+              <li><strong>Sentis 升级</strong>：神经推理完全在设备端，无服务器往返</li>
+            </ol>
+          </li>
+          <li><strong>MCP 服务器集成</strong>：Unity 7 免费 MCP server，让 AI coding agent 直接接入 Unity 项目——验证构建/导航场景图/推送资产变更</li>
+          <li><strong>开放生态</strong>：CLI + 公共 API，Blender 中通过 deep link 接收修复请求 → Web Dashboard 预览 → 提交源控制，全程不开 Unity Editor</li>
+          <li><strong>DXC 着色器编译</strong>：Unity 6.6 引入 Microsoft DirectX Shader Compiler（DXC）— 解锁新 HLSL/Shader Model 6；Fast Build Profile 在 Unity 6.7 减少着色器构建时间 ~90%；PSO 跟踪 + 预热减少运行时卡顿</li>
+          <li><strong>WebGPU 生产就绪</strong>：Unity 6.6 全 URP 兼容 + compute shader + indirect rendering</li>
+          <li><strong>移动端 Tile-Only 模式</strong>：Metal/Vulkan 扩展 tile 后处理；Tile-Only 模式更可预测性能 + 低功耗</li>
+          <li><strong>Bunny Blitz 2D 样板</strong>：多线程 Physics Core 2D（Box2D v3）+ RenderSprite API（千 sprite 无 GameObject 开销）+ SRP Batcher 兼容；老移动设备稳定 60FPS</li>
+          <li><strong>Meta Quest VR 合作</strong>：Unity 6.7+ 集成 Meta VR CLI/Meta XR Operator；AI 引导项目设置/输入/性能/测试/场景验证</li>
+        </ul>
+        <p><strong>Unity 7 vs UE 6 竞争对比：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Unity 7（2027 Q1 GA）</th><th style="padding:6px;border:1px solid #ddd">Unreal Engine 6（2027 末 Early Access）</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">市场时间</td><td style="padding:6px;border:1px solid #ddd"><strong>提前一年</strong></td><td style="padding:6px;border:1px solid #ddd">晚 12-18 个月</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">动态 GI</td><td style="padding:6px;border:1px solid #ddd">Surface Cache GI（软/硬件混合）</td><td style="padding:6px;border:1px solid #ddd">Lumen（已成熟）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">路径追踪</td><td style="padding:6px;border:1px solid #ddd">DLSS RR 集成 + 实时 60FPS（HDRP）</td><td style="padding:6px;border:1px solid #ddd">Path Tracer Production（UE5.5+）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">神经渲染</td><td style="padding:6px;border:1px solid #ddd">NTC + Upscaler + Sentis</td><td style="padding:6px;border:1px solid #ddd">Substrate Neural + NTC 集成</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">MCP 集成</td><td style="padding:6px;border:1px solid #ddd">免费 MCP server</td><td style="padding:6px;border:1px solid #ddd">NVIDIA MCP（UE 22+）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">WebGPU</td><td style="padding:6px;border:1px solid #ddd">生产就绪</td><td style="padding:6px;border:1px solid #ddd">Pixel Streaming + WebGPU 探索</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">移动端 GI</td><td style="padding:6px;border:1px solid #ddd">S26 全分辨率 60FPS</td><td style="padding:6px;border:1px solid #ddd">Lumen Mobile 仍有限</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">向后兼容</td><td style="padding:6px;border:1px solid #ddd">零重建迁移</td><td style="padding:6px;border:1px solid #ddd">UE5→UE6 平滑</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">2D 工作流</td><td style="padding:6px;border:1px solid #ddd">Bunny Blitz 3D-as-2D</td><td style="padding:6px;border:1px solid #ddd">Paper2D 弱</td></tr>
+        </table>
+        <p><strong>Unity 7 vs Unity 6 升级路径</strong>：无缝兼容，所有现有 HDRP/URP 设置自动迁移；DXC 编译器在 6.6 启用；Surface Cache GI 已在 6.5+ alpha 可试用（SURFACE_CACHE 宏）</p>
+        <p><strong>行业意义：</strong></p>
+        <ul>
+          <li><strong>Unity 抢占"UE6 真空期"</strong>：UE6 商业版要到 2028-2029；Unity 7 在 2027 Q1 GA，提前 12-18 个月</li>
+          <li><strong>移动端 GI 突破</strong>：Surface Cache GI 在 S26 60FPS 全分辨率是行业首次（Lumen Mobile 仍受限）</li>
+          <li><strong>AI 原生 DCC 工作流</strong>：MCP + CLI + 公共 API 让 AI agent 直接接入 Unity 项目——未来 artist 可能不开 Editor</li>
+          <li><strong>CoreCLR JIT</strong>：替换 Mono 运行时，shader variant 编译优化、原生代码质量提升，shader 构建 -90%</li>
+          <li><strong>vs Unity 6.5 Built-in 弃用决策</strong>：Unity 7 全押 URP——简化矩阵，集中工程投入</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Unity 7 三件套=Surface Cache GI（URP 首次完全动态 GI，软/硬件混合光追 + 移动端 S26 60FPS）+ Unity Neural（NTC + Upscaler + Sentis 神经推理）+ MCP 服务器（AI agent 接入项目）。DXC + Shader Build Profile -90% + PSO 预热。WebGPU 生产就绪 + Tile-Only 模式。vs UE6：提前一年 GA（2027 Q1 vs 2027 末 EA）+ 移动端 GI 突破 + AI 原生 DCC。Unity 6.5 弃 Built-in 后 Unity 7 全押 URP。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q233 -->
@@ -2788,6 +2849,61 @@
         <div class="tip-box">💡 <strong>面试要点：</strong>Vulkan 1.3 四件套=Dynamic Rendering+BDA+Descriptor Indexing+Synchronization2。Slang 是 2026 着色器新选（注意 SDK 1.4.357 自带 Slang 有 bug）。Bindless=纹理数组+buffer_reference+nonuniformEXT，Doom Eternal 用此把 PSO 压到 500、整大陆 10 drawcall。GPU-Driven+Bindless 协同=所有数据 SSBO，CPU 仅 DrawIndexedIndirect。VMA/Volk/glm 是必备库。</div>
       </div>
     </div>
+
+    <!-- Q362 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">362</div>
+        <div class="q-title">Q362 【光线追踪/硬件架构】Bolt Graphics Zeus GPU：从零设计的"原生路径追踪"GPU 架构（RISC-V + 自研 SIMD + Glowstick + 10× RTX 5090）</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>SIGGRAPH 2026 亮相的 Bolt Graphics Zeus GPU 宣称 28 颗 Zeus = 280 颗 RTX 5090 路径追踪性能（10× 整合效率）。请说明 Zeus 在硬件架构、软件生态、产品策略上与 NVIDIA Blackwell 的本质差异。这种"专硅路径追踪 GPU"对实时光追行业意味着什么？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>架构核心</strong>：自研 SIMD + RISC-V 命令处理器（兼具 CPU 功能）；芯片(chiplet)式设计；从零设计"为路径追踪而生的 GPU"</li>
+          <li><strong>避开路线</strong>：明确放弃 AI 上采样快捷方式（shuns AI upscaling shortcuts），专注原始路径追踪硅性能</li>
+          <li><strong>规格矩阵</strong>：
+            <table style="border-collapse:collapse;margin:8px 0">
+              <tr><th style="padding:6px;border:1px solid #ddd">型号</th><th style="padding:6px;border:1px solid #ddd">功率</th><th style="padding:6px;border:1px solid #ddd">路径追踪</th><th style="padding:6px;border:1px solid #ddd">FP64</th><th style="padding:6px;border:1px solid #ddd">显存</th><th style="padding:6px;border:1px solid #ddd">vs 5090</th></tr>
+              <tr><td style="padding:6px;border:1px solid #ddd">Zeus 1C</td><td style="padding:6px;border:1px solid #ddd">120W</td><td style="padding:6px;border:1px solid #ddd">77 GR/s</td><td style="padding:6px;border:1px solid #ddd">5 TFLOPS</td><td style="padding:6px;border:1px solid #ddd">32-160 GB</td><td style="padding:6px;border:1px solid #ddd">2.5×</td></tr>
+              <tr><td style="padding:6px;border:1px solid #ddd">Zeus 2C</td><td style="padding:6px;border:1px solid #ddd">250W</td><td style="padding:6px;border:1px solid #ddd">154 GR/s</td><td style="padding:6px;border:1px solid #ddd">10 TFLOPS</td><td style="padding:6px;border:1px solid #ddd">64-384 GB</td><td style="padding:6px;border:1px solid #ddd">5×</td></tr>
+              <tr><td style="padding:6px;border:1px solid #ddd">Zeus 4C</td><td style="padding:6px;border:1px solid #ddd">500W</td><td style="padding:6px;border:1px solid #ddd">307 GR/s</td><td style="padding:6px;border:1px solid #ddd">20 TFLOPS</td><td style="padding:6px;border:1px solid #ddd">256-2304 GB</td><td style="padding:6px;border:1px solid #ddd">10×</td></tr>
+              <tr><td style="padding:6px;border:1px solid #ddd">RTX 5090</td><td style="padding:6px;border:1px solid #ddd">575W</td><td style="padding:6px;border:1px solid #ddd">~32 GR/s</td><td style="padding:6px;border:1px solid #ddd">1.6 TFLOPS</td><td style="padding:6px;border:1px solid #ddd">32 GB GDDR7</td><td style="padding:6px;border:1px solid #ddd">基准</td></tr>
+            </table>
+          </li>
+          <li><strong>能效账本</strong>：Zeus 1C 120W vs RTX 5090 575W = 4.8× 能效；FP64 5 vs 1.6 = 3×；路径追踪 77 vs 32 = 2.4×</li>
+          <li><strong>密度账本</strong>：28 颗 Zeus = 280 颗 RTX 5090 路径追踪性能（数据中心角度，10× 整合效率）</li>
+          <li><strong>软件栈 Glowstick</strong>：Bolt 自研路径追踪器，与 Zeus 硬件协同设计；与 DCC 工具通过 Hydra 集成：Houdini/Maya/3ds Max/Nuke/USDView；SketchUp/UE/Blender/Revit 通过 plugin</li>
+          <li><strong>开放标准</strong>：OpenUSD + MaterialX 是默认资产格式；支持 Vulkan + DX12 API；兼容 UE + Unity 引擎</li>
+          <li><strong>混合内存架构</strong>：LPDDR5X 显存 + DDR5 SODIMM 插槽（RISC-V 处理器用）→ 整卡最高 384 GB；4-chiplet 版本可达 2304 GB</li>
+          <li><strong>企业特性</strong>：PCIe 5.0 x16 + 400/800 Gbps 网络接口 + BMC/IPMI 管理 → 数据中心 rack 部署</li>
+          <li><strong>声明性能基准</strong>：Maya/3ds Max/Blender 等场景（10万-400万三角形）— Blender Cycles/OptiX vs Glowstick 测试</li>
+          <li><strong>产品定位</strong>：DCC + ArchViz + Film + HPC（不主打 AI 训练，FP16/INT8 弱）</li>
+          <li><strong>当前状态</strong>：2026-04 完成 12nm 测试 chip 第一次 tape-out；2026-07 SIGGRAPH 展示；首批产品 2026 年底前上市</li>
+        </ul>
+        <p><strong>vs NVIDIA Blackwell 路线对比：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Bolt Zeus</th><th style="padding:6px;border:1px solid #ddd">NVIDIA Blackwell</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">设计目标</td><td style="padding:6px;border:1px solid #ddd">路径追踪专用</td><td style="padding:6px;border:1px solid #ddd">通用 GPU（光栅+RT+AI）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">架构</td><td style="padding:6px;border:1px solid #ddd">自研 SIMD + RISC-V</td><td style="padding:6px;border:1px solid #ddd">SM + Tensor Core + RT Core</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">AI 算力</td><td style="padding:6px;border:1px solid #ddd">弱（不主打）</td><td style="padding:6px;border:1px solid #ddd">强（FP4 Tensor Core）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">路径追踪策略</td><td style="padding:6px;border:1px solid #ddd">高 spp 收敛</td><td style="padding:6px;border:1px solid #ddd">低 spp + AI 降噪</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">4K 120FPS</td><td style="padding:6px;border:1px solid #ddd">原生渲染</td><td style="padding:6px;border:1px solid #ddd">DLSS 5 超分 + 多帧生成</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">能效</td><td style="padding:6px;border:1px solid #ddd">4.8× 5090</td><td style="padding:6px;border:1px solid #ddd">基准</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">扩展显存</td><td style="padding:6px;border:1px solid #ddd">DDR5 SODIMM 可扩</td><td style="padding:6px;border:1px solid #ddd">固定 GDDR7</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">DCC 工具集成</td><td style="padding:6px;border:1px solid #ddd">USD + MaterialX + Hydra</td><td style="padding:6px;border:1px solid #ddd">专 SDK + DLSS</td></tr>
+        </table>
+        <p><strong>对实时光追行业影响：</strong></p>
+        <ul>
+          <li><strong>短期（2026-2027）</strong>：DLSS 5 + Blackwell 仍是 AAA 游戏主流；Zeus 在 DCC/ArchViz/电影预览工作站抢占市场</li>
+          <li><strong>中期（2027-2029）</strong>：若 Bolt 性能持续领先 3×+，独立渲染农场可能切换到 Zeus 集群</li>
+          <li><strong>长期（5-10 年）</strong>：GPU 市场可能分裂为"AI 训练 GPU"（NVIDIA/AMD）和"路径追踪 GPU"（Bolt）</li>
+          <li><strong>开源 GPU 复兴</strong>：RISC-V 指令集 + SIMD 自研设计，可能推动更多开源 GPU 项目（如 Verilog RTL 开源）</li>
+          <li><strong>NVIDIA 反击</strong>：可能推出专用 Path Tracing 加速单元或独立产品线</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Bolt Zeus = 专硅路径追踪 GPU（自研 SIMD + RISC-V + chiplet + LPDDR5X + 可扩 DDR5）。Zeus 1C 120W 路径追踪 77 GR/s = 2.5× RTX 5090 + 4.8× 能效。28 Zeus = 280 RTX 5090（10× 整合）。Glowstick 是 Bolt 路径追踪器；Hydra 集成 Maya/Houdini/USDView。放弃 AI 上采样——专注高 spp 收敛。vs Blackwell = 专硅 vs 通用 GPU+AI 路径分歧。短期 DLSS 主流，中期可能 DCC 市场切换，长期 GPU 分裂为 AI/Path Tracing 两赛道。</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -4135,6 +4251,59 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>Neural Materials = 把复杂 BSDF 压缩成小型 MLP，运行时通过 Cooperative Vectors 在 Shader 中调 Tensor Core 推理（FP4/INT4 翻倍吞吐）。四大方案=RTX Neural Materials / UE Substrate Neural / Adobe Standard Material Neural / MIT Neural BRDF v3。相比 Cook-Torrance 表达力无限+数据真实+推理更快但需 Blackwell 硬件。与 NTC 协同=材质全栈神经化。</div>
       </div>
     </div>
+
+    <!-- Q363 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">363</div>
+        <div class="q-title">Q363 【PBR/神经材质】NVIDIA ArtiFixer + VideoNeuMat：从场景几何直接预测 GI + 从生成视频提取可重光照材质</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>SIGGRAPH 2026 NVIDIA 发布 ArtiFixer（从噪声 3D 扫描到干净场景 + 直接从几何预测 photoreal 全局光照，无需任何光追）和 VideoNeuMat（从生成视频模型提取可重光照材质）。这两个工具如何改变 PBR 材质和 GI 工作流？与传统 MaterialX/OpenPBR 路线有何本质不同？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>ArtiFixer 三件套</strong>：
+            <ol>
+              <li><strong>扫描清洗</strong>：修复噪声、缺失数据、补全几何 holes（Gaussian Splat 输入）</li>
+              <li><strong>场景补全</strong>：把残缺扫描补全为完整 3D 场景</li>
+              <li><strong>无光追 GI 预测</strong>：神经网络直接从几何拓扑预测全局光照，<strong>无需发射任何光追 ray</strong></li>
+            </ol>
+          </li>
+          <li><strong>意义</strong>：3D 扫描（NeRF/Gaussian Splatting/Photogrammetry）的"清洗-补全-照亮"全栈自动</li>
+          <li><strong>vs Lumen Surface Cache</strong>：Lumen 是"软/硬件光追 + Surface Cache"实时 GI；ArtiFixer 是"<strong>纯神经预测</strong>"，推理 100×快于光追模拟</li>
+          <li><strong>vs DDGI/RTGI</strong>：DDGI 是探针插值；RTGI 是直接光追；ArtiFixer 是端到端神经函数 f(geometry) → irradiance</li>
+          <li><strong>VideoNeuMat 流水</strong>：生成视频模型（如 Sora/Veo/Cosmos）→ 提取材质参数 → 输出可重光照 BSDF（PBR 通道：albedo/normal/roughness/metallic）</li>
+          <li><strong>核心算法</strong>：从视频帧反推材质属性，配合神经 BRDF 表示，给定新光照条件重新渲染</li>
+          <li><strong>vs 传统材质采集</strong>：传统靠材质扫描仪 + X-Rite ColorChecker；VideoNeuMat 直接从生成视频提取——<strong>无限素材库</strong></li>
+          <li><strong>vs OpenPBR/MaterialX</strong>：OpenPBR 是<strong>参数语义规范</strong>；VideoNeuMat 是<strong>提取工具</strong>——把视频中材质"参数化"为 OpenPBR/MaterialX 兼容节点图</li>
+        </ul>
+        <p><strong>工作流革命：</strong></p>
+        <ol>
+          <li>用户拍视频/生成视频（Sora/Veo）</li>
+          <li>VideoNeuMat 提取 PBR 材质到 MaterialX 节点图</li>
+          <li>3D 扫描 + ArtiFixer 清洗 + 补全</li>
+          <li>ArtiFixer 预测 GI 烘焙到 Surface Cache</li>
+          <li>实时渲染：Surface Cache GI + 视频提取材质 + NTC 纹理压缩 + Neural Materials MLP BSDF</li>
+        </ol>
+        <p><strong>vs 传统 PBR 工作流：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">环节</th><th style="padding:6px;border:1px solid #ddd">传统</th><th style="padding:6px;border:1px solid #ddd">ArtiFixer + VideoNeuMat</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">材质获取</td><td style="padding:6px;border:1px solid #ddd">扫描仪 + ColorChecker</td><td style="padding:6px;border:1px solid #ddd">视频/生成视频提取</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">场景清洗</td><td style="padding:6px;border:1px solid #ddd">手工 ZRemesh + Subtance</td><td style="padding:6px;border:1px solid #ddd">ArtiFixer 自动补全</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">GI 烘焙</td><td style="padding:6px;border:1px solid #ddd">光追路径追踪（CPU 几小时）</td><td style="padding:6px;border:1px solid #ddd">神经预测（GPU 秒级）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">材质表达</td><td style="padding:6px;border:1px solid #ddd">Cook-Torrance GGX</td><td style="padding:6px;border:1px solid #ddd">Neural Materials MLP BSDF</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">重光照</td><td style="padding:6px;border:1px solid #ddd">重烘焙或实时 GI</td><td style="padding:6px;border:1px solid #ddd">BSDF 重计算（毫秒）</td></tr>
+        </table>
+        <p><strong>局限与挑战：</strong></p>
+        <ul>
+          <li>ArtiFixer GI 预测精度依赖训练数据多样性——非分布场景可能失真</li>
+          <li>VideoNeuMat 提取材质需视频含足够光照变化</li>
+          <li>材质版权：从生成视频提取材质涉及训练数据版权</li>
+          <li>无法处理复杂 caustics/体积介质——仍需光追 fallback</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>ArtiFixer 三件套=扫描清洗 + 场景补全 + <strong>无光追神经 GI 预测</strong>（从几何直接到 irradiance，100× 快于光追）；VideoNeuMat=从生成视频提取可重光照 PBR 材质到 MaterialX 节点图。新工作流：视频→材质提取→扫描→ArtiFixer 补全→神经 GI→Neural Materials MLP BSDF。vs Lumen=Lumen 是 Surface Cache + 软/硬件光追；ArtiFixer 是纯神经预测。vs OpenPBR=OpenPBR 是规范；ArtiFixer/VideoNeuMat 是工具。局限=非分布精度/版权/caustics fallback。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q235 -->
@@ -4946,6 +5115,57 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>Deep Shadow Map（Lokovic 2000）每个 texel 存透射率函数 T(z) 而非单深度；实时用 Froxel Volumetric Shadow（级联 clipmap 消光体积）或低分辨率 Ray March + 时序重投影。半透明物体按类型选：毛发=Opacity SM/RT LSS；植被=VSM+Nanite Foliage；烟雾=Froxel Volumetric；玻璃=RT。能量守恒=表面 diffuse × 体积透射率避免双重扣减。</div>
       </div>
     </div>
+
+    <!-- Q364 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">364</div>
+        <div class="q-title">Q364 【阴影/角色动画】NVIDIA MotionBricks Smart Primitives：跨虚拟角色与 Unitree G1 机器人的统一动作合成与阴影一致性</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>SIGGRAPH 2026 NVIDIA MotionBricks 用<strong>单神经网络骨干</strong>同时驱动 UE5 中的虚拟角色和 Unitree G1 真实机器人。350,000+ 动作剪辑 / 9,300 技能 / 15,000 FPS 吞吐 / 2ms 延迟。这种"统一动作模型"对游戏角色阴影、自阴影、动捕替身意味着什么？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Smart Primitives 框架</strong>：把"走路/蹲下/跑/爬/捡剑/跳凳/开门"等多种动作抽象为<strong>可插拔 keyframe 约束</strong>，喂给同一神经网络骨干</li>
+          <li><strong>三层结构</strong>：
+            <ol>
+              <li><strong>Root Module</strong>：预测帧数 + 身体中心轨迹</li>
+              <li><strong>Pose Module</strong>：预测 pose token 分布</li>
+              <li><strong>Decoder</strong>：基于 keyframe + 轨迹输出连续动作</li>
+            </ol>
+          </li>
+          <li><strong>Smart Locomotion（高层）</strong>：从速度/方向/风格自动生成自然动作；零样本生成"受伤走路/僵尸步/跳跃/对角线步态"</li>
+          <li><strong>Smart Object（高层）</strong>：与场景/物体交互的代理 keyframe，神经网络补全"接近→接触→后续动作"</li>
+          <li><strong>Mixture of Styles</strong>：不切换状态，连续变化速度/方向/风格——打破传统 Animation Graph 离散状态机</li>
+          <li><strong>vs 传统 Animation Graph</strong>：AAA 超大作（《Assassin's Creed》）可达 15K 动画 / 5K 状态 / 12 级嵌套图——MotionBricks 单神经网络替代</li>
+          <li><strong>性能账本</strong>：15,000 FPS 吞吐 / 2ms 延迟；FID/MMD/jitter/keyframe accuracy/reach success 全基准领先</li>
+          <li><strong>跨域同骨干</strong>：同一神经网络驱动 UE5 虚拟角色 + Unitree G1 物理机器人——<strong>Sim2Real 桥梁</strong></li>
+        </ul>
+        <p><strong>对阴影与渲染影响：</strong></p>
+        <ul>
+          <li><strong>动态角色阴影</strong>：传统动捕替身动画 → 烘焙 shadow map；MotionBricks 实时生成 → 阴影需逐帧重算</li>
+          <li><strong>VSM 适配</strong>：实时动作高频更新 → VSM Page 滚动 + Marking Pass Budget 重新标记，Page Cache 命中率波动</li>
+          <li><strong>RT Shadow 预算</strong>：每帧动态角色 RT Shadow 需 1-2 spp + NRD 降噪；Mega Geometry Cluster refit 可省 BVH rebuild</li>
+          <li><strong>自阴影质量</strong>：传统动捕替身几何粗糙导致自阴影"暗斑"；MotionBricks 输出高保真 pose → Nanite Skeletal Mesh 自阴影像素完美</li>
+          <li><strong>Contact Shadow V2</strong>：脚-地接触瞬间动态变化，Contact Shadow 短距离 RT 解决"漂浮感"</li>
+          <li><strong>MegaLights 角色</strong>：角色周围多光源 → MegaLights Top-K 路由 + RT Shadow 协同</li>
+        </ul>
+        <p><strong>vs ReAvatars / ACE / MetaCodec 等其他神经动画：</strong></p>
+        <ul>
+          <li><strong>vs ACE（Avatar Cloud Engine）</strong>：ACE 是 NPC 行为 AI，MotionBricks 是<strong>动作生成 AI</strong>——更底层</li>
+          <li><strong>vs PhysCap / DeepPhase</strong>：学术界先驱，但无生产可用吞吐；MotionBricks 15K FPS 是工程可用门槛</li>
+          <li><strong>vs GPC（Generative Predictive Controller）</strong>：GPC 是 MotionBricks 的"反向"——预训练 motor skill 后可迁移；MotionBricks 用 keyframe 直接约束</li>
+        </ul>
+        <p><strong>开放挑战：</strong></p>
+        <ul>
+          <li>物理保真：神经生成动作可能违反重心/惯性/碰撞约束</li>
+          <li>风格迁移：从一段 motion clip 迁移风格仍需大量数据</li>
+          <li>多角色交互：两人握手/对抗动作尚需增强</li>
+          <li>评估指标：FID 不充分，需新增"物理合理性"评分</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>MotionBricks=单神经骨干 + Smart Primitives（Locomotion+Object）+ Mixture of Styles 替代 15K 状态 Animation Graph。15K FPS/2ms 实时可用；同骨干驱动 UE5 角色 + Unitree G1 真机=Sim2Real 桥梁。对阴影链=实时动作→VSM Page 重标+Mega Geometry Cluster refit+RT Shadow 1-2 spp+NRD 降噪+Contact Shadow V2。vs ACE/GPC：MotionBricks 是动作生成层（vs 行为 AI / 控制策略层）。开放挑战=物理保真+多角色交互+评估指标。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q236 -->
@@ -5697,6 +5917,49 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>FP4 神经降噪器=NVFP4/MXFP4 + Blackwell 第五代 Tensor Core + SageAttention3 注意力 FP4 量化（RTX 5090 比 FA2 快 4-5×）。DeepSeek-R1 FP4 实测损失 &lt;1% 性能 3×。NRD 4.0 + DLSS RR FP4 推理时间从 2ms→0.7ms。与传统 SVGF/BMFR 本质差异=数据驱动先验替代手工滤波规则。跨平台通过 FlagOS 转换。</div>
+      </div>
+    </div>
+
+    <!-- Q365 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">365</div>
+        <div class="q-title">Q365 【抗锯齿/超分】Bolt Zeus Glowstick 4K 120FPS 无需 DLSS/FSR 上采样——专硬件路径追踪 vs DLSS 5 神经渲染路径的根本分野</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>Bolt Graphics Zeus GPU + Glowstick 路径追踪器宣称在 4K 分辨率下达成 120 FPS，<strong>完全不需要 DLSS/FSR/XeSS 任何上采样</strong>。这与 NVIDIA Blackwell + DLSS 5 路径在哲学上有何根本差异？两种路线对未来实时图形硬件演进意味着什么？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Bolt Zeus 设计哲学</strong>：从零设计"为路径追踪而生的 GPU"，不用 AI 上采样"快捷方式"（shuns AI upscaling shortcuts），专注原始路径追踪硅性能——宣称比 NVIDIA 路径追踪成本降低 17×</li>
+          <li><strong>NVIDIA Blackwell + DLSS 5 路径</strong>：在传统光栅化 GPU 架构上"补丁式"加 RT Core + Tensor Core + AMP，AI 上采样+帧生成+降噪 三件套，"神经渲染时代"</li>
+          <li><strong>路径分歧 1（硬件架构）</strong>：Zeus 自研 SIMD + RISC-V 命令处理器；NVIDIA 沿用 SM+Tensor Core+RT Core 混合架构</li>
+          <li><strong>路径分歧 2（路径追踪 spp）</strong>：Zeus 专注大量 path 同时收敛（数百 gigarays）；NVIDIA 用 1-2 spp + AI 降噪器（NRD/DLSS RR）逼近物理正确</li>
+          <li><strong>路径分歧 3（4K 120FPS 实现）</strong>：Zeus 原生高分辨率渲染无上采样；NVIDIA DLSS 5 超分 + 多帧生成（最多 +3 帧）</li>
+          <li><strong>性能账本（Bolt 官方）</strong>：Zeus 1C 77 gigarays / 120W / 2.5× RTX 5090 路径追踪；Zeus 4C 307 gigarays / 500W / 10× 5090</li>
+          <li><strong>密度对照</strong>：28 颗 Zeus = 280 颗 RTX 5090 路径追踪性能（10× 整合效率）</li>
+          <li><strong>功耗比</strong>：Zeus 1C 120W vs RTX 5090 575W（4.8× 能效）；FP64 5 TFLOPS vs 1.6 TFLOPS（3×）</li>
+          <li><strong>核心问题</strong>：路径追踪是该用"专硅"还是"通用 GPU + AI 辅助"？</li>
+          <li><strong>Zeus 弱点</strong>：FP32/FP16 算力低于传统 GPU；INT16/INT8 矩阵算力低（不适合 AI 训练）；AI 生态兼容弱</li>
+        </ul>
+        <p><strong>两条路线对比：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">维度</th><th style="padding:6px;border:1px solid #ddd">Bolt Zeus + Glowstick</th><th style="padding:6px;border:1px solid #ddd">NVIDIA Blackwell + DLSS 5</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">设计哲学</td><td style="padding:6px;border:1px solid #ddd">专硅路径追踪</td><td style="padding:6px;border:1px solid #ddd">通用 GPU + AI 辅助</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">路径追踪 spp</td><td style="padding:6px;border:1px solid #ddd">高 spp 直接收敛</td><td style="padding:6px;border:1px solid #ddd">1-2 spp + NRD/DLSS RR 降噪</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">4K 高帧率</td><td style="padding:6px;border:1px solid #ddd">原生渲染</td><td style="padding:6px;border:1px solid #ddd">超分 + 多帧生成</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">AI 工作</td><td style="padding:6px;border:1px solid #ddd">几乎为零</td><td style="padding:6px;border:1px solid #ddd">DLSS 5 三 AI 模型（per-scene/per-character）</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">能效</td><td style="padding:6px;border:1px solid #ddd">120W/4.8× 5090</td><td style="padding:6px;border:1px solid #ddd">575W</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">DCC 工具集成</td><td style="padding:6px;border:1px solid #ddd">USD + MaterialX（Hydra）</td><td style="padding:6px;border:1px solid #ddd">专 SDK + DLSS 集成</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">生态兼容</td><td style="padding:6px;border:1px solid #ddd">Vulkan + DX12 + UE + Unity</td><td style="padding:6px;border:1px solid #ddd">完整 NVIDIA 栈</td></tr>
+        </table>
+        <p><strong>vs Bolt Zeus 工程路径</strong>：Maya/3ds Max/Blender/SketchUp/Houdini 通过 Hydra delegate 集成 Glowstick；UE/Revit 通过 plugin。OpenUSD + MaterialX 是标准材质交换。</p>
+        <p><strong>行业预测</strong>：</p>
+        <ul>
+          <li><strong>近 5 年</strong>：DLSS 5 + Blackwell 是 AAA 游戏主流（已建立生态、价格下降曲线可控）</li>
+          <li><strong>5-10 年</strong>：若 Bolt Zeus 性能/能效比 NVIDIA 持续领先 3×+，DCC/ArchViz/电影预览 工作站市场可被吃下</li>
+          <li><strong>长期</strong>：GPU 分裂为 AI/Tensor GPU（NVIDIA 路线）与 Path Tracing GPU（Bolt 路线）两条赛道</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Bolt Zeus + Glowstick = 4K 120FPS 原生路径追踪，无 DLSS 上采样；NVIDIA Blackwell + DLSS 5 = 1-2 spp + AI 降噪器 + 超分 + 多帧生成。专硅 vs 通用 GPU+AI 路径分歧——"少而精"vs"多而广"。Bolt 优势=能效 4.8× / 路径追踪 2.5-10×；弱势=FP32/AI 算力低 / 生态弱。短期 DLSS 5 主流，长期可能 GPU 分裂为 Tensor GPU + Path Tracing GPU 两赛道。这是 2026 渲染硬件最大变量。</div>
       </div>
     </div>
   </section>
@@ -6459,6 +6722,36 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>Froxel = frustum voxel 与相机视锥对齐的 3D 纹理（160×90×64 RGBA16F）。指数深度切片 z(i)=near×(far/near)^(i/N) 匹配透视收缩。三 Compute Pass：Material Injection → Light Scattering（采样 shadow map）→ Ray-March Integrate。合成 Lo = Tr×Ls + Lscat，体积成本与屏分辨率解耦。与延迟渲染协同=能量守恒避免双算（表面 diffuse 乘透射率）。Unity 6.3 Render Graph 自动优化。</div>
+      </div>
+    </div>
+
+    <!-- Q366 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">366</div>
+        <div class="q-title">Q366 【延迟渲染/物理仿真】NVIDIA Newton 物理引擎 + 雪/沙/弹性体新求解器：GPU 物理仿真与渲染管线深度融合</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>SIGGRAPH 2026 NVIDIA 把雪、沙、弹性固体这类<strong>难仿真材料</strong>求解器集成进 Newton 物理引擎。这种"物理-渲染融合"对未来游戏/电影渲染管线有什么影响？与 Havok/PhysX/Chaos 物理引擎路线有何不同？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>难仿真材料</strong>：雪（塑性变形 + 内聚力）/ 沙（颗粒流 + 摩擦）/ 弹性固体（大变形 + 自碰撞）——传统 MPM/SPH/PBD 各有性能或稳定性缺陷</li>
+          <li><strong>Newton 求解器</strong>：GPU-native MPM（Material Point Method）混合欧拉-拉格朗日视角，雪沙塑性变形稳定；MLS-MPM（Moving Least Squares）81 节点 grid，比传统 MPM 快 4-6×</li>
+          <li><strong>渲染管线影响</strong>：物理仿真结果直接驱动<strong>形变几何体</strong>→Nanite Cluster refit / Mesh Shader cluster update，无需 CPU 中转</li>
+          <li><strong>vs Havok/PhysX/Chaos</strong>：传统引擎刚体优先（约束求解器 LCP/PGS），Newton 是<strong>连续介质力学</strong>优先（MPM/FLIP/PIC）</li>
+          <li><strong>vs UE5 Chaos</strong>：Chaos 是 UE5 自研刚体 + Destruction Field；Newton 是 NVIDIA Blackwell GPU 加速 + 与 CUDA/OptixPrime 深度集成</li>
+          <li><strong>实时路径</strong>：仿真 → Cluster 几何 → BVH refit（第四代 RT Core）→ Mega Geometry 路径追踪——全 GPU 流水</li>
+          <li><strong>电影工业意义</strong>：迪士尼 Hyperion + 物理仿真 + 渲染整合，Newton 提供统一 GPU 框架；Zootopia 2 雪崩镜头实时预览可行</li>
+          <li><strong>机器人训练</strong>：物理 AI（Cosmos 3）需要仿真环境训练 → Newton 提供高保真物理 → 与 MotionBricks/ArtiFixer 协同</li>
+        </ul>
+        <p><strong>延迟渲染视角协同：</strong></p>
+        <ul>
+          <li><strong>Visibility Buffer</strong>：物理仿真形变每帧更新几何，Vis-Buffer 只存 PrimitiveID + TriangleID，避免 G-Buffer 大量重写</li>
+          <li><strong>Material Pass</strong>：弹性体形变时法线/Tangent 需重算，Bindless 材质资源保持有效</li>
+          <li><strong>Nanite Cluster refit</strong>：Cluster 内 128 三角形变形保持拓扑，LOD 选择不抖</li>
+          <li><strong>GPU Work Graph 3.0</strong>：物理仿真节点 → 几何更新节点 → 渲染节点 DAG，零 CPU 回读</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>Newton = GPU-native MPM/MLS-MPM 物理引擎，专为雪/沙/弹性体难仿真材料设计，与 Havok/PhysX/Chaos 刚体优先路线正交。融合延迟渲染链：仿真 → Cluster refit → BVH refit → Mega Geometry Path Tracing，全 GPU 流水零 CPU 回读。Vis-Buffer 适合形变场景（只存 ID）。Cosmos 3 物理AI训练闭环=Newton 物理仿真 + ArtiFixer 场景清洗 + MotionBricks 动作生成。2026 趋势=渲染-物理-仿真-AI 四栈融合于 GPU。</div>
       </div>
     </div>
   </section>
@@ -18790,6 +19083,152 @@ Answer + 可信度 + 引用</code></pre>
           </ul>
         </div>
         <div class="tip-box">💡 <strong>面试要点：</strong>Context Engineering 取代 Prompt Engineering = "现在模型该看到什么"而非"prompt 该说什么"。Anthropic 七槽（S/U/H/T/R/M/A）+ Context Rot 失效模式。三大杠杆=清陈旧工具结果（最便宜）+接近限制时压缩（先召回后精度）+JIT 检索。子智能体隔离是多智能体上线关键。ACE (ICLR 2026) 三角色 Generator/Reflector/Curator 解决 Brevity Bias + Context Collapse，"More is More for LLMs"反直觉，KV Cache 复用降成本 83.6%。</div>
+      </div>
+    </div>
+
+    <!-- Q367 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">367</div>
+        <div class="q-title">Q367 【Transformer】2026 Q3-Q4 旗舰对比：Claude Fable 5 / GPT-5.5 Pro / Gemini 3.1 Pro / Llama 5 600B MoE 四强格局</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>2026 年下半年四大旗舰模型（Claude Fable 5、GPT-5.5 Pro、Gemini 3.1 Pro、Llama 5 600B MoE）在能力、定价、上下文、定位上有何差异？请给出"能力天花板 / 自主开发 / 企业 RAG / 客服 / 推理调试 / 多模态"六个场景的选型矩阵。</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Claude Fable 5（Anthropic 2026-07-24）</strong>：能力天花板，$5/$25（Fast mode $10/$50）；SWE-Bench Pro 69.2%；Dynamic Workflows 并行子智能体；MCP 原生</li>
+          <li><strong>GPT-5.5 Pro（OpenAI）</strong>：SWE-Bench Verified 88.7%/Terminal-Bench 78.2%；原生 omni 多模态；高成本 $5/$30；Symphony 多模态+双系统推理</li>
+          <li><strong>Gemini 3.1 Pro（Google）</strong>：GPQA Diamond 94.3%（领导者）；Deep Think 模式；1M 上下文 + 原生多模态；Deep Think 延迟尖峰</li>
+          <li><strong>Llama 5 600B MoE（Meta 2026-05-20）</strong>：52B 激活参数；10M 上下文；needle-in-haystack 8M 满分；HumanEval-Plus 94.1%；Apache 2.0 商业免费</li>
+          <li><strong>Sonnet 5.5（2026-10）</strong>：Terminal-Bench 4.0 70.6%（超过 Opus 5.5 的 66.4%）；$2/$10；防蒸馏保护；token 消耗比 Sonnet 5 -30%、速度快 30%</li>
+          <li><strong>o3 / o3-pro（推理旗舰）</strong>：Hidden-CoT 推理强；AIME Mock 2024-25 满分；非通用最强</li>
+          <li><strong>DeepSeek V4 Flash</strong>：OpenRouter 11.6T tokens 用量第一（最高）；性价比之王</li>
+          <li><strong>Grok 4.5-4.6</strong>：xAI 快速迭代；Fiction.liveBench 96.9%（长上下文召回）；编程弱</li>
+        </ul>
+        <p><strong>选型矩阵：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">场景</th><th style="padding:6px;border:1px solid #ddd">推荐</th><th style="padding:6px;border:1px solid #ddd">关键指标</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">能力天花板（难题）</td><td style="padding:6px;border:1px solid #ddd">Claude Fable 5（$10/$50 Fast）</td><td style="padding:6px;border:1px solid #ddd">SWE-Bench Pro 69.2%</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">自主开发（agentic coding）</td><td style="padding:6px;border:1px solid #ddd">Claude Opus 4.8 + Sonnet 5.5</td><td style="padding:6px;border:1px solid #ddd">Terminal-Bench 70.6% / Dynamic Workflows</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">企业 RAG</td><td style="padding:6px;border:1px solid #ddd">Gemini 3.1 Pro + Flash + DS V4 Flash</td><td style="padding:6px;border:1px solid #ddd">1M 上下文 + 缓存折扣</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">客服（高并发低延迟）</td><td style="padding:6px;border:1px solid #ddd">Gemini 3.1 Flash / GPT-5.5-mini / Haiku 4.5</td><td style="padding:6px;border:1px solid #ddd">近零延迟 + 强推理</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">推理/调试（隐藏 CoT）</td><td style="padding:6px;border:1px solid #ddd">GPT-5.5 reasoning / Opus 4.8 thinking / DS-R1</td><td style="padding:6px;border:1px solid #ddd">AIME 100% / 隐藏 CoT</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">视频/多模态</td><td style="padding:6px;border:1px solid #ddd">Gemini 3.1 Pro / GPT-5.5 / Opus 4.8</td><td style="padding:6px;border:1px solid #ddd">原生 interleaved 多模态</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">私有 Agent（数据不出 VPC）</td><td style="padding:6px;border:1px solid #ddd">Llama 5 600B / DS V4 Pro 开源</td><td style="padding:6px;border:1px solid #ddd">Apache 2.0 / 8×H200 自托管</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">高吞吐 batch</td><td style="padding:6px;border:1px solid #ddd">DeepSeek V4 Flash</td><td style="padding:6px;border:1px solid #ddd">OpenRouter 11.6T tokens</td></tr>
+        </ul>
+        <p><strong>价格阶梯（每 1M token，输入/输出）：</strong></p>
+        <ul>
+          <li><strong>Claude Fable 5 Fast</strong>：$10/$50（能力天花板，2× Opus 4.8）</li>
+          <li><strong>Claude Opus 4.8 / Opus 5</strong>：$5/$25（旗舰 coding/agentic）</li>
+          <li><strong>GPT-5.5</strong>：$5/$30（高成本旗舰）</li>
+          <li><strong>Claude Sonnet 5.5</strong>：$2/$10（性价比 coding 主力）</li>
+          <li><strong>GPT-5.6 Terra</strong>：$2/$12（OpenAI 性价比）</li>
+          <li><strong>Gemini 3.1 Flash</strong>：$0.05/$0.20（高吞吐 RAG）</li>
+          <li><strong>o4-mini</strong>：$0.10/$0.40（快速推理）</li>
+          <li><strong>Llama 5 600B</strong>：自托管 $9K/mo（8×H200 Lambda），vs Claude API $80K/mo</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>2026 Q3-Q4 四强格局：Fable 5=能力天花板（贵）/ GPT-5.5=旗舰多模态 / Gemini 3.1=GPQA 94.3% + 1M 上下文 / Llama 5=开源 600B MoE + 10M 上下文 + Apache 2.0。Sonnet 5.5（2026-10）Terminal-Bench 70.6% 反超 Opus 5.5 的 66.4%——"中杯胜大杯"。能力-成本 Pareto：本地（Llama 5 自托管 8×H200）vs 数据中心（Fable 5 Fast $10/$50）。选型：Fable 5 难题/Opus 4.8 agentic/Gemini 3.1 RAG/GPT-5.5 多模态/Llama 5 私有部署/DS V4 Flash 性价比。</div>
+      </div>
+    </div>
+
+    <!-- Q368 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">368</div>
+        <div class="q-title">Q368 【训练微调】"Training for Inference" 范式：DFlash diffusion drafter + Still KV compaction 三件套打破"模型即成品"假设</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>Baseten 2026 提出"Training for Inference"新范式——模型不再是训练完成的成品，而是有专门的训练过程来优化推理行为。请说明 DFlash（diffusion drafter）和 Still（KV compaction）如何体现这一思想？与 EAGLE-3/Medusa 路线有什么本质差异？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>范式转变</strong>：从"训练完模型 → 优化推理引擎"到"训练过程主动塑造推理时行为"，把优化 baked into model 权重</li>
+          <li><strong>DFlash（2026）</strong>：Diffusion-based drafter——把 token 生成当图像生成，迭代 8-16 token 序列同时输出。B200 + Qwen 38B 实测 acceptance rate 是 EAGLE-3 的 3×</li>
+          <li><strong>vs EAGLE-3（1B 参数 trained on target hidden states）</strong>：EAGLE 仍逐 token 自回归；DFlash 把多 token 当作"小图像"并行生成，逆向扩散</li>
+          <li><strong>vs Medusa 多头</strong>：Medusa 在 target 加多 decoder head；DFlash 是独立 diffusion drafter，不侵入 target 架构</li>
+          <li><strong>Still（KV compaction）</strong>：不同于 SnapKV top-K 剪枝（确定性子集），Still 用<strong>学习瓶颈层</strong>对全部 KV Cache 做 cross-attention 输出紧凑 keys/values，单一 forward pass 完成</li>
+          <li><strong>vs Redisual Coder/Lethe</strong>：Still 是"语义压缩"而非"位置剪枝"——保留 KV 信息内容，损失关键注意力路径少</li>
+          <li><strong>实时重训</strong>：drafter 模型在 live prompts 上持续重训，acceptance rate 提升 20%→2×（Baseten 实测）</li>
+          <li><strong>本地 vs 数据中心分工</strong>：本地推理=内存压缩"less dumb"（TurboQuant/Still）；数据中心=吞吐"less slow"（DFlash/Spec 2.0）</li>
+          <li><strong>新边界</strong>：训练与推理界限模糊化——"training for inference"=推理时行为通过训练直接塑造，不只是后处理优化</li>
+        </ul>
+        <p><strong>演进路线：</strong></p>
+        <ol>
+          <li><strong>Basic Speculation</strong>：同家族小模型当 drafter（早期，acceptance 低）</li>
+          <li><strong>Medusa（2024）</strong>：target 加多头并行</li>
+          <li><strong>EAGLE-3（2025）</strong>：1B 模型在 target hidden states 上训练</li>
+          <li><strong>DSpark Spec 2.0（2025）</strong>：内置权重 drafter + 置信度调度</li>
+          <li><strong>DFlash（2026）</strong>：diffusion drafter 一次 8-16 token，3× acceptance</li>
+          <li><strong>Still + DFlash 协同</strong>：训练阶段同时优化"压缩表示"+"并行生成"</li>
+        </ol>
+        <div class="tip-box">💡 <strong>面试要点：</strong>"Training for Inference"=训练过程主动塑造推理时行为，模型不再是"成品"。DFlash 把 token 当图像并行扩散生成（acceptance 3× EAGLE-3）；Still 用学习瓶颈层做 KV 语义压缩（vs SnapKV 位置剪枝）。drafter 在 live prompts 上持续重训 +20%→2×。本地"less dumb"（TurboQuant/Still）；数据中心"less slow"（DFlash/Spec 2.0）。训练与推理界限模糊——下一代优化直接 baked into weights。</div>
+      </div>
+    </div>
+
+    <!-- Q369 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">369</div>
+        <div class="q-title">Q369 【推理优化】TurboQuant 两阶段压缩：PolarQuant 旋转 + QJL 1-bit 残差 = 3-bit KV Cache 6-10× 压缩零精度损失</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>Google Research 2026-03 发布的 TurboQuant（ICLR 2026）如何在不重训前提下把 Llama-3.1 70B 在 128K 上下文的 KV Cache 从 40 GB 压到 7.5 GB？两阶段 PolarQuant + QJL 各自解决什么数学问题？为什么 Cloudflare CEO 称之为"Google 的 DeepSeek moment"？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>瓶颈定位</strong>：KV Cache 随上下文线性增长，128K 上下文 Llama-3.1-8B 需要 16 GB（占满 24 GB GPU 大半），Llama-3.1-70B 需要 40 GB</li>
+          <li><strong>传统量化陷阱</strong>：每块需存"量化常数"（1-2 bit 额外开销）+ 累积误差 → 长上下文末尾模型读到"垃圾"</li>
+          <li><strong>PolarQuant 第一阶段</strong>：随机正交旋转使向量角度分布"高度可预测"——像"5 blocks total at 37° angle"压缩"3 east + 4 north"。极坐标变换做标量量化，<strong>消除 per-block 归一化常数开销</strong></li>
+          <li><strong>QJL 第二阶段</strong>：Quantized Johnson-Lindenstrauss——把 PolarQuant 残差量化为 1-bit 符号（+1/-1），产生无偏注意力内积估计，<strong>消除累积偏差</strong></li>
+          <li><strong>数学保证</strong>：两阶段联合维持近似质量数学证明（不是经验调参）</li>
+          <li><strong>实测（NVIDIA H100 4-bit）</strong>：attention logit 计算 8× 加速；Needle-in-a-Haystack 104K 满分；LongBench/ZeroSCROLLS/RULER/L-Eval 全面超越 KIVI/PQ</li>
+          <li><strong>压缩账本</strong>：100K token 上下文 84 GB → 8-10 GB（~10×）；Llama-3.1-8B 128K 16 GB → 3 GB（81% 节省）；Qwen-3.5-35B-A3B 32K 4.9× 压缩 / 98.7-99.5% 质量保持</li>
+          <li><strong>部署状态</strong>：官方实现 Q2 2026 发布；社区已 port 到 llama.cpp / MLX / vLLM / SGLang；Apple Silicon Metal 后端已跑通</li>
+          <li><strong>权衡（Baseten 实测）</strong>：4-bit TurboQuant 节省内存但 decode 计算 overhead 使 TPS 降 &gt; 50%——适合内存受限本地部署，<strong>不适合数据中心吞吐优先</strong>场景</li>
+        </ul>
+        <p><strong>vs 上一代 KV Cache 压缩：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">方案</th><th style="padding:6px;border:1px solid #ddd">压缩率</th><th style="padding:6px;border:1px solid #ddd">质量</th><th style="padding:6px;border:1px solid #ddd">限制</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">KIVI（2024）</td><td style="padding:6px;border:1px solid #ddd">2-4×</td><td style="padding:6px;border:1px solid #ddd">有损</td><td style="padding:6px;border:1px solid #ddd">需调参</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">SnapKV（2024）</td><td style="padding:6px;border:1px solid #ddd">剪枝 50-90%</td><td style="padding:6px;border:1px solid #ddd">有损</td><td style="padding:6px;border:1px solid #ddd">需 top-K 选择策略</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">FP8 KV Cache（2025）</td><td style="padding:6px;border:1px solid #ddd">2×</td><td style="padding:6px;border:1px solid #ddd">几乎无损</td><td style="padding:6px;border:1px solid #ddd">H100+ 硬件</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd"><strong>TurboQuant 4-bit</strong></td><td style="padding:6px;border:1px solid #ddd"><strong>6-10×</strong></td><td style="padding:6px;border:1px solid #ddd"><strong>零损失</strong></td><td style="padding:6px;border:1px solid #ddd">decode TPS -50%</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">CommVQ（2026）</td><td style="padding:6px;border:1px solid #ddd">8×（2-bit）</td><td style="padding:6px;border:1px solid #ddd">可接受</td><td style="padding:6px;border:1px solid #ddd">研究阶段</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">HCAttention（2026）</td><td style="padding:6px;border:1px solid #ddd">8×（12.5%）</td><td style="padding:6px;border:1px solid #ddd">近无损</td><td style="padding:6px;border:1px solid #ddd">CPU/GPU 异步流水</td></tr>
+        </table>
+        <div class="tip-box">💡 <strong>面试要点：</strong>TurboQuant 两阶段=PolarQuant（随机正交旋转→极坐标量化消除 normalization 开销）+ QJL（1-bit 残差符号化消除累积偏差）。3-bit KV Cache + 6-10× 压缩 + 0 精度损失 + 8× attention 加速 + 无需重训。Cloudflare CEO 称"Google DeepSeek moment"。本地部署救星；数据中心因 decode overhead TPS -50% 不适用。社区已 port 到 llama.cpp/MLX/vLLM/SGLang。下一代候选：CommVQ 2-bit / HCAttention CPU-GPU 异步 / Lethe 逐层 RASR 剪枝。</div>
+      </div>
+    </div>
+
+    <!-- Q370 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">370</div>
+        <div class="q-title">Q370 【推理框架/Agent】SGLang RadixAttention vs vLLM PagedAttention：2026 推理引擎选型与 NVIDIA Dynamo 分离式部署</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>对比 SGLang 的 RadixAttention 与 vLLM 的 PagedAttention 在 KV Cache 管理上的本质差异，并说明 2026 生产环境选型决策树。NVIDIA Dynamo、TGI EOL、TensorRT-LLM 在生态中各自扮演什么角色？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>vLLM PagedAttention（2023-）</strong>：把 GPU KV Cache 当虚拟内存——固定 16 token 页块分配，零碎片。优势：通用动态 batching，硬件兼容广（NVIDIA/AMD/TPU/Gaudi）；劣势：相同前缀不自动复用</li>
+          <li><strong>SGLang RadixAttention（2024-）</strong>：把 KV Cache 当 Radix Tree——LCA 树自动复用公共前缀。50 个 agent 请求共享 2000 token 系统提示 → 计算一次，所有请求复用 KV 指针</li>
+          <li><strong>2026 实测（Llama 3.1 8B / 8×H100）</strong>：SGLang 16,200 tok/s vs vLLM 12,500 tok/s（+29%）；TTFT 79ms vs 109ms（-28%）；KV-cache hit rate 65% vs 35%</li>
+          <li><strong>DeepSeek-R1-Distill-Qwen-32B FP8</strong>：SGLang 1,290 tok/s vs vLLM 842 tok/s（+53.2%）；TTFT 38ms (cache hit) vs 185ms（-79.4%）</li>
+          <li><strong>TGI EOL（2025-12）</strong>：HuggingFace 官方建议迁移 vLLM/SGLang，TGI 在大多数工作负载慢 2-3×</li>
+          <li><strong>NVIDIA Dynamo（2026-09 v1.5.0 Apache 2.0）</strong>：分布式服务框架，Prefill/Decode 分离到独立 GPU 池，KV Cache 通过快速互联传输；可托管 vLLM/SGLang/TRT-LLM 任一引擎</li>
+          <li><strong>TensorRT-LLM</strong>：NVIDIA 专用引擎，NVFP4/MXFP4/FP8 + 4-bit AWQ/GPTQ 量化；吞吐 15-18k tok/s（compiled）；vLLM 优化后差距收敛至 ~10%</li>
+          <li><strong>部署规模</strong>：SGLang 400K+ GPU 部署（xAI/AMD/NVIDIA/Intel/LinkedIn/Cursor）；vLLM 硬件支持更广</li>
+        </ul>
+        <p><strong>选型决策树：</strong></p>
+        <table style="border-collapse:collapse;margin:10px 0">
+          <tr><th style="padding:6px;border:1px solid #ddd">场景</th><th style="padding:6px;border:1px solid #ddd">推荐</th><th style="padding:6px;border:1px solid #ddd">原因</th></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">Multi-Agent + RAG（前缀共享 &gt; 40%）</td><td style="padding:6px;border:1px solid #ddd">SGLang</td><td style="padding:6px;border:1px solid #ddd">RadixAttention 自动复用 +29% 吞吐</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">通用 batch / unique prompt</td><td style="padding:6px;border:1px solid #ddd">vLLM</td><td style="padding:6px;border:1px solid #ddd">PagedAttention 无开销 + 硬件兼容广</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">单模型长生命周期 + 工程预算</td><td style="padding:6px;border:1px solid #ddd">TensorRT-LLM</td><td style="padding:6px;border:1px solid #ddd">NVIDIA 专用 kernel + FP4 编译</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">多节点 + Prefill/Decode 分离</td><td style="padding:6px;border:1px solid #ddd">vLLM/SGLang + Dynamo</td><td style="padding:6px;border:1px solid #ddd">独立 GPU 池 + KV-aware 路由</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">本地开发 / 笔记本</td><td style="padding:6px;border:1px solid #ddd">Ollama (llama.cpp)</td><td style="padding:6px;border:1px solid #ddd">GGUF Q2-Q8 量化，单用户 &lt; 22 req/s</td></tr>
+          <tr><td style="padding:6px;border:1px solid #ddd">Qwen/DeepSeek 中文模型</td><td style="padding:6px;border:1px solid #ddd">LMDeploy</td><td style="padding:6px;border:1px solid #ddd">上海 AI Lab 一等公民支持</td></tr>
+        </table>
+        <div class="tip-box">💡 <strong>面试要点：</strong>RadixAttention vs PagedAttention = 共享前缀复用 vs 虚拟内存分页。SGLang 在 Multi-Agent/RAG 工作负载 +29% 吞吐 / -79% TTFT（cache hit）；vLLM 硬件兼容广（NVIDIA/AMD/TPU/Gaudi）。TGI 已 EOL（2025-12）。NVIDIA Dynamo 是分布式服务框架层（Apache 2.0），可托管三种引擎做 Prefill/Decode 分离 + KV-aware 路由。TensorRT-LLM 与 vLLM 差距收敛至 ~10%。生产规则：共享前缀 &gt; 40% → SGLang；通用 → vLLM；单模型极致 → TRT-LLM；多节点 → Dynamo + 引擎。</div>
       </div>
     </div>
 
