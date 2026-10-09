@@ -1493,6 +1493,28 @@
         <div class="tip-box">💡 <strong>面试要点：</strong>Unity 7 三件套=Surface Cache GI（URP 首次完全动态 GI，软/硬件混合光追 + 移动端 S26 60FPS）+ Unity Neural（NTC + Upscaler + Sentis 神经推理）+ MCP 服务器（AI agent 接入项目）。DXC + Shader Build Profile -90% + PSO 预热。WebGPU 生产就绪 + Tile-Only 模式。vs UE6：提前一年 GA（2027 Q1 vs 2027 末 EA）+ 移动端 GI 突破 + AI 原生 DCC。Unity 6.5 弃 Built-in 后 Unity 7 全押 URP。</div>
       </div>
     </div>
+
+    <!-- Q371 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">371</div>
+        <div class="q-title">Q371 【渲染管线/UE6】UE6 路线图：Nanite v2 + Lumen 2.0 + MegaLights + Verse + Scene Graph</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>Epic 在 2026 年公布的 Unreal Engine 6 路线图中，Nanite v2 / Lumen 2.0 / MegaLights 三大子系统相比 UE5 有哪些根本性升级？为什么说 Verse 编程语言 + Scene Graph 框架是引擎范式级别的"二次革命"？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Nanite v2</strong>：从静态几何扩展到 Skeletal Mesh（线性蒙皮）+ Foliage（实例化+簇聚类+LOD）+ 隐式几何（SDF 体积），让动画角色/植被/粒子都获得像素级无损 LOD；引入"Wide Cluster"和 GPU-Driven 簇剔除，可处理百万级动态蒙皮网格</li>
+          <li><strong>Lumen 2.0</strong>：Surface Cache GI 重构为分层 Radiance Cache（粗粒度 Voxel + 细粒度 Surface Atlas + 屏幕空间 Probe），最终光照查询降为 O(1) Lookup；与 Unity 7 Surface Cache GI 不同，Lumen 2.0 仍保留 RT 在反射场景作为 "fallback"</li>
+          <li><strong>MegaLights</strong>：从 UE5.8 的 1700+ 动态光扩展到 100k+ 灯，引入"分桶+重要性采样+Batched BRDF"策略；RTX 50 Super 配合 APF/UMDA 让动态光堆叠成本接近免费</li>
+          <li><strong>Verse 主语言</strong>：Tim Sweeney 推动函数式 + 并发安全 + Schema-first，替代 C++ 与 Blueprint 的中间层。Verse 已在 UEFN 生产部署 3 年，UE6 起作为底层实现语言</li>
+          <li><strong>Scene Graph</strong>：与 ECS 类似但保留 "Actor / Component" 兼容；允许 GPU-Driven 调度 + 并行求值 + 零拷贝数据共享。Smart Assets 自动注册到 Scene Graph，跨子系统访问</li>
+          <li><strong>UE5.8 关键里程碑</strong>：Lumen Lite（移动端 GI）、MCP Plugin（AI Agent 接入）、Production MegaLights（默认开启）</li>
+          <li><strong>MetaHuman v3</strong>：神经面部 + 肌肉系统 + Verse 驱动，自动化绑骨 + 表情库生成</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>UE6 三件套 = Nanite v2（动画/植被/SDF）+ Lumen 2.0（分层 Radiance Cache + RT Fallback）+ MegaLights 100k+（分桶 + APF/UMDA 加速）。Verse 函数式 + Scene Graph 是引擎范式革命——从"Actor 调度"到"ECS 兼容 GPU-Driven 调度"。vs Unity 7：UE6 推迟到 2027 末 EA、Unity 7 2027 Q1 GA；UE6 优势=离线渲染质量对齐，Unity 优势=移动端 GI 突破。Smart Assets 自动注册到 Scene Graph 是后续 UE7 的演进基础。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q233 -->
@@ -2904,6 +2926,28 @@
         <div class="tip-box">💡 <strong>面试要点：</strong>Bolt Zeus = 专硅路径追踪 GPU（自研 SIMD + RISC-V + chiplet + LPDDR5X + 可扩 DDR5）。Zeus 1C 120W 路径追踪 77 GR/s = 2.5× RTX 5090 + 4.8× 能效。28 Zeus = 280 RTX 5090（10× 整合）。Glowstick 是 Bolt 路径追踪器；Hydra 集成 Maya/Houdini/USDView。放弃 AI 上采样——专注高 spp 收敛。vs Blackwell = 专硅 vs 通用 GPU+AI 路径分歧。短期 DLSS 主流，中期可能 DCC 市场切换，长期 GPU 分裂为 AI/Path Tracing 两赛道。</div>
       </div>
     </div>
+
+    <!-- Q372 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">372</div>
+        <div class="q-title">Q372 【光线追踪/NRC】在线训练神经辐射缓存：NRC 121→111 FPS 跌幅 + SHARC 持久化方案</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>在实时光线追踪全局光照中，Neural Radiance Cache（NRC）在线训练方案为何会让帧率从 121fps 跌至 111fps？SHARC（Stochastic Hashing Radiance Cache）相比 NRC 在持久化训练上的优势是什么？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>NRC 在线训练</strong>：每帧渲染时收集 (position, direction, normal, roughness) → (irradiance) 训练对，神经网络 4 层 MLP 32-64-64-3 实时反向传播；推理时间 ~1ms，训练时间 4-5ms。121→111fps 跌幅 = 训练代价 8%</li>
+          <li><strong>NRC 推理路径</strong>：从最终光追像素中采样 query 点 → 推理出间接光照 → 与 Lumen Screen Probe / SSGI 加权融合 → denoise + 时空累积</li>
+          <li><strong>SHARC 创新</strong>：Stochastic Hashing 将世界空间划分到哈希桶，每个桶存 Radiance；推理=HASH(position) + 累积读 + 三线性插值 → 完全在 GPU Compute Shader 完成</li>
+          <li><strong>训练方式对比</strong>：NRC 在线梯度下降（每帧 backprop）；SHARC 在线 EMA 累积（无梯度，等价于衰减平均）——SHARC 没有训练开销</li>
+          <li><strong>持久化</strong>：NRC 需要 online 学习，重启后从零开始；SHARC 哈希桶可直接 serialize 到磁盘</li>
+          <li><strong>质量对比</strong>：复杂场景 NRC 推断更准（外推能力强）；SHARC 仅能"查表"，跨年场景需要重新填充</li>
+          <li><strong>工程落地</strong>：NRC 已在 Lumen 5.7 Adaptive NRC 集成（UE5.7+）；SHARC 已在 Reflections 1.0 工具链集成</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>NRC 在线训练 = 4-5ms 训练代价，导致 8% 帧率下跌（121→111fps）但提升间接光收敛速度 30%+；SHARC 用哈希表替代 MLP，无需梯度下降，可序列化、跨会话保留，但牺牲外推能力。决策树：动态场景多 + 跨会话长期跑 → SHARC；场景外推需求大 + 短会话 → NRC。混合：NRC 处理"未见区域"、SHARC 处理"已见区域"。</div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ 2. 着色器 ══ -->
@@ -4304,6 +4348,27 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>ArtiFixer 三件套=扫描清洗 + 场景补全 + <strong>无光追神经 GI 预测</strong>（从几何直接到 irradiance，100× 快于光追）；VideoNeuMat=从生成视频提取可重光照 PBR 材质到 MaterialX 节点图。新工作流：视频→材质提取→扫描→ArtiFixer 补全→神经 GI→Neural Materials MLP BSDF。vs Lumen=Lumen 是 Surface Cache + 软/硬件光追；ArtiFixer 是纯神经预测。vs OpenPBR=OpenPBR 是规范；ArtiFixer/VideoNeuMat 是工具。局限=非分布精度/版权/caustics fallback。</div>
       </div>
     </div>
+
+    <!-- Q373 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">373</div>
+        <div class="q-title">Q373 【PBR/硬件】RTX 50 Super + Blackwell Ultra APF/UMDA 神经材质管线</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>RTX 50 Super 系列相比 RTX 50 的"Super"具体改进了什么？为什么说 Blackwell Ultra 引入的 APF（Adaptive Prefetch Fabric）+ UMDA（Unified Memory Direct Access）让"神经材质"从 demo 走向生产？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>RTX 50 Super 规格提升</strong>：5090 Super 32GB GDDR7（vs 5090 同型号但提速到 38Gbps，512bit 总带宽 1792 GB/s）；5080 Super 升至 24GB GDDR7；AI 算力 4200 TOPS（vs 5090 3352 TOPS）</li>
+          <li><strong>关键架构升级</strong>：APF（Adaptive Prefetch Fabric）= 在 GPC/TPC 之间引入 L2 Prefetch Fabric 自适应预取，配合 cooperative tensor 加速神经材质 MLP 推理；UMDA（Unified Memory Direct Access）= CPU/GPU 直接共享虚拟内存，神经材质训练数据可在不复制情况下直接被 GPU 读</li>
+          <li><strong>神经材质</strong>：NTC（Neural Texture Compression）+ Cooperative Vector（DirectX 12 + Vulkan）让 MLP 推理 16x 压缩纹理质量保持；50 Super 的 APF 让 MLP 推理延迟从 0.8ms → 0.3ms</li>
+          <li><strong>MegaLights 协同</strong>：APF 让 RT-ML 光照推理延迟下降 40%，配合 UMDA 可让 CPU 端光照调度直接喂 GPU，间接光 100k+ 灯源不再是瓶颈</li>
+          <li><strong>NVLink 5.0</strong>：双向 1.5TB/s，多卡 MegaLights + 神经 BRDF 透明分布</li>
+          <li><strong>vs AMD RDNA5 / Intel Battlemage</strong>：50 Super 把"神经材质 + 神经光照"做成旗舰标配；AMD 仍走传统 BCn + RT Core</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>RTX 50 Super = +30% 带宽 + APF（自适应预取 fabric）+ UMDA（CPU/GPU 共享虚拟内存）。这两项让"神经材质"从 0.8ms 推理 → 0.3ms 推理，配合 MegaLights 100k+ 灯源间接光几乎免费。生产意义=Substrate + NTC + Cooperative Vector + APF = UE6 / Unity 7 神经渲染生态的硬件底座。注意：5090 Super 是 2026-Q4 旗舰，5080 Super 是次旗舰，APF 是 Blackwell Ultra 独有特性，非原 Blackwell 升级。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q235 -->
@@ -5166,6 +5231,29 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>MotionBricks=单神经骨干 + Smart Primitives（Locomotion+Object）+ Mixture of Styles 替代 15K 状态 Animation Graph。15K FPS/2ms 实时可用；同骨干驱动 UE5 角色 + Unitree G1 真机=Sim2Real 桥梁。对阴影链=实时动作→VSM Page 重标+Mega Geometry Cluster refit+RT Shadow 1-2 spp+NRD 降噪+Contact Shadow V2。vs ACE/GPC：MotionBricks 是动作生成层（vs 行为 AI / 控制策略层）。开放挑战=物理保真+多角色交互+评估指标。</div>
       </div>
     </div>
+
+    <!-- Q374 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">374</div>
+        <div class="q-title">Q374 【阴影/VSM】VSM 16k×16k → 32k×32k + RTX 50 Super 阴影管线选型</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>UE6 路线图中 VSM（Virtual Shadow Map）从 16k×16k Page 池扩展到 32k×32k + 8-layer Cube Map 的目的是什么？结合 RTX 50 Super 的 APF/UMDA 特性，新一代阴影管线如何选型？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>VSM 16k→32k</strong>：UE5 默认上限 16k×16k 6 个 Cascade；UE6 提升至 32k×32k，Page 大小从 512 减到 256 → 缓存命中率 +40%</li>
+          <li><strong>8-layer Cube Map</strong>：点光源阴影从 6 面 → 8 面（含上下方位细节），针对室内吊灯场景（避免阴影漏光）</li>
+          <li><strong>VSM Bindless 化</strong>：从 16 通道限制解除到 100+ 灯源同时 VSM，与 MegaLights 配套</li>
+          <li><strong>RT Shadow 1-2 spp</strong>：配合 NRD/RR 4 神经降噪器，动态光阴影走 RT，静态走 VSM</li>
+          <li><strong>Contact Shadow V2</strong>：UE6 升级 V1 的 1.5px 距离限制 → 支持透明 / 半透明 / SSS 接触阴影</li>
+          <li><strong>MegaLights 阴影</strong>：100k+ 灯时阴影走 "Importance Sampling + Light Atlas"，重要灯源才走 VSM</li>
+          <li><strong>RTX 50 Super 协同</strong>：APF 让 VSM Page Update 提速 30%（减少 CPU→GPU upload 延迟）；UMDA 让 CPU 端光照 transform 直接喂 GPU Compute Shader</li>
+          <li><strong>vs RT Shadow</strong>：VSM 适合 100-1k 灯的精准阴影；RT Shadow 适合 1k-10k 重要灯；MegaLights Atlas 适合 10k+ 不重要灯</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>VSM 16k→32k 是为了支撑 100k+ 灯场景中"前 1k 重要灯的精准阴影"。8-layer Cube Map 解决室内吊灯上下漏光。Bindless 化解除 16 通道上限，MegaLights 配套。RT Shadow + NRD 仍处理动态/不规则几何。RTX 50 Super 的 APF 让 Page Update 提速 30%、UMDA 让 CPU/GPU 调度零拷贝。决策：&lt;1k 灯 → VSM；1k-10k → RT Shadow + 1-2 spp NRD；10k-100k+ → MegaLights Atlas。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q236 -->
@@ -5962,6 +6050,28 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
         <div class="tip-box">💡 <strong>面试要点：</strong>Bolt Zeus + Glowstick = 4K 120FPS 原生路径追踪，无 DLSS 上采样；NVIDIA Blackwell + DLSS 5 = 1-2 spp + AI 降噪器 + 超分 + 多帧生成。专硅 vs 通用 GPU+AI 路径分歧——"少而精"vs"多而广"。Bolt 优势=能效 4.8× / 路径追踪 2.5-10×；弱势=FP32/AI 算力低 / 生态弱。短期 DLSS 5 主流，长期可能 GPU 分裂为 Tensor GPU + Path Tracing GPU 两赛道。这是 2026 渲染硬件最大变量。</div>
       </div>
     </div>
+
+    <!-- Q375 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">375</div>
+        <div class="q-title">Q375 【抗锯齿/神经】神经降噪器生态：NRD 4.0 / DLSS RR 3 / XeSS 2 / FSR 4 NN</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>实时光追 + AI 渲染生态中，NRD 4.0、DLSS Ray Reconstruction 3、XeSS 2、FSR 4 Neural 四大神经降噪器在算法上有何本质差异？为什么 NVIDIA 把 RR 3 集成进驱动层？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>NRD 4.0（2026 SIGGRAPH）</strong>：开源，relighting-aware 降噪；输入=GBuffer + 1-2 spp 辐射度 + MV/depth；输出=denoised irradiance；架构=多 Pass SVGF + 视觉损失加权</li>
+          <li><strong>DLSS RR 3</strong>：Transformer 模型；输入=所有 G-Buffer + motion vector + 1 spp；输出=最终图像（不再分别做 demoir + AA）；端到端代替 NRD + DLSS 超分 + Frame Gen 三个环节</li>
+          <li><strong>XeSS 2</strong>：Intel ARC Battlemage 主推；架构=CNN（仍非 Transformer）；超分 + 降噪混合；输入少（只用 GBuffer 4 通道）</li>
+          <li><strong>FSR 4 Neural</strong>：AMD RDNA 5 主推；首次引入神经模型（vs FSR 1-3 传统 Lanczos）；与 NRD 协同；纯超分不包降噪</li>
+          <li><strong>算法本质差异</strong>：NRD 4.0 是"专家手工管线"（6+ Pass 可调）；DLSS RR 3 是"端到端学习"（替换管线）；XeSS 2 是"CNN 折中"（轻量但精度一般）；FSR 4 Neural 是"传统升级"（仍依赖 NRD）</li>
+          <li><strong>NVIDIA 驱动集成</strong>：RR 3 集成进 5xx.xx 驱动层，所有 RTX 40/50 系显卡 + 任何应用均可调用，无需 SDK 集成</li>
+          <li><strong>跨平台对比</strong>：跨平台游戏只能选 NRD 4.0（开源 + 兼容所有 GPU）；NVIDIA 平台独占可上 RR 3</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>四大方案 = NRD 4.0（专家手工管线 6+ Pass）/ DLSS RR 3（端到端 Transformer 集成驱动）/ XeSS 2（CNN 折中）/ FSR 4 Neural（传统升级，仍需 NRD）。NVIDIA 把 RR 3 集成进驱动是为了"任何 RTX 40/50 游戏免费获得神经降噪"——降低 SDK 集成成本，扩大生态护城河。决策：跨平台首选 NRD 4.0；NVIDIA 独占上 RR 3；AMD 平台 NRD + FSR 4；Intel 平台 NRD + XeSS 2。</div>
+      </div>
+    </div>
   </section>
 
     <!-- Q237 -->
@@ -6752,6 +6862,28 @@ vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);</pre>
           <li><strong>GPU Work Graph 3.0</strong>：物理仿真节点 → 几何更新节点 → 渲染节点 DAG，零 CPU 回读</li>
         </ul>
         <div class="tip-box">💡 <strong>面试要点：</strong>Newton = GPU-native MPM/MLS-MPM 物理引擎，专为雪/沙/弹性体难仿真材料设计，与 Havok/PhysX/Chaos 刚体优先路线正交。融合延迟渲染链：仿真 → Cluster refit → BVH refit → Mega Geometry Path Tracing，全 GPU 流水零 CPU 回读。Vis-Buffer 适合形变场景（只存 ID）。Cosmos 3 物理AI训练闭环=Newton 物理仿真 + ArtiFixer 场景清洗 + MotionBricks 动作生成。2026 趋势=渲染-物理-仿真-AI 四栈融合于 GPU。</div>
+      </div>
+    </div>
+
+    <!-- Q376 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">376</div>
+        <div class="q-title">Q376 【延迟渲染/ReSTIR】ReSTIR DI / GI / PT Production 选型矩阵</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>ReSTIR 体系（DI / GI / PT）从 SIGGRAPH 2020 论文到 2026 量产游戏引擎落地，三件套分别在延迟渲染管线的哪个环节？为什么 UE6 Lumen 2.0 仍保留 ReSTIR GI 作为离线 RT Mode？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>ReSTIR DI（Direct Illumination）</strong>：重要性采样直接光，单一光源→100k+ 光源；UE5 MegaLights 1700+ 灯已用；2026 I3D ReSTIR DI v2 引入"分块 + 邻域复用"，1ms 内 100k 灯采样</li>
+          <li><strong>ReSTIR GI（Global Illumination）</strong>：把 ReSTIR 扩展到间接光；MIS+RIS+Reservoir 蓄水池采样；Lumen 2.0 RT Mode 在 RTX 50/50 Super 平台用 ReSTIR GI 替代 Screen Probe，质量接近离线路径追踪</li>
+          <li><strong>ReSTIR PT（Path Tracing）</strong>：把 ReSTIR 扩展到多跳路径追踪；2026 I3D 最佳论文 ReSTIR PT Enhanced 五大优化（Path Replay / MCMC / Mutation / Visibility / Neighbor Reuse）；让 1spp 路径追踪质量接近 64spp 离线渲染</li>
+          <li><strong>延迟渲染管线位置</strong>：DI 在 Lighting Pass 直接光通道；GI 在 Indirect Lighting Pass；PT 在 Path Tracer Mode（独立模式，需要 NVIDIA RTX + DLSS RR 3）</li>
+          <li><strong>蓄水池（Reservoir）公式</strong>：M = clamp(M_prev + 1, 0, M_max)；w = w_vis * w_p / w_sum；可见性检测延迟到最终 shading</li>
+          <li><strong>离线 RT Mode</strong>：Lumen 2.0 Surface Cache GI 是默认（移动/中端 PC 都能跑），ReSTIR GI 是离线高质量模式（仅 RTX 50+ 可跑）；保留两条路径方便开发者按硬件切换</li>
+          <li><strong>量产案例</strong>：《赛博朋克 2077 Path Tracing Update》《黑神话：悟空》DLC《鸣潮》</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>ReSTIR 三件套=DI（直接光）/GI（间接光）/PT（路径追踪），都用 RIS + Reservoir 重要性采样。延迟渲染链：DI→Lighting Pass、GI→Indirect Pass、PT→独立 Mode。UE6 Lumen 2.0 默认 Surface Cache GI（兼容移动/中端），保留 ReSTIR GI 作为"离线 RT Mode"在 RTX 50+ 平台启用，质量接近离线路径。决策：性能预算 2-4ms → MegaLights + Lumen SC；4-8ms + RTX 40+ → ReSTIR DI + GI；10ms+ + RTX 50+ → ReSTIR PT Enhanced。</div>
       </div>
     </div>
   </section>
@@ -19229,6 +19361,127 @@ Answer + 可信度 + 引用</code></pre>
           <tr><td style="padding:6px;border:1px solid #ddd">Qwen/DeepSeek 中文模型</td><td style="padding:6px;border:1px solid #ddd">LMDeploy</td><td style="padding:6px;border:1px solid #ddd">上海 AI Lab 一等公民支持</td></tr>
         </table>
         <div class="tip-box">💡 <strong>面试要点：</strong>RadixAttention vs PagedAttention = 共享前缀复用 vs 虚拟内存分页。SGLang 在 Multi-Agent/RAG 工作负载 +29% 吞吐 / -79% TTFT（cache hit）；vLLM 硬件兼容广（NVIDIA/AMD/TPU/Gaudi）。TGI 已 EOL（2025-12）。NVIDIA Dynamo 是分布式服务框架层（Apache 2.0），可托管三种引擎做 Prefill/Decode 分离 + KV-aware 路由。TensorRT-LLM 与 vLLM 差距收敛至 ~10%。生产规则：共享前缀 &gt; 40% → SGLang；通用 → vLLM；单模型极致 → TRT-LLM；多节点 → Dynamo + 引擎。</div>
+      </div>
+    </div>
+
+    <!-- Q377 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">377</div>
+        <div class="q-title">Q377 【Transformer/旗舰对比】2026 Oct 三大旗舰对比：Claude Opus 5.5 vs GPT-6 Astra vs Gemini 4 Argon</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>2026 年 10 月 BenchLM 榜单中，Claude Opus 5.5（86.32）超越 GPT-6 Astra（84.94）登顶，Claude Sonnet 5.5（83.82）反超 Gemini 4 Argon（77.18）。四大旗舰模型在推理架构、训练数据、Agent 能力上的本质差异是什么？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Claude Opus 5.5（Anthropic 86.32）</strong>：Sum-K MoE 架构 + Hybrid Attention（部分层 Flash Attention 3，部分层 Mamba-2 SSM）；训练数据 12T tokens（books/code/agent traces）；Reasoning Native V2 + 内置 MCP Client；上下文 1M</li>
+          <li><strong>GPT-6 Astra（OpenAI 84.94）</strong>：Dense Transformer（非 MoE，单专家激活）+ Reasoning Native V3 + 内置 GPT-OS（OS-level 工具调度）；训练数据 15T tokens（含 5T agent trajectory）；上下文 4M</li>
+          <li><strong>Claude Sonnet 5.5（83.82）</strong>：Opus 5.5 的"小杯"版本；激活参数 1/3，推理价格 1/5；性价比首选；适合 Tool Use 高频场景</li>
+          <li><strong>Gemini 4 Argon（Google 77.18）</strong>：原生多模态（视觉+音频+视频 token 化输入）；TPU v6 Pod 训练；上下文 10M；Agent 能力弱于 Anthropic/OpenAI</li>
+          <li><strong>BenchLM 评测维度</strong>：Reasoning (40%) + Coding (25%) + Agent (25%) + Multilingual (10%)；Opus 5.5 在 Agent (95.2) + Reasoning (92.1) 第一；GPT-6 Astra 在 Coding (96.8) 第一；Gemini 4 在 Multimodal (89.5) 第一</li>
+          <li><strong>架构趋势</strong>：Hybrid Attention（Mamba+Transformer）成为旗舰标配；MoE 在 dense 之上做加法；Reasoning Native（无需 prompt 即可触发 CoT）</li>
+          <li><strong>vs 国产旗舰</strong>：DeepSeek V5 / Qwen 4 / GLM-5 / Kimi K3 在 BenchLM 排 75-82；GLM-5 全程昇腾训练首次进 Top 10</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>2026-10 Top4 = Opus 5.5 (86.32) / GPT-6 Astra (84.94) / Sonnet 5.5 (83.82) / Gemini 4 Argon (77.18)。Opus 胜在 Agent+Reasoning，GPT 胜在 Coding+Reasoning Native V3，Gemini 胜在 Multimodal+10M 上下文，Sonnet 性价比。Hybrid Attention（Mamba+Transformer）+ Reasoning Native（V2/V3）+ Agent Trace 训练数据是三大架构趋势。国产 GLM-5 全程昇腾训练进 Top10 是国产算力替代里程碑。决策：Coding+Tool → GPT-6 Astra；Agent+Reasoning → Opus 5.5；Multimodal+长上下文 → Gemini 4 Argon；性价比 → Sonnet 5.5。</div>
+      </div>
+    </div>
+
+    <!-- Q378 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">378</div>
+        <div class="q-title">Q378 【训练微调/范式革命】Training for Inference + DFlash + Still 三大新训练范式</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>2026 年 10 月提出的 "Training for Inference"（TfI）训练范式与 DFlash（Dynamic Flash Attention 训练）、Still（Stationary Inference Latent）三项新工程方法解决了什么核心问题？为什么说比 NVFP4 预训练更具范式革命性？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Training for Inference（TfI）</strong>：训练目标加入推理代价项（Latency Loss）；模型每 N 步在推理引擎上跑一次延迟测试，loss = ppl + α*latency；让模型主动收敛到"推理友好的稀疏结构"</li>
+          <li><strong>DFlash（Dynamic Flash Attention）</strong>：Flash Attention 4 训练版；动态发现 GEMM shape → 实时调度 kernel；支持变长序列训练无需 padding（节省 20% GPU 时间）</li>
+          <li><strong>Still（Stationary Inference Latent）</strong>：推理时把 Latent KV 蒸发成"stationary"权重——固定 token 不需要每步重算；推理延迟在长上下文降低 50%</li>
+          <li><strong>TfI vs NVFP4 预训练</strong>：NVFP4 是"训练时量化"（lower precision）但仍假设推理 = 训练；TfI 是"训练时优化推理结构"（structural sparsity）</li>
+          <li><strong>工程代价</strong>：TfI 需要训练-推理框架融合（PyTorch + vLLM 联合 loop）；DFlash 需要重写 Flash Attention kernel；Still 需要修改 Transformer forward</li>
+          <li><strong>量产案例</strong>：Claude Opus 5.5 用 TfI（Reasoning Native V2 部分原因）；DeepSeek V5 用 Still + DFlash；GPT-6 Astra 用 TfI + NVFP4 混合</li>
+          <li><strong>vs RLHF/DPO</strong>：TfI 是 pretraining 阶段；RLHF 是 post-training 阶段；两者正交</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>TfI + DFlash + Still 是 2026 三大训练范式革命，比 NVFP4 更进一步——不只量化精度，而是改变模型结构让推理便宜。TfI 让模型主动收敛到稀疏结构；DFlash 让训练 kernel 自适应 shape；Still 让 KV Cache 蒸发成 stationary 权重。代价=训练-推理框架融合（PyTorch + vLLM 联合 loop）+ 修改 kernel/forward。Opus 5.5 / GPT-6 Astra / DeepSeek V5 都用上。决策：自研大模型 + 长期路线 → 上 TfI；纯推理工程优化 → 上 Still；训练框架优化 → DFlash。</div>
+      </div>
+    </div>
+
+    <!-- Q379 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">379</div>
+        <div class="q-title">Q379 【推理优化/Spec Dec】Batch Speculative Decoding：EQSPEC / EXSPEC + SpecBench + AMD MI300X 反超</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>vLLM 0.23.1 引入的 EQSPEC / EXSPEC 两种 Batch Speculative Decoding 在算法上有何本质区别？SpecBench 评测维度跟 SPEED-Bench 有何差异？为什么 AMD MI300X / MI355X 在 spec decoding 上反超 NVIDIA H100/H200？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>EQSPEC（Equal-length Spec Decoding）</strong>：batch 中每个请求的草稿 token 长度一致，验证阶段 tree attention；适合均匀负载</li>
+          <li><strong>EXSPEC（Extreme-length Spec Decoding）</strong>：batch 内请求草稿长度可变，验证阶段用 ragged tensor 而非 padded tensor；解决 EQSPEC 中 padding 浪费 30-40% 算力的问题</li>
+          <li><strong>vLLM 0.23.1 落地</strong>：EXSPEC 集成进 vLLM 0.23.1（2026-09），配合 Tree Attention 实现变长草稿验证</li>
+          <li><strong>评测对比（Llama-3-70B / 8×H100）</strong>：
+            <ul>
+              <li>无 spec：1,250 tok/s</li>
+              <li>Medusa-2：1,820 tok/s（+45.6%）</li>
+              <li>EAGLE-3：2,310 tok/s（+84.8%）</li>
+              <li>EQSPEC + EAGLE-3：2,580 tok/s（+106.4%）</li>
+              <li>EXSPEC + EAGLE-3：3,150 tok/s（+152%）</li>
+            </ul>
+          </li>
+          <li><strong>SpecBench</strong>：4 维度评测——加速比 / 接受率（accept rate）/ 显存开销 / TTFT；涵盖 7 任务（code/reason/math/agent/...）</li>
+          <li><strong>SPEED-Bench</strong>：只测端到端延迟，不测接受率与显存</li>
+          <li><strong>AMD MI300X/MI355X 反超原因</strong>：MI300X 192GB HBM3 + 5.3TB/s 带宽 + MCDMA 协同 GEMM 比 NVIDIA H100 强；MI355X 256GB 单卡装下 Llama-3-405B FP8，验证阶段无需多卡 all-reduce</li>
+          <li><strong>完整优化栈</strong>：DFlash 训练（动态 shape）+ EAGLE-3 草稿模型 + DSpark 半自回归 spec decoding + EXSPEC 变长验证</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>EQSPEC = 等长草稿 + Tree Attention 验证；EXSPEC = 变长草稿 + ragged tensor 验证（节省 30-40% padding 算力）。EXSPEC 已在 vLLM 0.23.1 + EAGLE-3 上实现 Llama-3-70B +152% 加速。SpecBench 比 SPEED-Bench 更全面（4 维度 vs 1 维度）。AMD MI300X/MI355X 反超 NVIDIA = 大显存 + 高带宽 + MCDMA 协同 GEMM，验证阶段无需多卡 all-reduce。栈式组合：DFlash 训练 → EAGLE-3 草稿 → DSpark spec → EXSPEC 验证。</div>
+      </div>
+    </div>
+
+    <!-- Q380 -->
+    <div class="q-card" onclick="toggle(this)">
+      <div class="q-header">
+        <div class="q-number">380</div>
+        <div class="q-title">Q380 【Agent/Multi-Agent】AI Agent 工程面试：ReAct vs MCP vs Multi-Agent vs LangGraph/CrewAI/AutoGen</div>
+      </div>
+      <div class="q-body">
+        <p><strong>题目：</strong>2026 年生产级 AI Agent 工程的"四大组件选型"——Reasoning Pattern（ReAct/Reflexion/Plan-and-Execute）vs Tool Protocol（MCP vs Function Calling）vs Orchestration（LangGraph/CrewAI/AutoGen）vs Eval（pass^1 vs pass^k）——面试中如何系统回答？</p>
+        <p><strong>核心要点：</strong></p>
+        <ul>
+          <li><strong>Reasoning Pattern：</strong>
+            <ul>
+              <li>ReAct（Thought → Action → Observation → Thought ...）：单步交互；适合 Tool Use</li>
+              <li>Reflexion：失败后反思 + 记忆写入；适合长任务</li>
+              <li>Plan-and-Execute：先 Plan 后 Execute；适合多步推理</li>
+              <li>决策：Tool Use → ReAct；多步复杂 → Plan-Execute；长任务 + 失败恢复 → Reflexion</li>
+            </ul>
+          </li>
+          <li><strong>Tool Protocol：</strong>
+            <ul>
+              <li>MCP（Model Context Protocol）：Linux Foundation 治理；JSON-RPC over stdio/HTTP/SSE；标准化工具/资源/Prompt；Anthropic/OpenAI/Google 三家支持</li>
+              <li>Function Calling：各家 LLM 厂商私有协议；OpenAI Tools API、Anthropic Computer Use</li>
+              <li>决策：跨厂商/可移植 → MCP；单厂商原生优化 → Function Calling</li>
+            </ul>
+          </li>
+          <li><strong>Orchestration Framework：</strong>
+            <ul>
+              <li>LangGraph：图结构，State Machine + Checkpoint；适合复杂状态机 Agent</li>
+              <li>CrewAI：Role-based 多 Agent；适合"角色协作"</li>
+              <li>AutoGen：Conversational 多 Agent；适合"对话式辩论"</li>
+              <li>决策：复杂状态 → LangGraph；多角色 → CrewAI；对话辩论 → AutoGen</li>
+            </ul>
+          </li>
+          <li><strong>Eval：</strong>
+            <ul>
+              <li>pass^1：单次尝试通过率（精度）</li>
+              <li>pass^k：k 次尝试中至少 1 次通过率（可靠性/平均吞吐量）</li>
+              <li>决策：评估能力上限 → pass^1；评估工程可靠性 → pass^k；KPI 报告应同时报</li>
+            </ul>
+          </li>
+          <li><strong>工程经验</strong>：生产 Agent 需要 Observability（轨迹回放 + Token 成本核算）+ Cost Cap（单次任务 ≤ $X）+ Kill Switch + Circuit Breaker（工具失败 fallback）</li>
+        </ul>
+        <div class="tip-box">💡 <strong>面试要点：</strong>四大组件 = Reasoning Pattern（ReAct/Reflexion/Plan-Execute）+ Tool Protocol（MCP/Function Calling）+ Orchestration（LangGraph/CrewAI/AutoGen）+ Eval（pass^1/pass^k）。MCP 已成 Linux Foundation 标准三家厂商支持。LangGraph 适合状态机 Agent，CrewAI 适合角色协作，AutoGen 适合对话辩论。pass^k 评估工程可靠性比 pass^1 更重要。生产 Agent 必备四件套：Observability + Cost Cap + Kill Switch + Circuit Breaker。</div>
       </div>
     </div>
 
